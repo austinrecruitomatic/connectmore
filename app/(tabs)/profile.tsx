@@ -1,0 +1,770 @@
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, TextInput, Image, Modal } from 'react-native';
+import { useAuth } from '@/lib/AuthContext';
+import { useRouter } from 'expo-router';
+import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet } from 'lucide-react-native';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+
+type Company = {
+  id: string;
+  company_name: string;
+  logo_url: string;
+  business_category: string;
+};
+
+const PAYMENT_METHODS = [
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'paypal', label: 'PayPal' },
+  { value: 'stripe', label: 'Stripe' },
+  { value: 'venmo', label: 'Venmo' },
+  { value: 'wise', label: 'Wise' },
+  { value: 'other', label: 'Other' },
+];
+
+const CATEGORIES = [
+  { value: 'ecommerce', label: 'E-commerce' },
+  { value: 'saas', label: 'SaaS' },
+  { value: 'digital_products', label: 'Digital Products' },
+  { value: 'services', label: 'Services' },
+  { value: 'education', label: 'Education' },
+  { value: 'health', label: 'Health' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'other', label: 'Other' },
+];
+
+export default function ProfileScreen() {
+  const { profile, signOut } = useAuth();
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [editForm, setEditForm] = useState({
+    company_name: '',
+    logo_url: '',
+    business_category: 'other',
+  });
+  const [paymentForm, setPaymentForm] = useState({
+    payment_method: profile?.payment_method || '',
+    payment_details: '',
+  });
+
+  useEffect(() => {
+    if (profile?.user_type === 'company') {
+      loadCompany();
+    }
+    if (profile) {
+      setPaymentForm({
+        payment_method: profile.payment_method || '',
+        payment_details: profile.payment_details?.details || '',
+      });
+    }
+  }, [profile]);
+
+  const loadCompany = async () => {
+    if (!profile?.id) return;
+
+    const { data } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('user_id', profile.id)
+      .maybeSingle();
+
+    if (data) {
+      setCompany(data);
+      setEditForm({
+        company_name: data.company_name,
+        logo_url: data.logo_url || '',
+        business_category: data.business_category || 'other',
+      });
+    }
+  };
+
+  const handleEditCompany = () => {
+    setShowEditModal(true);
+  };
+
+  const handleSaveCompany = async () => {
+    if (!company?.id) return;
+
+    if (!editForm.company_name.trim()) {
+      Alert.alert('Required Field', 'Please enter a company name');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          company_name: editForm.company_name,
+          logo_url: editForm.logo_url,
+          business_category: editForm.business_category,
+        })
+        .eq('id', company.id);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Company profile updated successfully!');
+      setShowEditModal(false);
+      await loadCompany();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update company profile');
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePaymentMethod = async () => {
+    if (!profile?.id) return;
+
+    if (!paymentForm.payment_method) {
+      Alert.alert('Required Field', 'Please select a payment method');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          payment_method: paymentForm.payment_method,
+          payment_details: { details: paymentForm.payment_details },
+        })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Payment method updated successfully!');
+      setShowPaymentModal(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update payment method');
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    console.log('Sign out button pressed');
+    if (signingOut) return;
+
+    if (Platform.OS === 'web') {
+      const confirmed = confirm('Are you sure you want to sign out?');
+      if (!confirmed) return;
+
+      try {
+        setSigningOut(true);
+        console.log('Signing out...');
+        await signOut();
+        console.log('Sign out successful');
+      } catch (error) {
+        console.error('Sign out error:', error);
+        alert('Failed to sign out. Please try again.');
+        setSigningOut(false);
+      }
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setSigningOut(true);
+              console.log('Signing out...');
+              await signOut();
+              console.log('Sign out successful');
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+              setSigningOut(false);
+            }
+          },
+        },
+      ]);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <View style={styles.avatarContainer}>
+          {profile?.user_type === 'company' && company?.logo_url ? (
+            <Image source={{ uri: company.logo_url }} style={styles.logoImage} />
+          ) : (
+            <User size={48} color="#60A5FA" />
+          )}
+        </View>
+        <Text style={styles.name}>
+          {profile?.user_type === 'company' && company?.company_name
+            ? company.company_name
+            : profile?.full_name}
+        </Text>
+        <View style={styles.typeBadge}>
+          <Text style={styles.typeBadgeText}>
+            {profile?.user_type === 'company' ? 'Company' : 'Affiliate'}
+          </Text>
+        </View>
+        {profile?.user_type === 'company' && (
+          <TouchableOpacity style={styles.editButton} onPress={handleEditCompany}>
+            <Edit size={16} color="#60A5FA" />
+            <Text style={styles.editButtonText}>Edit Company Info</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Account Information</Text>
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <View style={styles.infoIcon}>
+              <Mail size={20} color="#64748B" />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Email</Text>
+              <Text style={styles.infoValue}>{profile?.email}</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoIcon}>
+              {profile?.user_type === 'company' ? (
+                <Building2 size={20} color="#64748B" />
+              ) : (
+                <User size={20} color="#64748B" />
+              )}
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Account Type</Text>
+              <Text style={styles.infoValue}>
+                {profile?.user_type === 'company' ? 'Company Account' : 'Affiliate Account'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {profile?.user_type === 'affiliate' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Settings</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Wallet size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Payment Method</Text>
+                <Text style={styles.infoValue}>
+                  {profile.payment_method
+                    ? PAYMENT_METHODS.find(m => m.value === profile.payment_method)?.label || 'Not set'
+                    : 'Not configured'}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.configureButton}
+              onPress={() => setShowPaymentModal(true)}
+            >
+              <DollarSign size={16} color="#60A5FA" />
+              <Text style={styles.configureButtonText}>
+                {profile.payment_method ? 'Update Payment Method' : 'Configure Payment'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>About</Text>
+        <View style={styles.aboutCard}>
+          <Text style={styles.aboutText}>
+            {profile?.user_type === 'company'
+              ? 'As a company, you can create products, manage affiliates, and track the performance of your affiliate marketing campaigns.'
+              : 'As an affiliate, you can browse products, create landing pages, and earn commissions by promoting products you believe in.'}
+          </Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.signOutButton, signingOut && styles.signOutButtonDisabled]}
+        onPress={handleSignOut}
+        disabled={signingOut}
+      >
+        {signingOut ? (
+          <>
+            <ActivityIndicator size="small" color="#fff" />
+            <Text style={styles.signOutButtonText}>Signing Out...</Text>
+          </>
+        ) : (
+          <>
+            <LogOut size={20} color="#fff" />
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
+          </>
+        )}
+      </TouchableOpacity>
+
+      <Modal visible={showEditModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Company Info</Text>
+              <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalForm}>
+              <Text style={styles.label}>Company Name</Text>
+              <TextInput
+                style={styles.input}
+                value={editForm.company_name}
+                onChangeText={(text) => setEditForm({ ...editForm, company_name: text })}
+                placeholder="Enter company name"
+              />
+
+              <Text style={styles.label}>Logo URL</Text>
+              <TextInput
+                style={styles.input}
+                value={editForm.logo_url}
+                onChangeText={(text) => setEditForm({ ...editForm, logo_url: text })}
+                placeholder="https://example.com/logo.png"
+                placeholderTextColor="#64748B"
+              />
+
+              {editForm.logo_url && (
+                <View style={styles.logoPreview}>
+                  <Text style={styles.previewLabel}>Logo Preview:</Text>
+                  <Image source={{ uri: editForm.logo_url }} style={styles.previewImage} />
+                </View>
+              )}
+
+              <Text style={styles.label}>Business Category</Text>
+              <View style={styles.categoryGrid}>
+                {CATEGORIES.map(category => (
+                  <TouchableOpacity
+                    key={category.value}
+                    style={[
+                      styles.categoryOption,
+                      editForm.business_category === category.value && styles.categoryOptionActive,
+                    ]}
+                    onPress={() => setEditForm({ ...editForm, business_category: category.value })}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryOptionText,
+                        editForm.business_category === category.value && styles.categoryOptionTextActive,
+                      ]}
+                    >
+                      {category.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                onPress={handleSaveCompany}
+                disabled={saving}
+              >
+                <Text style={styles.saveButtonText}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showPaymentModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Payment Method</Text>
+              <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalForm}>
+              <Text style={styles.label}>Select Payment Method</Text>
+              {PAYMENT_METHODS.map((method) => (
+                <TouchableOpacity
+                  key={method.value}
+                  style={[
+                    styles.methodOption,
+                    paymentForm.payment_method === method.value && styles.methodOptionSelected
+                  ]}
+                  onPress={() => setPaymentForm({ ...paymentForm, payment_method: method.value })}
+                >
+                  <View style={styles.radio}>
+                    {paymentForm.payment_method === method.value && (
+                      <View style={styles.radioInner} />
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.methodLabel,
+                    paymentForm.payment_method === method.value && styles.methodLabelSelected
+                  ]}>
+                    {method.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              <Text style={[styles.label, { marginTop: 16 }]}>Payment Details</Text>
+              <Text style={styles.helpText}>
+                Enter your account details (email, account number, etc.)
+              </Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={paymentForm.payment_details}
+                onChangeText={(text) => setPaymentForm({ ...paymentForm, payment_details: text })}
+                placeholder="e.g., paypal@example.com or account details"
+                placeholderTextColor="#64748B"
+                multiline
+                numberOfLines={3}
+              />
+
+              <TouchableOpacity
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                onPress={handleSavePaymentMethod}
+                disabled={saving}
+              >
+                <Text style={styles.saveButtonText}>
+                  {saving ? 'Saving...' : 'Save Payment Method'}
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.securityNote}>
+                Your payment information is stored securely and only visible to platform administrators when processing payouts.
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  content: {
+    padding: 16,
+  },
+  header: {
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  avatarContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  typeBadge: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  typeBadgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  infoCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  infoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  aboutCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  aboutText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 20,
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 32,
+  },
+  signOutButtonDisabled: {
+    opacity: 0.6,
+  },
+  signOutButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  editButtonText: {
+    color: '#60A5FA',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  logoImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#1E293B',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modalForm: {
+    padding: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 16,
+    backgroundColor: '#0F172A',
+    color: '#FFFFFF',
+  },
+  logoPreview: {
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  previewLabel: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  previewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  saveButton: {
+    backgroundColor: '#3B82F6',
+    padding: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  configureButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  configureButtonText: {
+    color: '#60A5FA',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  methodOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 8,
+    backgroundColor: '#0F172A',
+  },
+  methodOptionSelected: {
+    borderColor: '#3B82F6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#334155',
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#3B82F6',
+  },
+  methodLabel: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  methodLabelSelected: {
+    color: '#60A5FA',
+  },
+  helpText: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  securityNote: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 20,
+    paddingHorizontal: 20,
+    lineHeight: 18,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  categoryOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+    backgroundColor: '#0F172A',
+  },
+  categoryOptionActive: {
+    borderColor: '#3B82F6',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+  },
+  categoryOptionText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#94A3B8',
+  },
+  categoryOptionTextActive: {
+    color: '#60A5FA',
+  },
+});
