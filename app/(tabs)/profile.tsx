@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, TextInput, Image, Modal } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'expo-router';
-import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet } from 'lucide-react-native';
+import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -22,13 +22,21 @@ const PAYMENT_METHODS = [
 ];
 
 const CATEGORIES = [
+  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'taxes', label: 'Taxes' },
+  { value: 'legal_software', label: 'Legal Software' },
+  { value: 'legal_services', label: 'Legal Services' },
+  { value: 'recruiting', label: 'Recruiting' },
+  { value: 'hr_software', label: 'HR Software' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'sales_software', label: 'Sales Software' },
+  { value: 'accounting', label: 'Accounting' },
+  { value: 'financial_services', label: 'Financial Services' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'construction', label: 'Construction' },
+  { value: 'consulting', label: 'Consulting' },
   { value: 'ecommerce', label: 'E-commerce' },
-  { value: 'saas', label: 'SaaS' },
-  { value: 'digital_products', label: 'Digital Products' },
-  { value: 'services', label: 'Services' },
-  { value: 'education', label: 'Education' },
-  { value: 'health', label: 'Health' },
-  { value: 'finance', label: 'Finance' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -38,6 +46,7 @@ export default function ProfileScreen() {
   const [signingOut, setSigningOut] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [company, setCompany] = useState<Company | null>(null);
   const [editForm, setEditForm] = useState({
@@ -345,27 +354,15 @@ export default function ProfileScreen() {
               )}
 
               <Text style={styles.label}>Business Category</Text>
-              <View style={styles.categoryGrid}>
-                {CATEGORIES.map(category => (
-                  <TouchableOpacity
-                    key={category.value}
-                    style={[
-                      styles.categoryOption,
-                      editForm.business_category === category.value && styles.categoryOptionActive,
-                    ]}
-                    onPress={() => setEditForm({ ...editForm, business_category: category.value })}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryOptionText,
-                        editForm.business_category === category.value && styles.categoryOptionTextActive,
-                      ]}
-                    >
-                      {category.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <TouchableOpacity
+                style={styles.dropdown}
+                onPress={() => setShowCategoryModal(true)}
+              >
+                <Text style={styles.dropdownText}>
+                  {CATEGORIES.find(c => c.value === editForm.business_category)?.label || 'Select Category'}
+                </Text>
+                <ChevronDown size={20} color="#94A3B8" />
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -443,6 +440,43 @@ export default function ProfileScreen() {
               <Text style={styles.securityNote}>
                 Your payment information is stored securely and only visible to platform administrators when processing payouts.
               </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showCategoryModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Business Category</Text>
+              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList}>
+              {CATEGORIES.map(category => (
+                <TouchableOpacity
+                  key={category.value}
+                  style={[
+                    styles.categoryItem,
+                    editForm.business_category === category.value && styles.categoryItemActive
+                  ]}
+                  onPress={() => {
+                    setEditForm({ ...editForm, business_category: category.value });
+                    setShowCategoryModal(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.categoryItemText,
+                      editForm.business_category === category.value && styles.categoryItemTextActive
+                    ]}
+                  >
+                    {category.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </View>
         </View>
@@ -741,30 +775,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     lineHeight: 18,
   },
-  categoryGrid: {
+  dropdown: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  categoryOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: '#334155',
+    borderRadius: 8,
+    padding: 12,
     backgroundColor: '#0F172A',
+    marginBottom: 16,
   },
-  categoryOptionActive: {
-    borderColor: '#3B82F6',
+  dropdownText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  modalList: {
+    padding: 8,
+  },
+  categoryItem: {
+    padding: 16,
+    borderRadius: 8,
+    marginVertical: 4,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  categoryItemActive: {
     backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderColor: '#3B82F6',
   },
-  categoryOptionText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#94A3B8',
+  categoryItemText: {
+    fontSize: 16,
+    color: '#FFFFFF',
   },
-  categoryOptionTextActive: {
+  categoryItemTextActive: {
     color: '#60A5FA',
+    fontWeight: '600',
   },
 });

@@ -1,16 +1,25 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/AuthContext';
+import { ChevronDown, X } from 'lucide-react-native';
 
 const CATEGORIES = [
+  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'taxes', label: 'Taxes' },
+  { value: 'legal_software', label: 'Legal Software' },
+  { value: 'legal_services', label: 'Legal Services' },
+  { value: 'recruiting', label: 'Recruiting' },
+  { value: 'hr_software', label: 'HR Software' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'sales_software', label: 'Sales Software' },
+  { value: 'accounting', label: 'Accounting' },
+  { value: 'financial_services', label: 'Financial Services' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'construction', label: 'Construction' },
+  { value: 'consulting', label: 'Consulting' },
   { value: 'ecommerce', label: 'E-commerce' },
-  { value: 'saas', label: 'SaaS' },
-  { value: 'digital_products', label: 'Digital Products' },
-  { value: 'services', label: 'Services' },
-  { value: 'education', label: 'Education' },
-  { value: 'health', label: 'Health' },
-  { value: 'finance', label: 'Finance' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -20,6 +29,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [businessCategory, setBusinessCategory] = useState('other');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [userType, setUserType] = useState<'company' | 'affiliate'>('affiliate');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -124,27 +134,15 @@ export default function SignupScreen() {
                 />
 
                 <Text style={styles.label}>Business Category</Text>
-                <View style={styles.categoryGrid}>
-                  {CATEGORIES.map(category => (
-                    <TouchableOpacity
-                      key={category.value}
-                      style={[
-                        styles.categoryOption,
-                        businessCategory === category.value && styles.categoryOptionActive,
-                      ]}
-                      onPress={() => setBusinessCategory(category.value)}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryOptionText,
-                          businessCategory === category.value && styles.categoryOptionTextActive,
-                        ]}
-                      >
-                        {category.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <TouchableOpacity
+                  style={styles.dropdown}
+                  onPress={() => setShowCategoryModal(true)}
+                >
+                  <Text style={styles.dropdownText}>
+                    {CATEGORIES.find(c => c.value === businessCategory)?.label || 'Select Category'}
+                  </Text>
+                  <ChevronDown size={20} color="#94A3B8" />
+                </TouchableOpacity>
               </>
             )}
 
@@ -181,6 +179,43 @@ export default function SignupScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal visible={showCategoryModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Business Category</Text>
+              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList}>
+              {CATEGORIES.map(category => (
+                <TouchableOpacity
+                  key={category.value}
+                  style={[
+                    styles.categoryItem,
+                    businessCategory === category.value && styles.categoryItemActive
+                  ]}
+                  onPress={() => {
+                    setBusinessCategory(category.value);
+                    setShowCategoryModal(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.categoryItemText,
+                      businessCategory === category.value && styles.categoryItemTextActive
+                    ]}
+                  >
+                    {category.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -281,29 +316,65 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EF4444',
   },
-  categoryGrid: {
+  dropdown: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  categoryOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: '#334155',
+    borderRadius: 12,
+    padding: 16,
     backgroundColor: '#1E293B',
   },
-  categoryOptionActive: {
-    borderColor: '#3B82F6',
+  dropdownText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#1E293B',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modalList: {
+    padding: 8,
+  },
+  categoryItem: {
+    padding: 16,
+    borderRadius: 8,
+    marginVertical: 4,
     backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
   },
-  categoryOptionText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#94A3B8',
+  categoryItemActive: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderColor: '#3B82F6',
   },
-  categoryOptionTextActive: {
+  categoryItemText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  categoryItemTextActive: {
     color: '#60A5FA',
+    fontWeight: '600',
   },
 });

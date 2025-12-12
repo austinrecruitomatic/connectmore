@@ -17,13 +17,21 @@ type Company = {
 
 const CATEGORIES = [
   { value: 'all', label: 'All' },
+  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'taxes', label: 'Taxes' },
+  { value: 'legal_software', label: 'Legal Software' },
+  { value: 'legal_services', label: 'Legal Services' },
+  { value: 'recruiting', label: 'Recruiting' },
+  { value: 'hr_software', label: 'HR Software' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'sales_software', label: 'Sales Software' },
+  { value: 'accounting', label: 'Accounting' },
+  { value: 'financial_services', label: 'Financial Services' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'construction', label: 'Construction' },
+  { value: 'consulting', label: 'Consulting' },
   { value: 'ecommerce', label: 'E-commerce' },
-  { value: 'saas', label: 'SaaS' },
-  { value: 'digital_products', label: 'Digital Products' },
-  { value: 'services', label: 'Services' },
-  { value: 'education', label: 'Education' },
-  { value: 'health', label: 'Health' },
-  { value: 'finance', label: 'Finance' },
   { value: 'other', label: 'Other' },
 ];
 
