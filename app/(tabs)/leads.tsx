@@ -225,25 +225,49 @@ export default function LeadsScreen() {
 
     if (dealError) throw dealError;
 
-    const expectedPayoutDate = new Date();
-    expectedPayoutDate.setDate(expectedPayoutDate.getDate() + (settingsData.payout_frequency_days || 30));
+    if (lead.contract_type === 'monthly' && lead.contract_length_months) {
+      const periods = lead.contract_length_months;
+      const paymentPeriods = [];
+      const startDate = new Date();
 
-    const { error: commissionError } = await supabase
-      .from('commissions')
-      .insert({
-        deal_id: dealData.id,
-        partnership_id: partnershipData.id,
-        affiliate_id: lead.affiliate_partnerships.affiliate_id,
-        company_id: companyData.id,
-        commission_amount: commission,
-        platform_fee_amount: platformFee,
-        affiliate_payout_amount: affiliatePayout,
-        commission_type: 'initial',
-        status: settingsData.auto_approve_commissions ? 'approved' : 'pending',
-        expected_payout_date: expectedPayoutDate.toISOString().split('T')[0],
-      });
+      for (let i = 1; i <= periods; i++) {
+        const expectedDate = new Date(startDate);
+        expectedDate.setMonth(expectedDate.getMonth() + i);
 
-    if (commissionError) throw commissionError;
+        paymentPeriods.push({
+          deal_id: dealData.id,
+          period_number: i,
+          expected_payment_date: expectedDate.toISOString().split('T')[0],
+          payment_confirmed: false,
+        });
+      }
+
+      const { error: periodsError } = await supabase
+        .from('deal_payment_periods')
+        .insert(paymentPeriods);
+
+      if (periodsError) throw periodsError;
+    } else {
+      const expectedPayoutDate = new Date();
+      expectedPayoutDate.setDate(expectedPayoutDate.getDate() + (settingsData.payout_frequency_days || 30));
+
+      const { error: commissionError } = await supabase
+        .from('commissions')
+        .insert({
+          deal_id: dealData.id,
+          partnership_id: partnershipData.id,
+          affiliate_id: lead.affiliate_partnerships.affiliate_id,
+          company_id: companyData.id,
+          commission_amount: commission,
+          platform_fee_amount: platformFee,
+          affiliate_payout_amount: affiliatePayout,
+          commission_type: 'initial',
+          status: settingsData.auto_approve_commissions ? 'approved' : 'pending',
+          expected_payout_date: expectedPayoutDate.toISOString().split('T')[0],
+        });
+
+      if (commissionError) throw commissionError;
+    }
   };
 
   const handleSaveNotes = async () => {

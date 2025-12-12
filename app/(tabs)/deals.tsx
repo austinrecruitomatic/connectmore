@@ -43,6 +43,26 @@ type Deal = {
   } | null;
 };
 
+type PaymentPeriod = {
+  id: string;
+  deal_id: string;
+  period_number: number;
+  expected_payment_date: string;
+  payment_confirmed: boolean;
+  payment_confirmed_at: string | null;
+  deals: {
+    deal_value: number;
+    partnership_id: string;
+    affiliate_id: string;
+    contact_submissions: {
+      name: string;
+    };
+    profiles: {
+      full_name: string;
+    };
+  };
+};
+
 type CompanySettings = {
   commission_rate: number;
   platform_fee_rate: number;
@@ -58,6 +78,7 @@ export default function DealsScreen() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [qualifiedLeads, setQualifiedLeads] = useState<any[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PaymentPeriod[]>([]);
 
   const [formData, setFormData] = useState({
     contact_submission_id: '',
@@ -72,7 +93,47 @@ export default function DealsScreen() {
   useEffect(() => {
     loadDeals();
     loadCompanySettings();
+    loadPendingPayments();
   }, []);
+
+  const loadPendingPayments = async () => {
+    if (profile?.user_type !== 'company') return;
+
+    try {
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (!companyData) return;
+
+      const { data, error } = await supabase
+        .from('deal_payment_periods')
+        .select(`
+          *,
+          deals (
+            deal_value,
+            partnership_id,
+            affiliate_id,
+            contact_submissions (
+              name
+            ),
+            profiles (
+              full_name
+            )
+          )
+        `)
+        .eq('payment_confirmed', false)
+        .lte('expected_payment_date', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .order('expected_payment_date', { ascending: true });
+
+      if (error) throw error;
+      setPendingPayments(data || []);
+    } catch (error) {
+      console.error('Error loading pending payments:', error);
+    }
+  };
 
   const loadCompanySettings = async () => {
     if (!profile?.id) return;
@@ -224,25 +285,55 @@ export default function DealsScreen() {
 
       if (dealError) throw dealError;
 
-      const expectedPayoutDate = new Date();
-      expectedPayoutDate.setDate(expectedPayoutDate.getDate() + (settings?.payout_frequency_days || 30));
+      if (formData.contract_type === 'recurring' && formData.contract_length_months) {
+        const periods = parseInt(formData.contract_length_months);
+        const paymentPeriods = [];
+        const startDate = new Date();
 
-      const { error: commissionError } = await supabase
-        .from('commissions')
-        .insert({
-          deal_id: dealData.id,
-          partnership_id: selectedLead.affiliate_partnerships.id,
-          affiliate_id: selectedLead.affiliate_partnerships.affiliate_id,
-          company_id: companyId,
-          commission_amount: commission,
-          platform_fee_amount: platformFee,
-          affiliate_payout_amount: affiliatePayout,
-          commission_type: 'initial',
-          status: settings?.auto_approve_commissions ? 'approved' : 'pending',
-          expected_payout_date: expectedPayoutDate.toISOString().split('T')[0],
-        });
+        for (let i = 1; i <= periods; i++) {
+          const expectedDate = new Date(startDate);
+          if (formData.billing_frequency === 'monthly') {
+            expectedDate.setMonth(expectedDate.getMonth() + i);
+          } else if (formData.billing_frequency === 'quarterly') {
+            expectedDate.setMonth(expectedDate.getMonth() + (i * 3));
+          } else if (formData.billing_frequency === 'annual') {
+            expectedDate.setMonth(expectedDate.getMonth() + (i * 12));
+          }
 
-      if (commissionError) throw commissionError;
+          paymentPeriods.push({
+            deal_id: dealData.id,
+            period_number: i,
+            expected_payment_date: expectedDate.toISOString().split('T')[0],
+            payment_confirmed: false,
+          });
+        }
+
+        const { error: periodsError } = await supabase
+          .from('deal_payment_periods')
+          .insert(paymentPeriods);
+
+        if (periodsError) throw periodsError;
+      } else {
+        const expectedPayoutDate = new Date();
+        expectedPayoutDate.setDate(expectedPayoutDate.getDate() + (settings?.payout_frequency_days || 30));
+
+        const { error: commissionError } = await supabase
+          .from('commissions')
+          .insert({
+            deal_id: dealData.id,
+            partnership_id: selectedLead.affiliate_partnerships.id,
+            affiliate_id: selectedLead.affiliate_partnerships.affiliate_id,
+            company_id: companyId,
+            commission_amount: commission,
+            platform_fee_amount: platformFee,
+            affiliate_payout_amount: affiliatePayout,
+            commission_type: 'initial',
+            status: settings?.auto_approve_commissions ? 'approved' : 'pending',
+            expected_payout_date: expectedPayoutDate.toISOString().split('T')[0],
+          });
+
+        if (commissionError) throw commissionError;
+      }
 
       const { error: updateError } = await supabase
         .from('contact_submissions')
@@ -263,9 +354,60 @@ export default function DealsScreen() {
         notes: '',
       });
       loadDeals();
+      loadPendingPayments();
     } catch (error: any) {
       console.error('Error creating deal:', error);
       Alert.alert('Error', error.message || 'Failed to create deal');
+    }
+  };
+
+  const handleConfirmPayment = async (periodId: string, dealId: string, periodNumber: number, partnershipId: string, affiliateId: string, dealValue: number) => {
+    try {
+      if (!settings || !companyId) return;
+
+      const commission = dealValue * (settings.commission_rate / 100);
+      const platformFee = commission * (settings.platform_fee_rate / 100);
+      const affiliatePayout = commission - platformFee;
+
+      const expectedPayoutDate = new Date();
+      expectedPayoutDate.setDate(expectedPayoutDate.getDate() + (settings.payout_frequency_days || 30));
+
+      const { data: commissionData, error: commissionError } = await supabase
+        .from('commissions')
+        .insert({
+          deal_id: dealId,
+          partnership_id: partnershipId,
+          affiliate_id: affiliateId,
+          company_id: companyId,
+          commission_amount: commission,
+          platform_fee_amount: platformFee,
+          affiliate_payout_amount: affiliatePayout,
+          commission_type: 'recurring',
+          status: settings.auto_approve_commissions ? 'approved' : 'pending',
+          expected_payout_date: expectedPayoutDate.toISOString().split('T')[0],
+        })
+        .select()
+        .single();
+
+      if (commissionError) throw commissionError;
+
+      const { error: updateError } = await supabase
+        .from('deal_payment_periods')
+        .update({
+          payment_confirmed: true,
+          payment_confirmed_at: new Date().toISOString(),
+          payment_confirmed_by: profile?.id,
+          commission_id: commissionData.id,
+        })
+        .eq('id', periodId);
+
+      if (updateError) throw updateError;
+
+      Alert.alert('Success', `Payment ${periodNumber} confirmed and commission generated!`);
+      loadPendingPayments();
+    } catch (error: any) {
+      console.error('Error confirming payment:', error);
+      Alert.alert('Error', error.message || 'Failed to confirm payment');
     }
   };
 
@@ -352,8 +494,62 @@ export default function DealsScreen() {
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadDeals} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => { loadDeals(); loadPendingPayments(); }} />}
       >
+        {pendingPayments.length > 0 && (
+          <View style={styles.paymentsSection}>
+            <Text style={styles.sectionTitle}>Pending Payment Confirmations</Text>
+            <Text style={styles.sectionSubtitle}>
+              Confirm client payments to generate affiliate commissions
+            </Text>
+            {pendingPayments.map((payment) => (
+              <View key={payment.id} style={styles.paymentCard}>
+                <View style={styles.paymentHeader}>
+                  <View style={styles.paymentInfo}>
+                    <Text style={styles.paymentClient}>
+                      {(payment.deals.contact_submissions as any)?.name || 'Client'}
+                    </Text>
+                    <Text style={styles.paymentAffiliate}>
+                      via {(payment.deals.profiles as any)?.full_name || 'Affiliate'}
+                    </Text>
+                  </View>
+                  <View style={styles.paymentBadge}>
+                    <Text style={styles.paymentPeriod}>Period {payment.period_number}</Text>
+                  </View>
+                </View>
+                <View style={styles.paymentDetails}>
+                  <View style={styles.paymentDetailRow}>
+                    <DollarSign size={16} color="#60A5FA" />
+                    <Text style={styles.paymentAmount}>
+                      {formatCurrency(Number(payment.deals.deal_value))}
+                    </Text>
+                  </View>
+                  <View style={styles.paymentDetailRow}>
+                    <Calendar size={16} color="#94A3B8" />
+                    <Text style={styles.paymentDate}>
+                      Due: {new Date(payment.expected_payment_date).toLocaleDateString()}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={() => handleConfirmPayment(
+                    payment.id,
+                    payment.deal_id,
+                    payment.period_number,
+                    payment.deals.partnership_id,
+                    payment.deals.affiliate_id,
+                    Number(payment.deals.deal_value)
+                  )}
+                >
+                  <CheckCircle size={18} color="#FFFFFF" />
+                  <Text style={styles.confirmButtonText}>Confirm Payment Received</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
         {deals.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No deals yet</Text>
@@ -967,5 +1163,93 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 6,
     fontStyle: 'italic',
+  },
+  paymentsSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 16,
+  },
+  paymentCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  paymentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  paymentInfo: {
+    flex: 1,
+  },
+  paymentClient: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  paymentAffiliate: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  paymentBadge: {
+    backgroundColor: '#F59E0B20',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  paymentPeriod: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  paymentDetails: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 12,
+  },
+  paymentDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  paymentAmount: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#60A5FA',
+  },
+  paymentDate: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  confirmButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#10B981',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  confirmButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
