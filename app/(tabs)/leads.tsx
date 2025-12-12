@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Filter,
   CheckCircle,
+  DollarSign,
 } from 'lucide-react-native';
 
 type ContactSubmission = {
@@ -33,6 +34,8 @@ type ContactSubmission = {
   message: string | null;
   status: 'new' | 'contacted' | 'qualified' | 'not_interested' | 'closed';
   notes: string | null;
+  contract_value: number | null;
+  contract_type: 'monthly' | 'total';
   created_at: string;
   landing_page_slug: string;
   affiliate_partnerships: {
@@ -53,6 +56,8 @@ export default function LeadsScreen() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
+  const [contractValue, setContractValue] = useState('');
+  const [contractType, setContractType] = useState<'monthly' | 'total'>('total');
 
   useEffect(() => {
     loadLeads();
@@ -110,6 +115,8 @@ export default function LeadsScreen() {
   const handleLeadClick = (lead: ContactSubmission) => {
     setSelectedLead(lead);
     setNotes(lead.notes || '');
+    setContractValue(lead.contract_value?.toString() || '');
+    setContractType(lead.contract_type || 'total');
     setShowDetailModal(true);
   };
 
@@ -145,19 +152,28 @@ export default function LeadsScreen() {
     setSavingNotes(true);
 
     try {
+      const updateData: any = { notes };
+
+      if (contractValue) {
+        updateData.contract_value = parseFloat(contractValue);
+        updateData.contract_type = contractType;
+      } else {
+        updateData.contract_value = null;
+      }
+
       const { error } = await supabase
         .from('contact_submissions')
-        .update({ notes })
+        .update(updateData)
         .eq('id', selectedLead.id);
 
       if (error) throw error;
 
-      setSelectedLead({ ...selectedLead, notes });
+      setSelectedLead({ ...selectedLead, ...updateData });
       loadLeads();
-      alert('Notes saved successfully');
+      alert('Details saved successfully');
     } catch (error) {
-      console.error('Error saving notes:', error);
-      alert('Failed to save notes');
+      console.error('Error saving details:', error);
+      alert('Failed to save details');
     } finally {
       setSavingNotes(false);
     }
@@ -380,6 +396,57 @@ export default function LeadsScreen() {
                 </View>
 
                 <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Contract Value</Text>
+                  <View style={styles.contractCard}>
+                    <View style={styles.contractInputRow}>
+                      <DollarSign size={18} color="#60A5FA" />
+                      <TextInput
+                        style={styles.contractInput}
+                        value={contractValue}
+                        onChangeText={setContractValue}
+                        placeholder="Enter value"
+                        placeholderTextColor="#64748B"
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                    <View style={styles.contractTypeRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.contractTypeOption,
+                          contractType === 'total' && styles.contractTypeOptionActive,
+                        ]}
+                        onPress={() => setContractType('total')}
+                      >
+                        <Text
+                          style={[
+                            styles.contractTypeText,
+                            contractType === 'total' && styles.contractTypeTextActive,
+                          ]}
+                        >
+                          Total
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.contractTypeOption,
+                          contractType === 'monthly' && styles.contractTypeOptionActive,
+                        ]}
+                        onPress={() => setContractType('monthly')}
+                      >
+                        <Text
+                          style={[
+                            styles.contractTypeText,
+                            contractType === 'monthly' && styles.contractTypeTextActive,
+                          ]}
+                        >
+                          Monthly
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Internal Notes</Text>
                   <TextInput
                     style={styles.notesInput}
@@ -397,7 +464,7 @@ export default function LeadsScreen() {
                     disabled={savingNotes}
                   >
                     <Text style={styles.saveNotesButtonText}>
-                      {savingNotes ? 'Saving...' : 'Save Notes'}
+                      {savingNotes ? 'Saving...' : 'Save Details'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -790,5 +857,54 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748B',
     fontWeight: '600',
+  },
+  contractCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  contractInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  contractInput: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    padding: 0,
+  },
+  contractTypeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  contractTypeOption: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+  },
+  contractTypeOptionActive: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  contractTypeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  contractTypeTextActive: {
+    color: '#FFFFFF',
   },
 });
