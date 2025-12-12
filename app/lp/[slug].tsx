@@ -30,6 +30,9 @@ interface LandingPageData {
   affiliateCode: string;
   primaryColor?: string;
   themeStyle?: string;
+  discountEnabled?: boolean;
+  discountType?: 'percentage' | 'fixed_amount';
+  discountValue?: number;
 }
 
 export default function LandingPageView() {
@@ -89,7 +92,7 @@ export default function LandingPageView() {
 
         const { data: products } = await supabase
           .from('products')
-          .select('product_url, name')
+          .select('product_url, name, affiliate_discount_enabled, affiliate_discount_type, affiliate_discount_value')
           .eq('company_id', partnership?.company_id)
           .limit(1)
           .maybeSingle();
@@ -110,6 +113,9 @@ export default function LandingPageView() {
           affiliateCode: content?.affiliateCode || '',
           primaryColor: template?.primary_color || '#007AFF',
           themeStyle: template?.theme_style || 'modern',
+          discountEnabled: products?.affiliate_discount_enabled || false,
+          discountType: products?.affiliate_discount_type || 'percentage',
+          discountValue: products?.affiliate_discount_value || 0,
         };
 
         setPageData(pageInfo);
@@ -167,6 +173,9 @@ export default function LandingPageView() {
         heroImage: product?.lp_hero_image || '',
         productUrl: product?.product_url || '',
         affiliateCode: partnership.affiliate_code,
+        discountEnabled: product?.affiliate_discount_enabled || false,
+        discountType: product?.affiliate_discount_type || 'percentage',
+        discountValue: product?.affiliate_discount_value || 0,
       };
 
       setPageData(pageInfo);
@@ -306,6 +315,17 @@ export default function LandingPageView() {
         ) : null}
 
         <Text style={styles.headline}>{pageData.headline}</Text>
+
+        {pageData.discountEnabled && pageData.discountValue && pageData.discountValue > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountText}>
+              SPECIAL OFFER: {pageData.discountType === 'percentage'
+                ? `${pageData.discountValue}% OFF`
+                : `$${pageData.discountValue} OFF`}
+            </Text>
+            <Text style={styles.discountSubtext}>Exclusive discount through this link</Text>
+          </View>
+        )}
 
         {pageData.description ? (
           <Text style={styles.description}>{pageData.description}</Text>
@@ -493,6 +513,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 28,
     marginBottom: 32,
+  },
+  discountBadge: {
+    backgroundColor: '#10B981',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginVertical: 20,
+    marginHorizontal: 20,
+    alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  discountText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  discountSubtext: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#E0F2FE',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   ctaButton: {
     backgroundColor: '#007AFF',

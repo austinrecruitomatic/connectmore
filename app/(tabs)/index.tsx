@@ -33,6 +33,9 @@ type Product = {
   lp_cta_text?: string;
   lp_cta_type?: string;
   lp_hero_image?: string;
+  affiliate_discount_enabled?: boolean;
+  affiliate_discount_type?: 'percentage' | 'fixed_amount';
+  affiliate_discount_value?: number;
 };
 
 type Company = {
@@ -66,6 +69,9 @@ export default function HomeScreen() {
     lp_cta_text: 'Get Started',
     lp_cta_type: 'signup',
     lp_hero_image: '',
+    affiliate_discount_enabled: false,
+    affiliate_discount_type: 'percentage' as 'percentage' | 'fixed_amount',
+    affiliate_discount_value: '',
   });
 
   useEffect(() => {
@@ -135,6 +141,9 @@ export default function HomeScreen() {
       lp_cta_text: 'Get Started',
       lp_cta_type: 'signup',
       lp_hero_image: '',
+      affiliate_discount_enabled: false,
+      affiliate_discount_type: 'percentage',
+      affiliate_discount_value: '',
     });
     setEditingProductId(null);
   };
@@ -152,6 +161,9 @@ export default function HomeScreen() {
       lp_cta_text: product.lp_cta_text || 'Get Started',
       lp_cta_type: product.lp_cta_type || 'signup',
       lp_hero_image: product.lp_hero_image || '',
+      affiliate_discount_enabled: product.affiliate_discount_enabled || false,
+      affiliate_discount_type: product.affiliate_discount_type || 'percentage',
+      affiliate_discount_value: product.affiliate_discount_value?.toString() || '',
     });
     setEditingProductId(product.id);
     setShowAddModal(true);
@@ -185,6 +197,11 @@ export default function HomeScreen() {
         lp_cta_text: newProduct.lp_cta_text,
         lp_cta_type: newProduct.lp_cta_type,
         lp_hero_image: newProduct.lp_hero_image,
+        affiliate_discount_enabled: newProduct.affiliate_discount_enabled,
+        affiliate_discount_type: newProduct.affiliate_discount_enabled ? newProduct.affiliate_discount_type : null,
+        affiliate_discount_value: newProduct.affiliate_discount_enabled && newProduct.affiliate_discount_value
+          ? parseFloat(newProduct.affiliate_discount_value)
+          : null,
       };
 
       let error;
@@ -495,6 +512,72 @@ export default function HomeScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                <Text style={styles.sectionHeader}>Affiliate Link Discount</Text>
+                <Text style={styles.helperText}>
+                  Offer customers a special discount when they come through affiliate links
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.checkboxRow}
+                  onPress={() => setNewProduct({ ...newProduct, affiliate_discount_enabled: !newProduct.affiliate_discount_enabled })}
+                >
+                  <View style={[styles.checkbox, newProduct.affiliate_discount_enabled && styles.checkboxActive]}>
+                    {newProduct.affiliate_discount_enabled && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Enable affiliate discount</Text>
+                </TouchableOpacity>
+
+                {newProduct.affiliate_discount_enabled && (
+                  <>
+                    <Text style={styles.label}>Discount Type</Text>
+                    <View style={styles.typeSelector}>
+                      <TouchableOpacity
+                        style={[
+                          styles.typeButton,
+                          newProduct.affiliate_discount_type === 'percentage' && styles.typeButtonActive,
+                        ]}
+                        onPress={() => setNewProduct({ ...newProduct, affiliate_discount_type: 'percentage' })}
+                      >
+                        <Text
+                          style={[
+                            styles.typeButtonText,
+                            newProduct.affiliate_discount_type === 'percentage' && styles.typeButtonTextActive,
+                          ]}
+                        >
+                          Percentage
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.typeButton,
+                          newProduct.affiliate_discount_type === 'fixed_amount' && styles.typeButtonActive,
+                        ]}
+                        onPress={() => setNewProduct({ ...newProduct, affiliate_discount_type: 'fixed_amount' })}
+                      >
+                        <Text
+                          style={[
+                            styles.typeButtonText,
+                            newProduct.affiliate_discount_type === 'fixed_amount' && styles.typeButtonTextActive,
+                          ]}
+                        >
+                          Fixed Amount
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.label}>
+                      Discount Value ({newProduct.affiliate_discount_type === 'percentage' ? '%' : '$'})
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={newProduct.affiliate_discount_value}
+                      onChangeText={(text) => setNewProduct({ ...newProduct, affiliate_discount_value: text })}
+                      placeholder={newProduct.affiliate_discount_type === 'percentage' ? '10' : '50'}
+                      keyboardType="numeric"
+                    />
+                  </>
+                )}
 
                 <Text style={styles.sectionHeader}>Landing Page Template</Text>
 
@@ -904,5 +987,41 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  helperText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#334155',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+  },
+  checkboxActive: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#3B82F6',
+  },
+  checkmark: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
 });
