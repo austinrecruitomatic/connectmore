@@ -58,6 +58,7 @@ export default function LeadsScreen() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [contractValue, setContractValue] = useState('');
   const [contractType, setContractType] = useState<'monthly' | 'total'>('total');
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     loadLeads();
@@ -117,6 +118,7 @@ export default function LeadsScreen() {
     setNotes(lead.notes || '');
     setContractValue(lead.contract_value?.toString() || '');
     setContractType(lead.contract_type || 'total');
+    setSaveMessage(null);
     setShowDetailModal(true);
   };
 
@@ -140,9 +142,12 @@ export default function LeadsScreen() {
 
       setSelectedLead({ ...selectedLead, ...updateData });
       loadLeads();
+      setSaveMessage({ type: 'success', text: 'Status updated successfully' });
+      setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Failed to update status');
+      setSaveMessage({ type: 'error', text: 'Failed to update status' });
+      setTimeout(() => setSaveMessage(null), 3000);
     }
   };
 
@@ -170,10 +175,12 @@ export default function LeadsScreen() {
 
       setSelectedLead({ ...selectedLead, ...updateData });
       loadLeads();
-      alert('Details saved successfully');
+      setSaveMessage({ type: 'success', text: 'Details saved successfully' });
+      setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       console.error('Error saving details:', error);
-      alert('Failed to save details');
+      setSaveMessage({ type: 'error', text: 'Failed to save details' });
+      setTimeout(() => setSaveMessage(null), 3000);
     } finally {
       setSavingNotes(false);
     }
@@ -322,6 +329,14 @@ export default function LeadsScreen() {
 
             {selectedLead && (
               <ScrollView style={styles.detailContent}>
+                {saveMessage && (
+                  <View style={[
+                    styles.saveMessage,
+                    saveMessage.type === 'success' ? styles.saveMessageSuccess : styles.saveMessageError
+                  ]}>
+                    <Text style={styles.saveMessageText}>{saveMessage.text}</Text>
+                  </View>
+                )}
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Contact Information</Text>
                   <View style={styles.contactCard}>
@@ -906,5 +921,26 @@ const styles = StyleSheet.create({
   },
   contractTypeTextActive: {
     color: '#FFFFFF',
+  },
+  saveMessage: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  saveMessageSuccess: {
+    backgroundColor: '#10B98120',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  saveMessageError: {
+    backgroundColor: '#EF444420',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  saveMessageText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
