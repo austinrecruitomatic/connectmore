@@ -51,6 +51,7 @@ export default function HomeScreen() {
   const isCompany = profile?.user_type === 'company';
   const [products, setProducts] = useState<Product[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [partnerships, setPartnerships] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -123,6 +124,17 @@ export default function HomeScreen() {
         .order('created_at', { ascending: false });
 
       setCompanies(data || []);
+
+      if (profile?.id) {
+        const { data: partnershipData } = await supabase
+          .from('affiliate_partnerships')
+          .select('company_id')
+          .eq('affiliate_id', profile.id);
+
+        if (partnershipData) {
+          setPartnerships(new Set(partnershipData.map((p) => p.company_id)));
+        }
+      }
     }
 
     setLoading(false);
@@ -250,6 +262,7 @@ export default function HomeScreen() {
 
     if (!error) {
       Alert.alert('Success', 'Partnership request sent!');
+      setPartnerships(new Set([...partnerships, companyId]));
     } else if (error.message.includes('duplicate')) {
       Alert.alert('Already Requested', 'You already have a partnership with this company');
     } else {
@@ -356,37 +369,47 @@ export default function HomeScreen() {
     </View>
   );
 
-  const renderCompany = ({ item }: { item: Company }) => (
-    <TouchableOpacity
-      style={styles.productCard}
-      onPress={() => Alert.alert('View Company', `You clicked on ${item.company_name}`)}
-    >
-      <View style={styles.imageWrapper}>
-        {item.logo_url ? (
-          <Image source={{ uri: item.logo_url }} style={styles.productImage} />
-        ) : (
-          <View style={[styles.productImage, styles.placeholderImage]}>
-            <Text style={styles.placeholderText}>No Logo</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.company_name}</Text>
-        <Text style={styles.productDescription} numberOfLines={3}>
-          {item.description || 'No description'}
-        </Text>
-        <TouchableOpacity
-          style={styles.applyButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleRequestPartnership(item.id);
-          }}
-        >
-          <Text style={styles.applyButtonText}>Request Partnership</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderCompany = ({ item }: { item: Company }) => {
+    const hasPartnership = partnerships.has(item.id);
+
+    return (
+      <TouchableOpacity
+        style={styles.productCard}
+        onPress={() => Alert.alert('View Company', `You clicked on ${item.company_name}`)}
+      >
+        <View style={styles.imageWrapper}>
+          {item.logo_url ? (
+            <Image source={{ uri: item.logo_url }} style={styles.productImage} />
+          ) : (
+            <View style={[styles.productImage, styles.placeholderImage]}>
+              <Text style={styles.placeholderText}>No Logo</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.productInfo}>
+          <Text style={styles.productName}>{item.company_name}</Text>
+          <Text style={styles.productDescription} numberOfLines={3}>
+            {item.description || 'No description'}
+          </Text>
+          {!hasPartnership ? (
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleRequestPartnership(item.id);
+              }}
+            >
+              <Text style={styles.applyButtonText}>Request Partnership</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.partnershipBadge}>
+              <Text style={styles.partnershipBadgeText}>Partnership Active</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (isCompany) {
     return (
@@ -837,6 +860,17 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  partnershipBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  partnershipBadgeText: {
+    color: '#10B981',
     fontSize: 16,
     fontWeight: '600',
   },
