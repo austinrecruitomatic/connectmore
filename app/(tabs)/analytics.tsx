@@ -21,6 +21,10 @@ type Lead = {
     title: string;
     slug: string;
   } | null;
+  contact_submissions: {
+    name: string;
+    status: string;
+  } | null;
 };
 
 type Partnership = {
@@ -174,13 +178,13 @@ export default function AnalyticsScreen() {
         for (const partnership of partnerships) {
           const { data: leads } = await supabase
             .from('leads')
-            .select('id, lead_type, created_at, lead_data, landing_pages(title, slug)')
+            .select('id, lead_type, created_at, lead_data, landing_pages(title, slug), contact_submissions(name, status)')
             .eq('partnership_id', partnership.id)
             .order('created_at', { ascending: false });
 
           const clicks = leads?.filter((l) => l.lead_type === 'click').length || 0;
           const signups = leads?.filter((l) => l.lead_type === 'signup').length || 0;
-          const conversions = leads?.filter((l) => l.lead_type === 'conversion').length || 0;
+          const conversions = leads?.filter((l) => l.lead_type === 'conversion' || (l.contact_submissions as any)?.status === 'closed').length || 0;
 
           allClicks += clicks;
           allSignups += signups;
@@ -269,7 +273,10 @@ export default function AnalyticsScreen() {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  const getLeadColor = (leadType: string) => {
+  const getLeadColor = (leadType: string, status?: string) => {
+    if (status === 'closed') {
+      return '#10B981';
+    }
     switch (leadType) {
       case 'conversion':
         return '#10B981';
@@ -490,7 +497,7 @@ export default function AnalyticsScreen() {
                       <View
                         style={[
                           styles.leadIndicator,
-                          { backgroundColor: getLeadColor(lead.lead_type) },
+                          { backgroundColor: getLeadColor(lead.lead_type, lead.contact_submissions?.status) },
                         ]}
                       />
                       <View style={styles.leadContent}>
@@ -500,6 +507,44 @@ export default function AnalyticsScreen() {
                           </Text>
                           <Text style={styles.leadTime}>{formatDate(lead.created_at)}</Text>
                         </View>
+                        {lead.contact_submissions && (
+                          <View style={styles.leadDetails}>
+                            <Text style={styles.leadName}>{lead.contact_submissions.name}</Text>
+                            <View
+                              style={[
+                                styles.leadStatusBadge,
+                                {
+                                  backgroundColor:
+                                    lead.contact_submissions.status === 'closed'
+                                      ? 'rgba(139, 92, 246, 0.15)'
+                                      : lead.contact_submissions.status === 'qualified'
+                                      ? 'rgba(16, 185, 129, 0.15)'
+                                      : lead.contact_submissions.status === 'contacted'
+                                      ? 'rgba(245, 158, 11, 0.15)'
+                                      : 'rgba(59, 130, 246, 0.15)',
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.leadStatusText,
+                                  {
+                                    color:
+                                      lead.contact_submissions.status === 'closed'
+                                        ? '#8B5CF6'
+                                        : lead.contact_submissions.status === 'qualified'
+                                        ? '#10B981'
+                                        : lead.contact_submissions.status === 'contacted'
+                                        ? '#F59E0B'
+                                        : '#3B82F6',
+                                  },
+                                ]}
+                              >
+                                {lead.contact_submissions.status}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
                         {lead.landing_page && (
                           <Text style={styles.leadPage}>From: {lead.landing_page.title}</Text>
                         )}
@@ -882,6 +927,29 @@ const styles = StyleSheet.create({
   leadPage: {
     fontSize: 12,
     color: '#94A3B8',
+  },
+  leadDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  leadName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  leadStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  leadStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   moreLeads: {
     fontSize: 12,
