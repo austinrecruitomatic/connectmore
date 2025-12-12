@@ -381,13 +381,13 @@ export default function DealsScreen() {
               <View style={styles.dealDetails}>
                 <View style={styles.detailRow}>
                   <DollarSign size={16} color="#94A3B8" />
-                  <Text style={styles.detailText}>{formatCurrency(deal.deal_value)}</Text>
+                  <Text style={styles.detailText}>{formatCurrency(Number(deal.deal_value))}</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Calendar size={16} color="#94A3B8" />
                   <Text style={styles.detailText}>
                     {deal.contract_type === 'recurring'
-                      ? `${deal.billing_frequency} recurring`
+                      ? `${deal.billing_frequency || 'monthly'} recurring`
                       : 'One-time'}
                   </Text>
                 </View>
