@@ -125,6 +125,12 @@ export default function LeadsScreen() {
   const handleUpdateStatus = async (newStatus: ContactSubmission['status']) => {
     if (!selectedLead) return;
 
+    if (newStatus === 'closed' && !selectedLead.contract_value) {
+      setSaveMessage({ type: 'error', text: 'Please set a contract value before closing' });
+      setTimeout(() => setSaveMessage(null), 3000);
+      return;
+    }
+
     try {
       const updateData: any = { status: newStatus };
 
@@ -140,15 +146,100 @@ export default function LeadsScreen() {
 
       if (error) throw error;
 
+      if (newStatus === 'closed') {
+        await createDealFromLead(selectedLead);
+      }
+
       setSelectedLead({ ...selectedLead, ...updateData });
       loadLeads();
-      setSaveMessage({ type: 'success', text: 'Status updated successfully' });
+      setSaveMessage({ type: 'success', text: newStatus === 'closed' ? 'Deal created successfully!' : 'Status updated successfully' });
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       console.error('Error updating status:', error);
       setSaveMessage({ type: 'error', text: 'Failed to update status' });
       setTimeout(() => setSaveMessage(null), 3000);
     }
+  };
+
+  const createDealFromLead = async (lead: ContactSubmission) => {
+    const { data: companyData } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('user_id', profile?.id)
+      .maybeSingle();
+
+    if (!companyData) throw new Error('Company not found');
+
+    const { data: partnershipData } = await supabase
+      .from('affiliate_partnerships')
+      .select('id, company_id')
+      .eq('affiliate_id', lead.affiliate_partnerships.affiliate_id)
+      .eq('company_id', companyData.id)
+      .maybeSingle();
+
+    if (!partnershipData) throw new Error('Partnership not found');
+
+    let { data: settingsData } = await supabase
+      .from('company_settings')
+      .select('*')
+      .eq('company_id', companyData.id)
+      .maybeSingle();
+
+    if (!settingsData) {
+      const { data: newSettings } = await supabase
+        .from('company_settings')
+        .insert({ company_id: companyData.id })
+        .select()
+        .single();
+      settingsData = newSettings;
+    }
+
+    const dealValue = lead.contract_value || 0;
+    const commission = dealValue * ((settingsData.commission_rate || 10) / 100);
+    const platformFee = commission * ((settingsData.platform_fee_rate || 5) / 100);
+    const affiliatePayout = commission - platformFee;
+
+    const contractTypeMapping: { [key: string]: 'one_time' | 'recurring' } = {
+      total: 'one_time',
+      monthly: 'recurring',
+    };
+
+    const { data: dealData, error: dealError } = await supabase
+      .from('deals')
+      .insert({
+        contact_submission_id: lead.id,
+        partnership_id: partnershipData.id,
+        company_id: companyData.id,
+        affiliate_id: lead.affiliate_partnerships.affiliate_id,
+        deal_value: dealValue,
+        contract_type: contractTypeMapping[lead.contract_type] || 'one_time',
+        billing_frequency: lead.contract_type === 'monthly' ? 'monthly' : null,
+        notes: lead.notes || '',
+      })
+      .select()
+      .single();
+
+    if (dealError) throw dealError;
+
+    const expectedPayoutDate = new Date();
+    expectedPayoutDate.setDate(expectedPayoutDate.getDate() + (settingsData.payout_frequency_days || 30));
+
+    const { error: commissionError } = await supabase
+      .from('commissions')
+      .insert({
+        deal_id: dealData.id,
+        partnership_id: partnershipData.id,
+        affiliate_id: lead.affiliate_partnerships.affiliate_id,
+        company_id: companyData.id,
+        commission_amount: commission,
+        platform_fee_amount: platformFee,
+        affiliate_payout_amount: affiliatePayout,
+        commission_type: 'initial',
+        status: settingsData.auto_approve_commissions ? 'approved' : 'pending',
+        expected_payout_date: expectedPayoutDate.toISOString().split('T')[0],
+      });
+
+    if (commissionError) throw commissionError;
   };
 
   const handleSaveNotes = async () => {
