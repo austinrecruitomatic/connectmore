@@ -204,6 +204,7 @@ export default function AnalyticsScreen() {
               created_at: lead.created_at,
               lead_data: lead.lead_data,
               landing_page: lead.landing_pages as any,
+              contact_submissions: lead.contact_submissions as any,
             })) || [],
           });
         }
