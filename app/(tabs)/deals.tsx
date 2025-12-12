@@ -28,6 +28,7 @@ type Deal = {
   deal_value: number;
   contract_type: 'one_time' | 'recurring';
   billing_frequency: string | null;
+  contract_length_months: number | null;
   status: 'active' | 'cancelled' | 'completed';
   contract_start_date: string;
   contract_end_date: string | null;
@@ -64,6 +65,7 @@ export default function DealsScreen() {
     deal_value: '',
     contract_type: 'one_time' as 'one_time' | 'recurring',
     billing_frequency: 'monthly' as 'monthly' | 'quarterly' | 'annual',
+    contract_length_months: '',
     notes: '',
   });
 
@@ -214,6 +216,7 @@ export default function DealsScreen() {
           deal_value: dealValue,
           contract_type: formData.contract_type,
           billing_frequency: formData.contract_type === 'recurring' ? formData.billing_frequency : null,
+          contract_length_months: formData.contract_length_months ? parseInt(formData.contract_length_months) : null,
           notes: formData.notes,
         })
         .select()
@@ -256,6 +259,7 @@ export default function DealsScreen() {
         deal_value: '',
         contract_type: 'one_time',
         billing_frequency: 'monthly',
+        contract_length_months: '',
         notes: '',
       });
       loadDeals();
@@ -387,7 +391,7 @@ export default function DealsScreen() {
                   <Calendar size={16} color="#94A3B8" />
                   <Text style={styles.detailText}>
                     {deal.contract_type === 'recurring'
-                      ? `${deal.billing_frequency || 'monthly'} recurring`
+                      ? `${deal.billing_frequency || 'monthly'} recurring${deal.contract_length_months ? ` (${deal.contract_length_months}mo)` : ''}`
                       : 'One-time'}
                   </Text>
                 </View>
@@ -560,6 +564,19 @@ export default function DealsScreen() {
                       </TouchableOpacity>
                     ))}
                   </View>
+
+                  <Text style={styles.label}>Contract Length (months)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g., 3, 6, 12 (leave empty for ongoing)"
+                    placeholderTextColor="#64748B"
+                    keyboardType="number-pad"
+                    value={formData.contract_length_months}
+                    onChangeText={(value) => setFormData({ ...formData, contract_length_months: value })}
+                  />
+                  <Text style={styles.helperText}>
+                    Affiliates will earn commission for each billing period during the contract length
+                  </Text>
                 </>
               )}
 
@@ -944,5 +961,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 6,
+    fontStyle: 'italic',
   },
 });

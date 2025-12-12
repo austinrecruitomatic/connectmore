@@ -36,6 +36,7 @@ type ContactSubmission = {
   notes: string | null;
   contract_value: number | null;
   contract_type: 'monthly' | 'total';
+  contract_length_months: number | null;
   created_at: string;
   landing_page_slug: string;
   affiliate_partnerships: {
@@ -58,6 +59,7 @@ export default function LeadsScreen() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [contractValue, setContractValue] = useState('');
   const [contractType, setContractType] = useState<'monthly' | 'total'>('total');
+  const [contractLength, setContractLength] = useState('');
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -118,6 +120,7 @@ export default function LeadsScreen() {
     setNotes(lead.notes || '');
     setContractValue(lead.contract_value?.toString() || '');
     setContractType(lead.contract_type || 'total');
+    setContractLength(lead.contract_length_months?.toString() || '');
     setSaveMessage(null);
     setShowDetailModal(true);
   };
@@ -214,6 +217,7 @@ export default function LeadsScreen() {
         deal_value: dealValue,
         contract_type: contractTypeMapping[lead.contract_type] || 'one_time',
         billing_frequency: lead.contract_type === 'monthly' ? 'monthly' : null,
+        contract_length_months: lead.contract_length_months,
         notes: lead.notes || '',
       })
       .select()
@@ -253,8 +257,10 @@ export default function LeadsScreen() {
       if (contractValue) {
         updateData.contract_value = parseFloat(contractValue);
         updateData.contract_type = contractType;
+        updateData.contract_length_months = contractLength ? parseInt(contractLength) : null;
       } else {
         updateData.contract_value = null;
+        updateData.contract_length_months = null;
       }
 
       const { error } = await supabase
@@ -549,6 +555,19 @@ export default function LeadsScreen() {
                         </Text>
                       </TouchableOpacity>
                     </View>
+                    {contractType === 'monthly' && (
+                      <View style={styles.contractLengthRow}>
+                        <Text style={styles.contractLengthLabel}>Contract Length (months)</Text>
+                        <TextInput
+                          style={styles.contractLengthInput}
+                          value={contractLength}
+                          onChangeText={setContractLength}
+                          placeholder="e.g., 3, 6, 12"
+                          placeholderTextColor="#64748B"
+                          keyboardType="number-pad"
+                        />
+                      </View>
+                    )}
                   </View>
                 </View>
 
@@ -1012,6 +1031,27 @@ const styles = StyleSheet.create({
   },
   contractTypeTextActive: {
     color: '#FFFFFF',
+  },
+  contractLengthRow: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  contractLengthLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  contractLengthInput: {
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 15,
+    color: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   saveMessage: {
     padding: 12,
