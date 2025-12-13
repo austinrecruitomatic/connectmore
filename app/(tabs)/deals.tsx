@@ -270,6 +270,15 @@ export default function DealsScreen() {
       const dealValue = parseFloat(formData.deal_value);
       const { commission, platformFee, affiliatePayout } = calculateCommission(dealValue);
 
+      const startDate = new Date();
+      let endDate = null;
+
+      if (formData.contract_length_months) {
+        const contractEndDate = new Date(startDate);
+        contractEndDate.setMonth(contractEndDate.getMonth() + parseInt(formData.contract_length_months));
+        endDate = contractEndDate.toISOString().split('T')[0];
+      }
+
       const { data: dealData, error: dealError } = await supabase
         .from('deals')
         .insert({
@@ -281,6 +290,8 @@ export default function DealsScreen() {
           contract_type: formData.contract_type,
           billing_frequency: formData.contract_type === 'recurring' ? formData.billing_frequency : null,
           contract_length_months: formData.contract_length_months ? parseInt(formData.contract_length_months) : null,
+          contract_start_date: startDate.toISOString().split('T')[0],
+          contract_end_date: endDate,
           notes: formData.notes,
         })
         .select()
@@ -442,6 +453,14 @@ export default function DealsScreen() {
     try {
       const dealValue = parseFloat(formData.deal_value);
 
+      let endDate = null;
+      if (formData.contract_length_months && editingDeal.contract_start_date) {
+        const startDate = new Date(editingDeal.contract_start_date);
+        const contractEndDate = new Date(startDate);
+        contractEndDate.setMonth(contractEndDate.getMonth() + parseInt(formData.contract_length_months));
+        endDate = contractEndDate.toISOString().split('T')[0];
+      }
+
       const { error } = await supabase
         .from('deals')
         .update({
@@ -449,6 +468,7 @@ export default function DealsScreen() {
           contract_type: formData.contract_type,
           billing_frequency: formData.contract_type === 'recurring' ? formData.billing_frequency : null,
           contract_length_months: formData.contract_length_months ? parseInt(formData.contract_length_months) : null,
+          contract_end_date: endDate,
           notes: formData.notes,
         })
         .eq('id', editingDeal.id);
@@ -650,6 +670,14 @@ export default function DealsScreen() {
                   </Text>
                 </View>
               </View>
+
+              {deal.contract_end_date && (
+                <View style={styles.contractDates}>
+                  <Text style={styles.contractDateLabel}>
+                    Contract: {formatDate(deal.contract_start_date)} - {formatDate(deal.contract_end_date)}
+                  </Text>
+                </View>
+              )}
 
               {deal.notes && (
                 <Text style={styles.dealNotes} numberOfLines={2}>
@@ -1105,6 +1133,19 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 14,
     color: '#94A3B8',
+  },
+  contractDates: {
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3B82F6',
+  },
+  contractDateLabel: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
   dealNotes: {
     fontSize: 14,
