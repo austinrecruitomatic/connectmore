@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Home, Package, BarChart3, User, Store, Users, DollarSign, Receipt, Shield } from 'lucide-react-native';
+import { Home, Package, BarChart3, User, Store, Users, DollarSign, Receipt, Shield, Wallet } from 'lucide-react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useEffect } from 'react';
 
@@ -81,6 +81,14 @@ export default function TabLayout() {
           title: 'Commissions',
           tabBarIcon: ({ size, color }) => <Receipt size={size} color={color} />,
           href: isCompany ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
+        name="payouts"
+        options={{
+          title: 'Payouts',
+          tabBarIcon: ({ size, color }) => <Wallet size={size} color={color} />,
+          href: isAffiliate ? undefined : null,
         }}
       />
       <Tabs.Screen

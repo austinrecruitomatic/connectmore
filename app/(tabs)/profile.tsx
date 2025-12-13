@@ -376,30 +376,44 @@ export default function ProfileScreen() {
 
       {profile?.user_type === 'affiliate' && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Settings</Text>
+          <Text style={styles.sectionTitle}>Payout Settings</Text>
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
                 <Wallet size={20} color="#64748B" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Payment Method</Text>
+                <Text style={styles.infoLabel}>Stripe Connect Status</Text>
                 <Text style={styles.infoValue}>
-                  {profile.payment_method
-                    ? PAYMENT_METHODS.find(m => m.value === profile.payment_method)?.label || 'Not set'
-                    : 'Not configured'}
+                  {profile.stripe_onboarding_completed
+                    ? profile.stripe_account_status === 'verified'
+                      ? 'Active'
+                      : 'Pending Verification'
+                    : 'Not Setup'}
                 </Text>
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.configureButton}
-              onPress={() => setShowPaymentModal(true)}
-            >
-              <DollarSign size={16} color="#60A5FA" />
-              <Text style={styles.configureButtonText}>
-                {profile.payment_method ? 'Update Payment Method' : 'Configure Payment'}
-              </Text>
-            </TouchableOpacity>
+            {!profile.stripe_onboarding_completed ? (
+              <TouchableOpacity
+                style={styles.configureButton}
+                onPress={() => router.push('/stripe-onboarding')}
+              >
+                <DollarSign size={16} color="#60A5FA" />
+                <Text style={styles.configureButtonText}>
+                  Setup Payouts
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.configureButton}
+                onPress={() => router.push('/payout-settings')}
+              >
+                <DollarSign size={16} color="#60A5FA" />
+                <Text style={styles.configureButtonText}>
+                  Manage Payout Settings
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       )}
