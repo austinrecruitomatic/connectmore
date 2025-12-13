@@ -181,15 +181,20 @@ export default function ProfileScreen() {
     setSaving(true);
 
     try {
+      const updateData: any = {
+        commission_rate: parseFloat(settingsForm.commission_rate),
+        payout_frequency_days: parseInt(settingsForm.payout_frequency_days),
+        auto_approve_commissions: settingsForm.auto_approve_commissions,
+      };
+
+      if (profile?.is_super_admin) {
+        updateData.platform_fee_rate = parseFloat(settingsForm.platform_fee_rate);
+        updateData.platform_fee_paid_by = settingsForm.platform_fee_paid_by;
+      }
+
       const { error } = await supabase
         .from('company_settings')
-        .update({
-          commission_rate: parseFloat(settingsForm.commission_rate),
-          platform_fee_rate: parseFloat(settingsForm.platform_fee_rate),
-          platform_fee_paid_by: settingsForm.platform_fee_paid_by,
-          payout_frequency_days: parseInt(settingsForm.payout_frequency_days),
-          auto_approve_commissions: settingsForm.auto_approve_commissions,
-        })
+        .update(updateData)
         .eq('company_id', companySettings.company_id);
 
       if (error) throw error;
@@ -350,17 +355,19 @@ export default function ProfileScreen() {
                 <Text style={styles.infoValue}>{companySettings.commission_rate}%</Text>
               </View>
             </View>
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <DollarSign size={20} color="#64748B" />
+            {profile?.is_super_admin && (
+              <View style={styles.infoRow}>
+                <View style={styles.infoIcon}>
+                  <DollarSign size={20} color="#64748B" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Platform Fee (Super Admin)</Text>
+                  <Text style={styles.infoValue}>
+                    {companySettings.platform_fee_rate}% (paid by {companySettings.platform_fee_paid_by})
+                  </Text>
+                </View>
               </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Platform Fee</Text>
-                <Text style={styles.infoValue}>
-                  {companySettings.platform_fee_rate}% (paid by {companySettings.platform_fee_paid_by})
-                </Text>
-              </View>
-            </View>
+            )}
             <TouchableOpacity
               style={styles.configureButton}
               onPress={() => setShowSettingsModal(true)}
@@ -632,21 +639,26 @@ export default function ProfileScreen() {
                 keyboardType="decimal-pad"
               />
 
-              <Text style={styles.label}>Platform Fee Rate (%)</Text>
-              <TextInput
-                style={styles.input}
-                value={settingsForm.platform_fee_rate}
-                onChangeText={(text) => setSettingsForm({ ...settingsForm, platform_fee_rate: text })}
-                placeholder="20.00"
-                placeholderTextColor="#64748B"
-                keyboardType="decimal-pad"
-              />
+              {profile?.is_super_admin && (
+                <>
+                  <Text style={styles.label}>Platform Fee Rate (%)</Text>
+                  <Text style={styles.helpText}>
+                    Super Admin Only - Platform's commission on each transaction
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={settingsForm.platform_fee_rate}
+                    onChangeText={(text) => setSettingsForm({ ...settingsForm, platform_fee_rate: text })}
+                    placeholder="20.00"
+                    placeholderTextColor="#64748B"
+                    keyboardType="decimal-pad"
+                  />
 
-              <Text style={styles.label}>Who Pays Platform Fee?</Text>
-              <Text style={styles.helpText}>
-                Choose who covers the platform transaction fee
-              </Text>
-              <View style={styles.feePayerOptions}>
+                  <Text style={styles.label}>Who Pays Platform Fee?</Text>
+                  <Text style={styles.helpText}>
+                    Super Admin Only - Choose who covers the platform transaction fee
+                  </Text>
+                  <View style={styles.feePayerOptions}>
                 <TouchableOpacity
                   style={[
                     styles.methodOption,
@@ -697,6 +709,8 @@ export default function ProfileScreen() {
                   </View>
                 </TouchableOpacity>
               </View>
+                </>
+              )}
 
               <Text style={styles.label}>Payout Frequency (days)</Text>
               <TextInput
