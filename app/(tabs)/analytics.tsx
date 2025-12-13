@@ -140,13 +140,18 @@ export default function AnalyticsScreen() {
             .order('created_at', { ascending: false })
             .limit(5);
 
+          const { data: allSubmissions } = await supabase
+            .from('contact_submissions')
+            .select('id')
+            .in('partnership_id', partnershipIds);
+
           const newLeads = submissions?.filter((s) => s.status === 'new').length || 0;
           const contacted = submissions?.filter((s) => s.status === 'contacted').length || 0;
           const qualified = submissions?.filter((s) => s.status === 'qualified').length || 0;
           const closed = submissions?.filter((s) => s.status === 'closed').length || 0;
 
           setStats({
-            totalLeads: leads?.length || 0,
+            totalLeads: allSubmissions?.length || 0,
             totalClicks: clicks,
             totalSignups: signups,
             totalConversions: conversions,
@@ -175,6 +180,15 @@ export default function AnalyticsScreen() {
         let allConversions = 0;
         let allLeads = 0;
 
+        const partnershipIds = partnerships.map((p) => p.id);
+
+        const { data: contactSubmissions } = await supabase
+          .from('contact_submissions')
+          .select('id')
+          .in('partnership_id', partnershipIds);
+
+        allLeads = contactSubmissions?.length || 0;
+
         for (const partnership of partnerships) {
           const { data: leads } = await supabase
             .from('leads')
@@ -189,7 +203,6 @@ export default function AnalyticsScreen() {
           allClicks += clicks;
           allSignups += signups;
           allConversions += conversions;
-          allLeads += leads?.length || 0;
 
           partnershipData.push({
             id: partnership.id,
@@ -297,10 +310,21 @@ export default function AnalyticsScreen() {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={loadAnalytics} />}
     >
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hi, {profile?.full_name?.split(' ')[0] || 'Affiliate'}!</Text>
-        <Text style={styles.headerSubtitle}>
-          {isCompany ? 'Track leads from affiliates' : "Here's your performance"}
-        </Text>
+        <View>
+          <Text style={styles.greeting}>Hi, {profile?.full_name?.split(' ')[0] || 'Affiliate'}!</Text>
+          <Text style={styles.headerSubtitle}>
+            {isCompany ? 'Track leads from affiliates' : "Here's your performance"}
+          </Text>
+        </View>
+        {!isCompany && (
+          <TouchableOpacity
+            style={styles.leaderboardButton}
+            onPress={() => router.push('/leaderboard')}
+          >
+            <TrendingUp size={20} color="#FFD700" />
+            <Text style={styles.leaderboardButtonText}>Leaderboard</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.totalLeadsCard}>
@@ -685,6 +709,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 24,
     marginTop: 12,
   },
@@ -698,6 +725,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94A3B8',
     fontWeight: '400',
+  },
+  leaderboardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFD700',
+  },
+  leaderboardButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFD700',
   },
   totalLeadsCard: {
     backgroundColor: '#1E293B',
