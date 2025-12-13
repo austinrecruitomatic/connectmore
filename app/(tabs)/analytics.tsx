@@ -53,6 +53,8 @@ type CompanyStats = {
   qualified: number;
   closed: number;
   recentSubmissions: ContactSubmission[];
+  conversionRate: number;
+  totalRevenue: number;
 };
 
 type Commission = {
@@ -142,8 +144,23 @@ export default function AnalyticsScreen() {
 
           const { data: allSubmissions } = await supabase
             .from('contact_submissions')
-            .select('id')
+            .select('id, status')
             .in('partnership_id', partnershipIds);
+
+          const { data: deals } = await supabase
+            .from('deals')
+            .select('deal_value, contact_submission_id')
+            .in('partnership_id', partnershipIds);
+
+          const totalRevenue = deals?.reduce((sum, deal) => sum + deal.deal_value, 0) || 0;
+
+          const allNewLeads = allSubmissions?.filter((s) => s.status === 'new').length || 0;
+          const allContacted = allSubmissions?.filter((s) => s.status === 'contacted').length || 0;
+          const allQualified = allSubmissions?.filter((s) => s.status === 'qualified').length || 0;
+          const allClosed = allSubmissions?.filter((s) => s.status === 'closed').length || 0;
+
+          const totalLeadsCount = allSubmissions?.length || 0;
+          const conversionRate = totalLeadsCount > 0 ? (allClosed / totalLeadsCount) * 100 : 0;
 
           const newLeads = submissions?.filter((s) => s.status === 'new').length || 0;
           const contacted = submissions?.filter((s) => s.status === 'contacted').length || 0;
@@ -151,7 +168,7 @@ export default function AnalyticsScreen() {
           const closed = submissions?.filter((s) => s.status === 'closed').length || 0;
 
           setStats({
-            totalLeads: allSubmissions?.length || 0,
+            totalLeads: totalLeadsCount,
             totalClicks: clicks,
             totalSignups: signups,
             totalConversions: conversions,
@@ -163,6 +180,8 @@ export default function AnalyticsScreen() {
               qualified,
               closed,
               recentSubmissions: submissions || [],
+              conversionRate,
+              totalRevenue,
             },
           });
         }
@@ -344,12 +363,18 @@ export default function AnalyticsScreen() {
 
       <View style={styles.quickStats}>
         <View style={styles.quickStatItem}>
-          <Text style={styles.quickStatLabel}>INCOME</Text>
+          <Text style={styles.quickStatLabel}>
+            {isCompany ? 'REVENUE' : 'INCOME'}
+          </Text>
           <View style={styles.quickStatRow}>
             <Text style={styles.quickStatValue}>
-              ${(stats.commissions?.paid || 0).toFixed(2)}
+              ${isCompany
+                ? (stats.companyStats?.totalRevenue || 0).toFixed(2)
+                : (stats.commissions?.paid || 0).toFixed(2)}
             </Text>
-            <Text style={[styles.quickStatChange, { color: '#10B981' }]}>Paid</Text>
+            <Text style={[styles.quickStatChange, { color: '#10B981' }]}>
+              {isCompany ? 'From Leads' : 'Paid'}
+            </Text>
           </View>
           {!isCompany && stats.commissions && stats.commissions.pending > 0 && (
             <Text style={styles.pendingText}>
@@ -360,9 +385,20 @@ export default function AnalyticsScreen() {
         <View style={styles.quickStatItem}>
           <Text style={styles.quickStatLabel}>OUTCOME</Text>
           <View style={styles.quickStatRow}>
-            <Text style={styles.quickStatValue}>{stats.totalConversions}</Text>
-            <Text style={[styles.quickStatChange, { color: '#10B981' }]}>Conversions</Text>
+            <Text style={styles.quickStatValue}>
+              {isCompany && stats.companyStats
+                ? `${stats.companyStats.conversionRate.toFixed(0)}%`
+                : stats.totalConversions}
+            </Text>
+            <Text style={[styles.quickStatChange, { color: '#10B981' }]}>
+              {isCompany ? 'Conversion' : 'Conversions'}
+            </Text>
           </View>
+          {isCompany && stats.companyStats && (
+            <Text style={styles.conversionDetails}>
+              {stats.companyStats.closed} of {stats.totalLeads} leads
+            </Text>
+          )}
         </View>
       </View>
 
@@ -1144,6 +1180,12 @@ const styles = StyleSheet.create({
     color: '#F59E0B',
     marginTop: 4,
     fontWeight: '600',
+  },
+  conversionDetails: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
   },
   commissionSummary: {
     flexDirection: 'row',
