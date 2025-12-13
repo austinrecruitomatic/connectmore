@@ -58,10 +58,20 @@ export default function ProfileScreen() {
     payment_method: profile?.payment_method || '',
     payment_details: '',
   });
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [companySettings, setCompanySettings] = useState<any>(null);
+  const [settingsForm, setSettingsForm] = useState({
+    commission_rate: '10.00',
+    platform_fee_rate: '20.00',
+    platform_fee_paid_by: 'affiliate' as 'company' | 'affiliate',
+    payout_frequency_days: '30',
+    auto_approve_commissions: false,
+  });
 
   useEffect(() => {
     if (profile?.user_type === 'company') {
       loadCompany();
+      loadCompanySettings();
     }
     if (profile) {
       setPaymentForm({
@@ -86,6 +96,44 @@ export default function ProfileScreen() {
         company_name: data.company_name,
         logo_url: data.logo_url || '',
         business_category: data.business_category || 'other',
+      });
+    }
+  };
+
+  const loadCompanySettings = async () => {
+    if (!profile?.id) return;
+
+    const { data: companyData } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('user_id', profile.id)
+      .maybeSingle();
+
+    if (!companyData) return;
+
+    let { data: settingsData } = await supabase
+      .from('company_settings')
+      .select('*')
+      .eq('company_id', companyData.id)
+      .maybeSingle();
+
+    if (!settingsData) {
+      const { data: newSettings } = await supabase
+        .from('company_settings')
+        .insert({ company_id: companyData.id })
+        .select()
+        .single();
+      settingsData = newSettings;
+    }
+
+    if (settingsData) {
+      setCompanySettings(settingsData);
+      setSettingsForm({
+        commission_rate: settingsData.commission_rate.toString(),
+        platform_fee_rate: settingsData.platform_fee_rate.toString(),
+        platform_fee_paid_by: settingsData.platform_fee_paid_by || 'affiliate',
+        payout_frequency_days: settingsData.payout_frequency_days.toString(),
+        auto_approve_commissions: settingsData.auto_approve_commissions,
       });
     }
   };
@@ -121,6 +169,36 @@ export default function ProfileScreen() {
       await loadCompany();
     } catch (error) {
       Alert.alert('Error', 'Failed to update company profile');
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveCompanySettings = async () => {
+    if (!companySettings?.company_id) return;
+
+    setSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('company_settings')
+        .update({
+          commission_rate: parseFloat(settingsForm.commission_rate),
+          platform_fee_rate: parseFloat(settingsForm.platform_fee_rate),
+          platform_fee_paid_by: settingsForm.platform_fee_paid_by,
+          payout_frequency_days: parseInt(settingsForm.payout_frequency_days),
+          auto_approve_commissions: settingsForm.auto_approve_commissions,
+        })
+        .eq('company_id', companySettings.company_id);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Commission settings updated successfully!');
+      setShowSettingsModal(false);
+      await loadCompanySettings();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update settings');
       console.error(error);
     } finally {
       setSaving(false);
@@ -258,6 +336,43 @@ export default function ProfileScreen() {
           </View>
         </View>
       </View>
+
+      {profile?.user_type === 'company' && companySettings && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Commission Settings</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <DollarSign size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Commission Rate</Text>
+                <Text style={styles.infoValue}>{companySettings.commission_rate}%</Text>
+              </View>
+            </View>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <DollarSign size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Platform Fee</Text>
+                <Text style={styles.infoValue}>
+                  {companySettings.platform_fee_rate}% (paid by {companySettings.platform_fee_paid_by})
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.configureButton}
+              onPress={() => setShowSettingsModal(true)}
+            >
+              <Edit size={16} color="#60A5FA" />
+              <Text style={styles.configureButtonText}>
+                Update Commission Settings
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {profile?.user_type === 'affiliate' && (
         <View style={styles.section}>
@@ -477,6 +592,117 @@ export default function ProfileScreen() {
                   </Text>
                 </TouchableOpacity>
               ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showSettingsModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Commission Settings</Text>
+              <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalForm}>
+              <Text style={styles.label}>Commission Rate (%)</Text>
+              <TextInput
+                style={styles.input}
+                value={settingsForm.commission_rate}
+                onChangeText={(text) => setSettingsForm({ ...settingsForm, commission_rate: text })}
+                placeholder="10.00"
+                placeholderTextColor="#64748B"
+                keyboardType="decimal-pad"
+              />
+
+              <Text style={styles.label}>Platform Fee Rate (%)</Text>
+              <TextInput
+                style={styles.input}
+                value={settingsForm.platform_fee_rate}
+                onChangeText={(text) => setSettingsForm({ ...settingsForm, platform_fee_rate: text })}
+                placeholder="20.00"
+                placeholderTextColor="#64748B"
+                keyboardType="decimal-pad"
+              />
+
+              <Text style={styles.label}>Who Pays Platform Fee?</Text>
+              <Text style={styles.helpText}>
+                Choose who covers the platform transaction fee
+              </Text>
+              <View style={styles.feePayerOptions}>
+                <TouchableOpacity
+                  style={[
+                    styles.methodOption,
+                    settingsForm.platform_fee_paid_by === 'affiliate' && styles.methodOptionSelected
+                  ]}
+                  onPress={() => setSettingsForm({ ...settingsForm, platform_fee_paid_by: 'affiliate' })}
+                >
+                  <View style={styles.radio}>
+                    {settingsForm.platform_fee_paid_by === 'affiliate' && (
+                      <View style={styles.radioInner} />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[
+                      styles.methodLabel,
+                      settingsForm.platform_fee_paid_by === 'affiliate' && styles.methodLabelSelected
+                    ]}>
+                      Affiliate pays fee
+                    </Text>
+                    <Text style={styles.feePayerDescription}>
+                      Affiliate receives commission minus platform fee
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.methodOption,
+                    settingsForm.platform_fee_paid_by === 'company' && styles.methodOptionSelected
+                  ]}
+                  onPress={() => setSettingsForm({ ...settingsForm, platform_fee_paid_by: 'company' })}
+                >
+                  <View style={styles.radio}>
+                    {settingsForm.platform_fee_paid_by === 'company' && (
+                      <View style={styles.radioInner} />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[
+                      styles.methodLabel,
+                      settingsForm.platform_fee_paid_by === 'company' && styles.methodLabelSelected
+                    ]}>
+                      Company pays fee
+                    </Text>
+                    <Text style={styles.feePayerDescription}>
+                      Affiliate receives full commission, you pay commission plus platform fee
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.label}>Payout Frequency (days)</Text>
+              <TextInput
+                style={styles.input}
+                value={settingsForm.payout_frequency_days}
+                onChangeText={(text) => setSettingsForm({ ...settingsForm, payout_frequency_days: text })}
+                placeholder="30"
+                placeholderTextColor="#64748B"
+                keyboardType="number-pad"
+              />
+
+              <TouchableOpacity
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                onPress={handleSaveCompanySettings}
+                disabled={saving}
+              >
+                <Text style={styles.saveButtonText}>
+                  {saving ? 'Saving...' : 'Save Settings'}
+                </Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
@@ -812,5 +1038,13 @@ const styles = StyleSheet.create({
   categoryItemTextActive: {
     color: '#60A5FA',
     fontWeight: '600',
+  },
+  feePayerOptions: {
+    marginBottom: 16,
+  },
+  feePayerDescription: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginTop: 4,
   },
 });

@@ -69,6 +69,7 @@ type CompanySettings = {
   platform_fee_rate: number;
   payout_frequency_days: number;
   auto_approve_commissions: boolean;
+  platform_fee_paid_by: 'company' | 'affiliate';
 };
 
 export default function DealsScreen() {
@@ -241,16 +242,27 @@ export default function DealsScreen() {
   };
 
   const calculateCommission = (dealValue: number) => {
-    if (!settings) return { commission: 0, platformFee: 0, affiliatePayout: 0 };
+    if (!settings) return { commission: 0, platformFee: 0, affiliatePayout: 0, companyCost: 0 };
 
     const commission = dealValue * (settings.commission_rate / 100);
     const platformFee = commission * (settings.platform_fee_rate / 100);
-    const affiliatePayout = commission - platformFee;
+
+    let affiliatePayout: number;
+    let companyCost: number;
+
+    if (settings.platform_fee_paid_by === 'company') {
+      affiliatePayout = commission;
+      companyCost = commission + platformFee;
+    } else {
+      affiliatePayout = commission - platformFee;
+      companyCost = commission;
+    }
 
     return {
       commission: Number(commission.toFixed(2)),
       platformFee: Number(platformFee.toFixed(2)),
       affiliatePayout: Number(affiliatePayout.toFixed(2)),
+      companyCost: Number(companyCost.toFixed(2)),
     };
   };
 
@@ -773,21 +785,35 @@ export default function DealsScreen() {
                 <View style={styles.commissionPreview}>
                   <Text style={styles.previewTitle}>Commission Breakdown</Text>
                   <View style={styles.previewRow}>
+                    <Text style={styles.previewLabel}>Deal Value</Text>
+                    <Text style={styles.previewValue}>
+                      {formatCurrency(parseFloat(formData.deal_value || '0'))}
+                    </Text>
+                  </View>
+                  <View style={styles.previewRow}>
                     <Text style={styles.previewLabel}>Commission ({settings.commission_rate}%)</Text>
                     <Text style={styles.previewValue}>
                       {formatCurrency(calculateCommission(parseFloat(formData.deal_value || '0')).commission)}
                     </Text>
                   </View>
                   <View style={styles.previewRow}>
-                    <Text style={styles.previewLabel}>Platform Fee ({settings.platform_fee_rate}%)</Text>
+                    <Text style={styles.previewLabel}>
+                      Platform Fee ({settings.platform_fee_rate}%) - paid by {settings.platform_fee_paid_by}
+                    </Text>
                     <Text style={styles.previewValue}>
-                      -{formatCurrency(calculateCommission(parseFloat(formData.deal_value || '0')).platformFee)}
+                      {formatCurrency(calculateCommission(parseFloat(formData.deal_value || '0')).platformFee)}
                     </Text>
                   </View>
                   <View style={[styles.previewRow, styles.previewTotal]}>
-                    <Text style={styles.previewTotalLabel}>Affiliate Payout</Text>
+                    <Text style={styles.previewTotalLabel}>Affiliate Receives</Text>
                     <Text style={styles.previewTotalValue}>
                       {formatCurrency(calculateCommission(parseFloat(formData.deal_value || '0')).affiliatePayout)}
+                    </Text>
+                  </View>
+                  <View style={styles.previewRow}>
+                    <Text style={styles.previewLabel}>Your Total Cost</Text>
+                    <Text style={[styles.previewValue, { fontWeight: '700', color: '#F59E0B' }]}>
+                      {formatCurrency(calculateCommission(parseFloat(formData.deal_value || '0')).companyCost)}
                     </Text>
                   </View>
                 </View>
