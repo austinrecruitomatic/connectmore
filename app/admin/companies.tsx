@@ -10,7 +10,7 @@ interface Company {
   company_name: string;
   description: string;
   website: string;
-  category: string;
+  business_category: string;
   created_at: string;
   total_products: number;
   active_partnerships: number;
@@ -38,7 +38,7 @@ export default function AdminCompanies() {
     try {
       const { data: companiesData, error } = await supabase
         .from('companies')
-        .select('id, company_name, description, website, category, created_at')
+        .select('id, company_name, description, website, business_category, created_at')
         .order('created_at', { ascending: false });
 
       console.log('Companies query result:', { data: companiesData, error });
@@ -154,9 +154,9 @@ export default function AdminCompanies() {
             <View style={styles.companyHeader}>
               <View style={styles.companyInfo}>
                 <Text style={styles.companyName}>{company.company_name}</Text>
-                {company.category && (
+                {company.business_category && (
                   <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryText}>{company.category}</Text>
+                    <Text style={styles.categoryText}>{company.business_category}</Text>
                   </View>
                 )}
                 <Text style={styles.companyDescription} numberOfLines={2}>
