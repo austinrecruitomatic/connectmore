@@ -21,6 +21,7 @@ import {
   Check,
   CheckCircle,
   XCircle,
+  Edit,
 } from 'lucide-react-native';
 
 type Deal = {
@@ -75,6 +76,8 @@ export default function DealsScreen() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [qualifiedLeads, setQualifiedLeads] = useState<any[]>([]);
@@ -416,6 +419,61 @@ export default function DealsScreen() {
     setShowCreateModal(true);
   };
 
+  const openEditModal = (deal: Deal) => {
+    setEditingDeal(deal);
+    setFormData({
+      contact_submission_id: deal.contact_submissions?.name || '',
+      partnership_id: '',
+      deal_value: deal.deal_value.toString(),
+      contract_type: deal.contract_type,
+      billing_frequency: (deal.billing_frequency || 'monthly') as 'monthly' | 'quarterly' | 'annual',
+      contract_length_months: deal.contract_length_months?.toString() || '',
+      notes: deal.notes || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateDeal = async () => {
+    if (!formData.deal_value || !editingDeal) {
+      Alert.alert('Required Fields', 'Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const dealValue = parseFloat(formData.deal_value);
+
+      const { error } = await supabase
+        .from('deals')
+        .update({
+          deal_value: dealValue,
+          contract_type: formData.contract_type,
+          billing_frequency: formData.contract_type === 'recurring' ? formData.billing_frequency : null,
+          contract_length_months: formData.contract_length_months ? parseInt(formData.contract_length_months) : null,
+          notes: formData.notes,
+        })
+        .eq('id', editingDeal.id);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Deal updated successfully!');
+      setShowEditModal(false);
+      setEditingDeal(null);
+      setFormData({
+        contact_submission_id: '',
+        partnership_id: '',
+        deal_value: '',
+        contract_type: 'one_time',
+        billing_frequency: 'monthly',
+        contract_length_months: '',
+        notes: '',
+      });
+      loadDeals();
+    } catch (error: any) {
+      console.error('Error updating deal:', error);
+      Alert.alert('Error', error.message || 'Failed to update deal');
+    }
+  };
+
   const handleUpdateDealStatus = async (dealId: string, newStatus: Deal['status']) => {
     try {
       const { error } = await supabase
@@ -602,22 +660,31 @@ export default function DealsScreen() {
               <Text style={styles.dealDate}>Created {formatDate(deal.created_at)}</Text>
 
               {deal.status === 'active' && (
-                <View style={styles.dealActions}>
-                  <TouchableOpacity
-                    style={styles.completeButton}
-                    onPress={() => handleUpdateDealStatus(deal.id, 'completed')}
-                  >
-                    <CheckCircle size={16} color="#10B981" />
-                    <Text style={styles.completeButtonText}>Complete</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => handleUpdateDealStatus(deal.id, 'cancelled')}
-                  >
-                    <XCircle size={16} color="#EF4444" />
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
+                <>
+                  <View style={styles.dealActions}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => openEditModal(deal)}
+                    >
+                      <Edit size={16} color="#3B82F6" />
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.completeButton}
+                      onPress={() => handleUpdateDealStatus(deal.id, 'completed')}
+                    >
+                      <CheckCircle size={16} color="#10B981" />
+                      <Text style={styles.completeButtonText}>Complete</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => handleUpdateDealStatus(deal.id, 'cancelled')}
+                    >
+                      <XCircle size={16} color="#EF4444" />
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
               )}
             </View>
           ))
@@ -797,6 +864,134 @@ export default function DealsScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={showEditModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Deal</Text>
+              <TouchableOpacity onPress={() => {
+                setShowEditModal(false);
+                setEditingDeal(null);
+              }}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <Text style={styles.label}>Customer</Text>
+              <View style={styles.readOnlyField}>
+                <Text style={styles.readOnlyText}>
+                  {editingDeal?.contact_submissions?.name || 'Customer'}
+                </Text>
+              </View>
+
+              <Text style={styles.label}>Deal Value</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="0.00"
+                placeholderTextColor="#64748B"
+                keyboardType="decimal-pad"
+                value={formData.deal_value}
+                onChangeText={(value) => setFormData({ ...formData, deal_value: value })}
+              />
+
+              <Text style={styles.label}>Contract Type</Text>
+              <View style={styles.typeButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.typeButton,
+                    formData.contract_type === 'one_time' && styles.typeButtonActive,
+                  ]}
+                  onPress={() => setFormData({ ...formData, contract_type: 'one_time' })}
+                >
+                  <Text
+                    style={[
+                      styles.typeButtonText,
+                      formData.contract_type === 'one_time' && styles.typeButtonTextActive,
+                    ]}
+                  >
+                    One-time
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.typeButton,
+                    formData.contract_type === 'recurring' && styles.typeButtonActive,
+                  ]}
+                  onPress={() => setFormData({ ...formData, contract_type: 'recurring' })}
+                >
+                  <Text
+                    style={[
+                      styles.typeButtonText,
+                      formData.contract_type === 'recurring' && styles.typeButtonTextActive,
+                    ]}
+                  >
+                    Recurring
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {formData.contract_type === 'recurring' && (
+                <>
+                  <Text style={styles.label}>Billing Frequency</Text>
+                  <View style={styles.typeButtons}>
+                    {['monthly', 'quarterly', 'annual'].map((freq) => (
+                      <TouchableOpacity
+                        key={freq}
+                        style={[
+                          styles.freqButton,
+                          formData.billing_frequency === freq && styles.typeButtonActive,
+                        ]}
+                        onPress={() =>
+                          setFormData({ ...formData, billing_frequency: freq as any })
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.typeButtonText,
+                            formData.billing_frequency === freq && styles.typeButtonTextActive,
+                          ]}
+                        >
+                          {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={styles.label}>Contract Length (months)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g., 3, 6, 12 (leave empty for ongoing)"
+                    placeholderTextColor="#64748B"
+                    keyboardType="number-pad"
+                    value={formData.contract_length_months}
+                    onChangeText={(value) => setFormData({ ...formData, contract_length_months: value })}
+                  />
+                </>
+              )}
+
+              <Text style={styles.label}>Notes (optional)</Text>
+              <TextInput
+                style={styles.textArea}
+                placeholder="Add any additional details..."
+                placeholderTextColor="#64748B"
+                multiline
+                numberOfLines={4}
+                value={formData.notes}
+                onChangeText={(value) => setFormData({ ...formData, notes: value })}
+              />
+
+              <TouchableOpacity
+                style={styles.createButton}
+                onPress={handleUpdateDeal}
+              >
+                <Text style={styles.createButtonText}>Update Deal</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -925,6 +1120,22 @@ const styles = StyleSheet.create({
   dealActions: {
     flexDirection: 'row',
     gap: 8,
+  },
+  editButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+    gap: 6,
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
   },
   completeButton: {
     flex: 1,
@@ -1055,6 +1266,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#334155',
+  },
+  readOnlyField: {
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  readOnlyText: {
+    fontSize: 16,
+    color: '#94A3B8',
   },
   commissionPreview: {
     backgroundColor: '#0F172A',
