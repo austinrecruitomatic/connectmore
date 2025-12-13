@@ -41,54 +41,84 @@ export default function AdminCompanies() {
         .select('id, company_name, description, website, category, created_at')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('Companies query result:', { data: companiesData, error });
+
+      if (error) {
+        console.error('Companies query error:', error);
+        throw error;
+      }
+
+      if (!companiesData || companiesData.length === 0) {
+        console.log('No companies found in database');
+        setCompanies([]);
+        return;
+      }
+
+      console.log(`Loading stats for ${companiesData.length} companies`);
 
       const companiesWithStats = await Promise.all(
-        (companiesData || []).map(async (company) => {
-          const [productsRes, partnershipsRes, dealsRes, reviewsRes] = await Promise.all([
-            supabase
-              .from('products')
-              .select('id', { count: 'exact', head: true })
-              .eq('company_id', company.id),
-            supabase
-              .from('affiliate_partnerships')
-              .select('id', { count: 'exact', head: true })
-              .eq('company_id', company.id)
-              .eq('status', 'approved'),
-            supabase
-              .from('deals')
-              .select('deal_value')
-              .eq('company_id', company.id),
-            supabase
-              .from('company_reviews')
-              .select('rating')
-              .eq('company_id', company.id),
-          ]);
+        companiesData.map(async (company) => {
+          try {
+            const [productsRes, partnershipsRes, dealsRes, reviewsRes] = await Promise.all([
+              supabase
+                .from('products')
+                .select('id', { count: 'exact', head: true })
+                .eq('company_id', company.id),
+              supabase
+                .from('affiliate_partnerships')
+                .select('id', { count: 'exact', head: true })
+                .eq('company_id', company.id)
+                .eq('status', 'approved'),
+              supabase
+                .from('deals')
+                .select('deal_value')
+                .eq('company_id', company.id),
+              supabase
+                .from('company_reviews')
+                .select('rating')
+                .eq('company_id', company.id),
+            ]);
 
-          const totalRevenue = (dealsRes.data || []).reduce(
-            (sum, deal) => sum + deal.deal_value,
-            0
-          );
+            if (productsRes.error) console.error('Products query error:', productsRes.error);
+            if (partnershipsRes.error) console.error('Partnerships query error:', partnershipsRes.error);
+            if (dealsRes.error) console.error('Deals query error:', dealsRes.error);
+            if (reviewsRes.error) console.error('Reviews query error:', reviewsRes.error);
 
-          const avgRating =
-            reviewsRes.data && reviewsRes.data.length > 0
-              ? reviewsRes.data.reduce((sum, r) => sum + r.rating, 0) / reviewsRes.data.length
-              : 0;
+            const totalRevenue = (dealsRes.data || []).reduce(
+              (sum, deal) => sum + deal.deal_value,
+              0
+            );
 
-          return {
-            ...company,
-            total_products: productsRes.count || 0,
-            active_partnerships: partnershipsRes.count || 0,
-            total_revenue: totalRevenue,
-            avg_rating: avgRating,
-          };
+            const avgRating =
+              reviewsRes.data && reviewsRes.data.length > 0
+                ? reviewsRes.data.reduce((sum, r) => sum + r.rating, 0) / reviewsRes.data.length
+                : 0;
+
+            return {
+              ...company,
+              total_products: productsRes.count || 0,
+              active_partnerships: partnershipsRes.count || 0,
+              total_revenue: totalRevenue,
+              avg_rating: avgRating,
+            };
+          } catch (companyError) {
+            console.error(`Error loading stats for company ${company.id}:`, companyError);
+            return {
+              ...company,
+              total_products: 0,
+              active_partnerships: 0,
+              total_revenue: 0,
+              avg_rating: 0,
+            };
+          }
         })
       );
 
+      console.log('Companies with stats:', companiesWithStats);
       setCompanies(companiesWithStats);
     } catch (error) {
       console.error('Error loading companies:', error);
-      Alert.alert('Error', 'Failed to load companies');
+      Alert.alert('Error', `Failed to load companies: ${error}`);
     } finally {
       setLoading(false);
     }
