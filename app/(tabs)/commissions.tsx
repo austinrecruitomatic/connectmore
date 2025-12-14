@@ -16,6 +16,9 @@ import {
   X,
   TrendingUp,
   AlertCircle,
+  Users,
+  Target,
+  BarChart3,
 } from 'lucide-react-native';
 
 type Commission = {
@@ -39,15 +42,31 @@ type Commission = {
   };
 };
 
+type PipelineMetrics = {
+  totalLeads: number;
+  qualifiedLeads: number;
+  closedDeals: number;
+  conversionRate: number;
+  totalRevenue: number;
+};
+
 export default function CommissionsScreen() {
   const { profile } = useAuth();
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'paid'>('all');
+  const [pipelineMetrics, setPipelineMetrics] = useState<PipelineMetrics>({
+    totalLeads: 0,
+    qualifiedLeads: 0,
+    closedDeals: 0,
+    conversionRate: 0,
+    totalRevenue: 0,
+  });
 
   useEffect(() => {
     loadCommissions();
+    loadPipelineMetrics();
   }, [filter]);
 
   const loadCommissions = async () => {
@@ -95,6 +114,56 @@ export default function CommissionsScreen() {
       console.error('Error loading commissions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPipelineMetrics = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (!companyData) return;
+
+      const { data: partnerships } = await supabase
+        .from('affiliate_partnerships')
+        .select('id')
+        .eq('company_id', companyData.id);
+
+      if (!partnerships || partnerships.length === 0) return;
+
+      const partnershipIds = partnerships.map((p) => p.id);
+
+      const { data: leads } = await supabase
+        .from('contact_submissions')
+        .select('status')
+        .in('partnership_id', partnershipIds);
+
+      const { data: deals } = await supabase
+        .from('deals')
+        .select('deal_value, status')
+        .eq('company_id', companyData.id);
+
+      const totalLeads = leads?.length || 0;
+      const qualifiedLeads = leads?.filter((l) => l.status === 'qualified').length || 0;
+      const closedDeals = leads?.filter((l) => l.status === 'closed').length || 0;
+      const conversionRate = totalLeads > 0 ? (closedDeals / totalLeads) * 100 : 0;
+      const totalRevenue =
+        deals?.filter((d) => d.status === 'active').reduce((sum, d) => sum + d.deal_value, 0) || 0;
+
+      setPipelineMetrics({
+        totalLeads,
+        qualifiedLeads,
+        closedDeals,
+        conversionRate,
+        totalRevenue,
+      });
+    } catch (error) {
+      console.error('Error loading pipeline metrics:', error);
     }
   };
 
@@ -210,6 +279,57 @@ export default function CommissionsScreen() {
         )}
       </View>
 
+      <View style={styles.dashboardContainer}>
+        <Text style={styles.dashboardTitle}>Performance Dashboard</Text>
+
+        <View style={styles.dashboardGrid}>
+          <View style={styles.dashboardCard}>
+            <View style={styles.dashboardCardHeader}>
+              <Users size={20} color="#3B82F6" />
+              <Text style={styles.dashboardCardLabel}>Pipeline</Text>
+            </View>
+            <Text style={styles.dashboardCardValue}>{pipelineMetrics.totalLeads}</Text>
+            <Text style={styles.dashboardCardSubtext}>Total Leads</Text>
+            <View style={styles.dashboardCardBreakdown}>
+              <Text style={styles.breakdownItem}>
+                Qualified: {pipelineMetrics.qualifiedLeads}
+              </Text>
+              <Text style={styles.breakdownItem}>Closed: {pipelineMetrics.closedDeals}</Text>
+            </View>
+          </View>
+
+          <View style={styles.dashboardCard}>
+            <View style={styles.dashboardCardHeader}>
+              <Target size={20} color="#10B981" />
+              <Text style={styles.dashboardCardLabel}>Conversion</Text>
+            </View>
+            <Text style={styles.dashboardCardValue}>
+              {pipelineMetrics.conversionRate.toFixed(1)}%
+            </Text>
+            <Text style={styles.dashboardCardSubtext}>Close Rate</Text>
+            <View style={styles.conversionBar}>
+              <View
+                style={[
+                  styles.conversionBarFill,
+                  { width: `${Math.min(pipelineMetrics.conversionRate, 100)}%` },
+                ]}
+              />
+            </View>
+          </View>
+
+          <View style={[styles.dashboardCard, styles.dashboardCardWide]}>
+            <View style={styles.dashboardCardHeader}>
+              <BarChart3 size={20} color="#F59E0B" />
+              <Text style={styles.dashboardCardLabel}>Revenue Earned</Text>
+            </View>
+            <Text style={styles.dashboardCardValue}>
+              {formatCurrency(pipelineMetrics.totalRevenue)}
+            </Text>
+            <Text style={styles.dashboardCardSubtext}>Total Active Deal Value</Text>
+          </View>
+        </View>
+      </View>
+
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <AlertCircle size={20} color="#3B82F6" />
@@ -249,7 +369,15 @@ export default function CommissionsScreen() {
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadCommissions} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => {
+              loadCommissions();
+              loadPipelineMetrics();
+            }}
+          />
+        }
       >
         {commissions.length === 0 ? (
           <View style={styles.emptyState}>
@@ -377,6 +505,70 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  dashboardContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  dashboardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  dashboardGrid: {
+    gap: 12,
+  },
+  dashboardCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  dashboardCardWide: {
+    width: '100%',
+  },
+  dashboardCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  dashboardCardLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  dashboardCardValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  dashboardCardSubtext: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  dashboardCardBreakdown: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  breakdownItem: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  conversionBar: {
+    height: 6,
+    backgroundColor: '#334155',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  conversionBarFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 3,
   },
   statsContainer: {
     flexDirection: 'row',
