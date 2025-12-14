@@ -210,6 +210,18 @@ export default function DealsScreen() {
   const loadQualifiedLeads = async () => {
     if (!companyId) return;
 
+    const { data: partnerships } = await supabase
+      .from('affiliate_partnerships')
+      .select('id')
+      .eq('company_id', companyId);
+
+    if (!partnerships || partnerships.length === 0) {
+      setQualifiedLeads([]);
+      return;
+    }
+
+    const partnershipIds = partnerships.map(p => p.id);
+
     const { data: allQualifiedLeads } = await supabase
       .from('contact_submissions')
       .select(`
@@ -221,7 +233,7 @@ export default function DealsScreen() {
         )
       `)
       .eq('status', 'qualified')
-      .eq('affiliate_partnerships.company_id', companyId);
+      .in('partnership_id', partnershipIds);
 
     if (!allQualifiedLeads) {
       setQualifiedLeads([]);

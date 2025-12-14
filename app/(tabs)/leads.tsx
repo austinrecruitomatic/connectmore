@@ -83,6 +83,19 @@ export default function LeadsScreen() {
         return;
       }
 
+      const { data: partnerships } = await supabase
+        .from('affiliate_partnerships')
+        .select('id')
+        .eq('company_id', companyData.id);
+
+      if (!partnerships || partnerships.length === 0) {
+        setLeads([]);
+        setLoading(false);
+        return;
+      }
+
+      const partnershipIds = partnerships.map(p => p.id);
+
       let query = supabase
         .from('contact_submissions')
         .select(
@@ -96,7 +109,7 @@ export default function LeadsScreen() {
           )
         `
         )
-        .eq('affiliate_partnerships.company_id', companyData.id)
+        .in('partnership_id', partnershipIds)
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
