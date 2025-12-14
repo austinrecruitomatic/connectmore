@@ -20,7 +20,7 @@ type AuthContextType = {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string, userType: 'company' | 'affiliate', companyName?: string, businessCategory?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, userType: 'company' | 'affiliate', companyName?: string, businessCategory?: string, recruiterCode?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -94,7 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fullName: string,
     userType: 'company' | 'affiliate',
     companyName?: string,
-    businessCategory?: string
+    businessCategory?: string,
+    recruiterCode?: string
   ) => {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -105,11 +106,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: authError };
     }
 
+    let recruitedBy = null;
+    if (recruiterCode && recruiterCode.length > 0 && userType === 'affiliate') {
+      const { data: recruiterData } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_type', 'affiliate')
+        .ilike('id', `${recruiterCode.toLowerCase()}%`)
+        .maybeSingle();
+
+      if (recruiterData) {
+        recruitedBy = recruiterData.id;
+      }
+    }
+
     const { error: profileError } = await supabase.from('profiles').insert({
       id: authData.user.id,
       user_type: userType,
       full_name: fullName,
       email: email,
+      recruited_by: recruitedBy,
     });
 
     if (profileError) {

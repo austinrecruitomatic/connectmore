@@ -31,6 +31,7 @@ export default function SignupScreen() {
   const [businessCategory, setBusinessCategory] = useState('other');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [userType, setUserType] = useState<'company' | 'affiliate'>('affiliate');
+  const [recruiterCode, setRecruiterCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
@@ -55,7 +56,7 @@ export default function SignupScreen() {
     setLoading(true);
     setError('');
 
-    const { error: signUpError } = await signUp(email, password, fullName, userType, companyName, businessCategory);
+    const { error: signUpError } = await signUp(email, password, fullName, userType, companyName, businessCategory, recruiterCode);
 
     if (signUpError) {
       setError(signUpError.message);
@@ -143,6 +144,23 @@ export default function SignupScreen() {
                   </Text>
                   <ChevronDown size={20} color="#94A3B8" />
                 </TouchableOpacity>
+              </>
+            )}
+
+            {userType === 'affiliate' && (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Referral Code (optional)"
+                  value={recruiterCode}
+                  onChangeText={(text) => setRecruiterCode(text.toUpperCase())}
+                  placeholderTextColor="#64748B"
+                  autoCapitalize="characters"
+                  maxLength={8}
+                />
+                <Text style={styles.helpText}>
+                  Have a referral code from another affiliate? Enter it here!
+                </Text>
               </>
             )}
 
@@ -306,6 +324,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     fontSize: 14,
+  },
+  helpText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: -8,
+    fontStyle: 'italic',
   },
   error: {
     color: '#FEE2E2',

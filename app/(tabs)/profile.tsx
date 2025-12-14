@@ -66,12 +66,25 @@ export default function ProfileScreen() {
     platform_fee_paid_by: 'affiliate' as 'company' | 'affiliate',
     payout_frequency_days: '30',
     auto_approve_commissions: false,
+    recruiter_commission_split_percentage: '0.00',
+  });
+  const [recruiterInfo, setRecruiterInfo] = useState<{
+    recruiter: { full_name: string; email: string } | null;
+    recruits: { id: string; full_name: string; email: string }[];
+    referralCode: string;
+  }>({
+    recruiter: null,
+    recruits: [],
+    referralCode: '',
   });
 
   useEffect(() => {
     if (profile?.user_type === 'company') {
       loadCompany();
       loadCompanySettings();
+    }
+    if (profile?.user_type === 'affiliate') {
+      loadRecruiterInfo();
     }
     if (profile) {
       setPaymentForm({
@@ -134,8 +147,30 @@ export default function ProfileScreen() {
         platform_fee_paid_by: settingsData.platform_fee_paid_by || 'affiliate',
         payout_frequency_days: settingsData.payout_frequency_days.toString(),
         auto_approve_commissions: settingsData.auto_approve_commissions,
+        recruiter_commission_split_percentage: (settingsData.recruiter_commission_split_percentage || 0).toString(),
       });
     }
+  };
+
+  const loadRecruiterInfo = async () => {
+    if (!profile?.id) return;
+
+    const { data: recruiterData } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', profile.recruited_by)
+      .maybeSingle();
+
+    const { data: recruitsData } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('recruited_by', profile.id);
+
+    setRecruiterInfo({
+      recruiter: recruiterData || null,
+      recruits: recruitsData || [],
+      referralCode: profile.id.substring(0, 8).toUpperCase(),
+    });
   };
 
   const handleEditCompany = () => {
@@ -185,6 +220,7 @@ export default function ProfileScreen() {
         commission_rate: parseFloat(settingsForm.commission_rate),
         payout_frequency_days: parseInt(settingsForm.payout_frequency_days),
         auto_approve_commissions: settingsForm.auto_approve_commissions,
+        recruiter_commission_split_percentage: parseFloat(settingsForm.recruiter_commission_split_percentage || '0'),
       };
 
       if (profile?.is_super_admin) {
@@ -421,6 +457,62 @@ export default function ProfileScreen() {
                 </Text>
               </TouchableOpacity>
             )}
+          </View>
+        </View>
+      )}
+
+      {profile?.user_type === 'affiliate' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recruiter Network</Text>
+          <View style={styles.infoCard}>
+            {recruiterInfo.recruiter && (
+              <View style={styles.infoRow}>
+                <View style={styles.infoIcon}>
+                  <User size={20} color="#64748B" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Recruited By</Text>
+                  <Text style={styles.infoValue}>{recruiterInfo.recruiter.full_name}</Text>
+                  <Text style={styles.infoSubtext}>{recruiterInfo.recruiter.email}</Text>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <User size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Your Recruits</Text>
+                <Text style={styles.infoValue}>
+                  {recruiterInfo.recruits.length} {recruiterInfo.recruits.length === 1 ? 'Affiliate' : 'Affiliates'}
+                </Text>
+                {recruiterInfo.recruits.length > 0 && (
+                  <View style={styles.recruitsList}>
+                    {recruiterInfo.recruits.slice(0, 3).map((recruit) => (
+                      <Text key={recruit.id} style={styles.recruitItem}>
+                        • {recruit.full_name}
+                      </Text>
+                    ))}
+                    {recruiterInfo.recruits.length > 3 && (
+                      <Text style={styles.recruitItem}>
+                        • +{recruiterInfo.recruits.length - 3} more
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.referralCard}>
+              <Text style={styles.referralTitle}>Your Referral Code</Text>
+              <View style={styles.referralCodeBox}>
+                <Text style={styles.referralCode}>{recruiterInfo.referralCode}</Text>
+              </View>
+              <Text style={styles.referralHint}>
+                Share this code with new affiliates to earn recruitment bonuses
+              </Text>
+            </View>
           </View>
         </View>
       )}
@@ -712,6 +804,22 @@ export default function ProfileScreen() {
                 </>
               )}
 
+              <Text style={styles.label}>Recruiter Commission Split (%)</Text>
+              <Text style={styles.helpText}>
+                Percentage of commission that goes to the recruiter when an affiliate they recruited makes a sale
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={settingsForm.recruiter_commission_split_percentage}
+                onChangeText={(text) => setSettingsForm({ ...settingsForm, recruiter_commission_split_percentage: text })}
+                placeholder="0.00"
+                placeholderTextColor="#64748B"
+                keyboardType="decimal-pad"
+              />
+              <Text style={styles.helpText}>
+                Example: If set to 3%, a recruited affiliate gets 12% and their recruiter gets 3% on a 15% commission
+              </Text>
+
               <Text style={styles.label}>Payout Frequency (days)</Text>
               <TextInput
                 style={styles.input}
@@ -840,6 +948,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94A3B8',
     lineHeight: 20,
+  },
+  infoSubtext: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  recruitsList: {
+    marginTop: 8,
+  },
+  recruitItem: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginBottom: 4,
+  },
+  referralCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+  },
+  referralTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  referralCodeBox: {
+    backgroundColor: '#1E293B',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    marginBottom: 12,
+  },
+  referralCode: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#3B82F6',
+    letterSpacing: 4,
+  },
+  referralHint: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   signOutButton: {
     flexDirection: 'row',
