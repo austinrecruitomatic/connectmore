@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Home, Package, BarChart3, User, Store, Users, DollarSign, Receipt, Shield, Wallet } from 'lucide-react-native';
+import { Home, TrendingUp, User, Store, Users, DollarSign, Shield } from 'lucide-react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useEffect } from 'react';
 
@@ -56,54 +56,24 @@ export default function TabLayout() {
         name="partnerships"
         options={{
           title: isCompany ? 'Affiliates' : 'My Links',
-          tabBarIcon: ({ size, color }) => <Package size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => <Users size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="leads"
         options={{
-          title: 'Leads',
-          tabBarIcon: ({ size, color }) => <Users size={size} color={color} />,
-          href: isCompany ? undefined : null,
-        }}
-      />
-      <Tabs.Screen
-        name="deals"
-        options={{
-          title: 'Deals',
-          tabBarIcon: ({ size, color }) => <DollarSign size={size} color={color} />,
+          title: 'Sales',
+          headerTitle: 'Sales Pipeline',
+          tabBarIcon: ({ size, color }) => <TrendingUp size={size} color={color} />,
           href: isCompany ? undefined : null,
         }}
       />
       <Tabs.Screen
         name="commissions"
         options={{
-          title: 'Commissions',
-          tabBarIcon: ({ size, color }) => <Receipt size={size} color={color} />,
-          href: isCompany ? undefined : null,
-        }}
-      />
-      <Tabs.Screen
-        name="payouts"
-        options={{
-          title: 'Payouts',
-          tabBarIcon: ({ size, color }) => <Wallet size={size} color={color} />,
-          href: isAffiliate ? undefined : null,
-        }}
-      />
-      <Tabs.Screen
-        name="analytics"
-        options={{
-          title: 'Analytics',
-          tabBarIcon: ({ size, color }) => <BarChart3 size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="admin"
-        options={{
-          title: 'Admin',
-          tabBarIcon: ({ size, color }) => <Shield size={size} color={color} />,
-          href: isSuperAdmin ? undefined : null,
+          title: isCompany ? 'Commissions' : 'Earnings',
+          headerTitle: isCompany ? 'Commission Management' : 'My Earnings',
+          tabBarIcon: ({ size, color }) => <DollarSign size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -111,6 +81,32 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
+        }}
+      />
+
+      {/* Hidden tabs - accessible via navigation but not in tab bar */}
+      <Tabs.Screen
+        name="deals"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="payouts"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

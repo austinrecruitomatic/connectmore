@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'expo-router';
 import {
   Mail,
   Phone,
@@ -23,6 +24,8 @@ import {
   Filter,
   CheckCircle,
   DollarSign,
+  TrendingUp,
+  Users as UsersIcon,
 } from 'lucide-react-native';
 
 type ContactSubmission = {
@@ -50,6 +53,8 @@ type ContactSubmission = {
 
 export default function LeadsScreen() {
   const { profile } = useAuth();
+  const router = useRouter();
+  const [activeView, setActiveView] = useState<'leads' | 'deals'>('leads');
   const [leads, setLeads] = useState<ContactSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<ContactSubmission | null>(null);
@@ -393,6 +398,31 @@ export default function LeadsScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Tab Switcher */}
+      <View style={styles.tabSwitcher}>
+        <TouchableOpacity
+          style={[styles.tab, activeView === 'leads' && styles.activeTab]}
+          onPress={() => setActiveView('leads')}
+        >
+          <UsersIcon size={18} color={activeView === 'leads' ? '#60A5FA' : '#64748B'} />
+          <Text style={[styles.tabText, activeView === 'leads' && styles.activeTabText]}>
+            Leads
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeView === 'deals' && styles.activeTab]}
+          onPress={() => {
+            setActiveView('deals');
+            router.push('/(tabs)/deals');
+          }}
+        >
+          <CheckCircle size={18} color={activeView === 'deals' ? '#60A5FA' : '#64748B'} />
+          <Text style={[styles.tabText, activeView === 'deals' && styles.activeTabText]}>
+            Deals
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Leads</Text>
@@ -707,12 +737,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0F172A',
   },
+  tabSwitcher: {
+    flexDirection: 'row',
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: '#334155',
+    borderRadius: 8,
+  },
+  activeTab: {
+    backgroundColor: '#1E40AF',
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 16,
   },
   title: {
     fontSize: 28,
