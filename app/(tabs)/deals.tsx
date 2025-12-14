@@ -253,10 +253,11 @@ export default function DealsScreen() {
     setQualifiedLeads(availableLeads || []);
   };
 
-  const calculateCommission = (dealValue: number) => {
+  const calculateCommission = (dealValue: number, commissionRate?: number) => {
     if (!settings) return { commission: 0, platformFee: 0, affiliatePayout: 0, companyCost: 0 };
 
-    const commission = dealValue * (settings.commission_rate / 100);
+    const rate = commissionRate !== undefined ? commissionRate : settings.commission_rate;
+    const commission = dealValue * (rate / 100);
     const platformFee = commission * (settings.platform_fee_rate / 100);
 
     let affiliatePayout: number;
@@ -291,8 +292,23 @@ export default function DealsScreen() {
     }
 
     try {
+      const productId = selectedLead.product_id;
+      let commissionRate = settings?.commission_rate;
+
+      if (productId) {
+        const { data: productData } = await supabase
+          .from('products')
+          .select('commission_rate')
+          .eq('id', productId)
+          .maybeSingle();
+
+        if (productData) {
+          commissionRate = productData.commission_rate;
+        }
+      }
+
       const dealValue = parseFloat(formData.deal_value);
-      const { commission, platformFee, affiliatePayout } = calculateCommission(dealValue);
+      const { commission, platformFee, affiliatePayout } = calculateCommission(dealValue, commissionRate);
 
       const startDate = new Date();
       let endDate = null;
@@ -310,6 +326,7 @@ export default function DealsScreen() {
           partnership_id: selectedLead.affiliate_partnerships.id,
           company_id: companyId,
           affiliate_id: selectedLead.affiliate_partnerships.affiliate_id,
+          product_id: productId,
           deal_value: dealValue,
           contract_type: formData.contract_type,
           billing_frequency: formData.contract_type === 'recurring' ? formData.billing_frequency : null,

@@ -42,6 +42,12 @@ type Affiliate = {
   email: string;
 };
 
+type Product = {
+  id: string;
+  name: string;
+  commission_rate: number;
+};
+
 export default function PartnershipsScreen() {
   const { profile } = useAuth();
   const isCompany = profile?.user_type === 'company';
@@ -49,7 +55,9 @@ export default function PartnershipsScreen() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [selectedAffiliate, setSelectedAffiliate] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [saving, setSaving] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -125,20 +133,33 @@ export default function PartnershipsScreen() {
     setAffiliates(affiliatesData || []);
   };
 
+  const loadProducts = async () => {
+    if (!companyId) return;
+
+    const { data: productsData } = await supabase
+      .from('products')
+      .select('id, name, commission_rate')
+      .eq('company_id', companyId)
+      .eq('is_active', true);
+
+    setProducts(productsData || []);
+  };
+
   const handleAddPartnership = async () => {
-    if (!selectedAffiliate || !companyId) {
-      Alert.alert('Required Fields', 'Please select an affiliate');
+    if (!selectedAffiliate || !companyId || !selectedProduct) {
+      Alert.alert('Required Fields', 'Please select both an affiliate and a product');
       return;
     }
 
     setSaving(true);
 
     try {
-      const affiliateCode = `${selectedAffiliate.slice(0, 8)}-${companyId.slice(0, 8)}`;
+      const affiliateCode = `${selectedAffiliate.slice(0, 8)}-${companyId.slice(0, 8)}-${selectedProduct.slice(0, 6)}`;
 
       const { error } = await supabase.from('affiliate_partnerships').insert({
         affiliate_id: selectedAffiliate,
         company_id: companyId,
+        product_id: selectedProduct,
         affiliate_code: affiliateCode,
         status: 'approved',
         approved_at: new Date().toISOString(),
@@ -157,6 +178,7 @@ export default function PartnershipsScreen() {
       Alert.alert('Success', 'Partnership added successfully!');
       setShowAddModal(false);
       setSelectedAffiliate(null);
+      setSelectedProduct(null);
       setSearchQuery('');
       await loadPartnerships();
     } catch (err) {
@@ -168,6 +190,7 @@ export default function PartnershipsScreen() {
 
   const openAddModal = async () => {
     await loadAffiliates();
+    await loadProducts();
     setShowAddModal(true);
   };
 
@@ -315,7 +338,35 @@ export default function PartnershipsScreen() {
             </View>
 
             <ScrollView style={styles.modalBody}>
-              <Text style={styles.label}>Select Affiliate</Text>
+              <Text style={styles.label}>Select Product</Text>
+              {products.length === 0 ? (
+                <View style={styles.emptySection}>
+                  <Text style={styles.emptySectionText}>No active products found. Create a product first.</Text>
+                </View>
+              ) : (
+                products.map((product) => (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={[
+                      styles.selectionItem,
+                      selectedProduct === product.id && styles.selectionItemActive,
+                    ]}
+                    onPress={() => setSelectedProduct(product.id)}
+                  >
+                    <View style={styles.selectionItemContent}>
+                      <Text style={styles.selectionItemTitle}>{product.name}</Text>
+                      <Text style={styles.selectionItemSubtitle}>
+                        Commission: {product.commission_rate}%
+                      </Text>
+                    </View>
+                    {selectedProduct === product.id && (
+                      <Check size={20} color="#3B82F6" />
+                    )}
+                  </TouchableOpacity>
+                ))
+              )}
+
+              <Text style={[styles.label, { marginTop: 24 }]}>Select Affiliate</Text>
               <View style={styles.searchContainer}>
                 <Search size={20} color="#64748B" />
                 <TextInput
@@ -545,6 +596,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 12,
+  },
+  emptySection: {
+    padding: 16,
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  emptySectionText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
   searchContainer: {
     flexDirection: 'row',

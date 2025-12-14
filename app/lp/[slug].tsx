@@ -18,6 +18,7 @@ import { ArrowLeft, X, ExternalLink } from 'lucide-react-native';
 
 interface LandingPageData {
   partnershipId: string;
+  productId: string;
   productName: string;
   companyName: string;
   companyLogo: string;
@@ -69,6 +70,7 @@ export default function LandingPageView() {
             id,
             affiliate_code,
             company_id,
+            product_id,
             companies (
               id,
               company_name,
@@ -90,17 +92,19 @@ export default function LandingPageView() {
         const content = customPage.content as any;
         const template = (customPage as any).landing_page_templates;
 
+        const productId = partnership?.product_id || '';
+
         const { data: products } = await supabase
           .from('products')
-          .select('product_url, name, affiliate_discount_enabled, affiliate_discount_type, affiliate_discount_value')
-          .eq('company_id', partnership?.company_id)
-          .limit(1)
+          .select('id, product_url, name, affiliate_discount_enabled, affiliate_discount_type, affiliate_discount_value')
+          .eq('id', productId)
           .maybeSingle();
 
         const productUrl = content?.buttonUrl || products?.product_url || '';
 
         const pageInfo: LandingPageData = {
           partnershipId: customPage.partnership_id || '',
+          productId: products?.id || productId,
           productName: products?.name || content?.productName || 'Product',
           companyName: company?.company_name || 'Company',
           companyLogo: company?.logo_url || '',
@@ -135,6 +139,7 @@ export default function LandingPageView() {
           id,
           affiliate_code,
           company_id,
+          product_id,
           companies (
             id,
             company_name,
@@ -154,15 +159,14 @@ export default function LandingPageView() {
       const { data: products } = await supabase
         .from('products')
         .select('*')
-        .eq('company_id', partnership.company_id)
-        .eq('is_active', true)
-        .limit(1)
+        .eq('id', partnership.product_id)
         .maybeSingle();
 
       const product = products || {};
 
       const pageInfo: LandingPageData = {
         partnershipId: partnership.id,
+        productId: partnership.product_id || product?.id || '',
         productName: product?.name || company?.company_name || 'Product',
         companyName: company?.company_name || 'Company',
         companyLogo: company?.logo_url || '',
@@ -232,6 +236,7 @@ export default function LandingPageView() {
         .from('contact_submissions')
         .insert({
           partnership_id: pageData.partnershipId,
+          product_id: pageData.productId,
           landing_page_slug: pageData.affiliateCode,
           name: formData.name,
           email: formData.email,

@@ -37,6 +37,7 @@ type ContactSubmission = {
   contract_value: number | null;
   contract_type: 'monthly' | 'total';
   contract_length_months: number | null;
+  product_id: string | null;
   created_at: string;
   landing_page_slug: string;
   affiliate_partnerships: {
@@ -188,12 +189,18 @@ export default function LeadsScreen() {
 
     const { data: partnershipData } = await supabase
       .from('affiliate_partnerships')
-      .select('id, company_id')
+      .select('id, company_id, product_id')
       .eq('affiliate_id', lead.affiliate_partnerships.affiliate_id)
       .eq('company_id', companyData.id)
       .maybeSingle();
 
     if (!partnershipData) throw new Error('Partnership not found');
+
+    const { data: productData } = await supabase
+      .from('products')
+      .select('commission_rate')
+      .eq('id', lead.product_id || partnershipData.product_id)
+      .maybeSingle();
 
     let { data: settingsData } = await supabase
       .from('company_settings')
@@ -211,7 +218,8 @@ export default function LeadsScreen() {
     }
 
     const dealValue = lead.contract_value || 0;
-    const commission = dealValue * ((settingsData.commission_rate || 10) / 100);
+    const commissionRate = productData?.commission_rate || settingsData.commission_rate || 10;
+    const commission = dealValue * (commissionRate / 100);
     const platformFee = commission * ((settingsData.platform_fee_rate || 5) / 100);
     const affiliatePayout = commission - platformFee;
 
@@ -227,6 +235,7 @@ export default function LeadsScreen() {
         partnership_id: partnershipData.id,
         company_id: companyData.id,
         affiliate_id: lead.affiliate_partnerships.affiliate_id,
+        product_id: lead.product_id || partnershipData.product_id,
         deal_value: dealValue,
         contract_type: contractTypeMapping[lead.contract_type] || 'one_time',
         billing_frequency: lead.contract_type === 'monthly' ? 'monthly' : null,
