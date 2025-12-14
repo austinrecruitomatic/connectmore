@@ -461,7 +461,7 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {profile?.user_type === 'affiliate' && (
+      {profile?.user_type === 'affiliate' && recruiterInfo.referralCode && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recruiter Network</Text>
           <View style={styles.infoCard}>
@@ -485,18 +485,19 @@ export default function ProfileScreen() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Your Recruits</Text>
                 <Text style={styles.infoValue}>
-                  {recruiterInfo.recruits.length} {recruiterInfo.recruits.length === 1 ? 'Affiliate' : 'Affiliates'}
+                  {recruiterInfo.recruits.length}{' '}
+                  {recruiterInfo.recruits.length === 1 ? 'Affiliate' : 'Affiliates'}
                 </Text>
                 {recruiterInfo.recruits.length > 0 && (
                   <View style={styles.recruitsList}>
                     {recruiterInfo.recruits.slice(0, 3).map((recruit) => (
                       <Text key={recruit.id} style={styles.recruitItem}>
-                        • {recruit.full_name}
+                        {`• ${recruit.full_name}`}
                       </Text>
                     ))}
                     {recruiterInfo.recruits.length > 3 && (
                       <Text style={styles.recruitItem}>
-                        • +{recruiterInfo.recruits.length - 3} more
+                        {`• +${recruiterInfo.recruits.length - 3} more`}
                       </Text>
                     )}
                   </View>
