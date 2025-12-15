@@ -45,9 +45,9 @@ Deno.serve(async (req: Request) => {
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.user_type !== 'affiliate') {
+    if (!profile || profile.user_type !== 'company') {
       return new Response(
-        JSON.stringify({ error: 'Only affiliates can create Connect accounts' }),
+        JSON.stringify({ error: 'Only companies can create Connect accounts' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

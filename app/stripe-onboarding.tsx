@@ -26,7 +26,7 @@ export default function StripeOnboardingScreen() {
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
 
   useEffect(() => {
-    if (profile?.user_type === 'affiliate') {
+    if (profile?.user_type === 'company') {
       checkAccountStatus();
     }
   }, [profile]);
@@ -150,10 +150,10 @@ export default function StripeOnboardingScreen() {
     }
   };
 
-  if (profile?.user_type !== 'affiliate') {
+  if (profile?.user_type !== 'company') {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>This page is only for affiliates</Text>
+        <Text style={styles.errorText}>This page is only for companies</Text>
       </View>
     );
   }
@@ -177,7 +177,7 @@ export default function StripeOnboardingScreen() {
         </View>
         <Text style={styles.title}>Stripe Connect Setup</Text>
         <Text style={styles.subtitle}>
-          Connect your bank account to receive automated payouts
+          Connect your Stripe account to accept payments and process payouts
         </Text>
       </View>
 
@@ -291,9 +291,9 @@ export default function StripeOnboardingScreen() {
       {accountStatus?.status === 'verified' && (
         <TouchableOpacity
           style={styles.continueButton}
-          onPress={() => router.push('/payout-settings')}
+          onPress={() => router.back()}
         >
-          <Text style={styles.continueButtonText}>Configure Payout Settings</Text>
+          <Text style={styles.continueButtonText}>Return to Profile</Text>
         </TouchableOpacity>
       )}
 

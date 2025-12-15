@@ -417,9 +417,9 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {profile?.user_type === 'affiliate' && (
+      {profile?.user_type === 'company' && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payout Settings</Text>
+          <Text style={styles.sectionTitle}>Payment Settings</Text>
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
@@ -443,7 +443,7 @@ export default function ProfileScreen() {
               >
                 <DollarSign size={16} color="#60A5FA" />
                 <Text style={styles.configureButtonText}>
-                  Setup Payouts
+                  Setup Payment Processing
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -453,7 +453,7 @@ export default function ProfileScreen() {
               >
                 <DollarSign size={16} color="#60A5FA" />
                 <Text style={styles.configureButtonText}>
-                  Manage Payout Settings
+                  Manage Payment Settings
                 </Text>
               </TouchableOpacity>
             )}
