@@ -36,9 +36,12 @@ type Commission = {
       email: string;
     } | null;
   };
-  profiles: {
+  profiles?: {
     full_name: string;
     email: string;
+  };
+  companies?: {
+    company_name: string;
   };
 };
 
@@ -75,41 +78,68 @@ export default function CommissionsScreen() {
     setLoading(true);
 
     try {
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('user_id', profile.id)
-        .maybeSingle();
+      if (profile.user_type === 'company') {
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('user_id', profile.id)
+          .maybeSingle();
 
-      if (!companyData) {
-        setLoading(false);
-        return;
+        if (!companyData) {
+          setLoading(false);
+          return;
+        }
+
+        setCompanyId(companyData.id);
+
+        let query = supabase
+          .from('commissions')
+          .select(`
+            *,
+            deals!inner (
+              deal_value,
+              contact_submissions (name, email)
+            ),
+            profiles!commissions_affiliate_id_fkey (full_name, email)
+          `)
+          .eq('company_id', companyData.id)
+          .order('created_at', { ascending: false });
+
+        if (filter !== 'all') {
+          query = query.eq('status', filter);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        setCommissions(data || []);
+      } else {
+        let query = supabase
+          .from('commissions')
+          .select(`
+            *,
+            deals!inner (
+              deal_value,
+              contact_submissions (name, email)
+            ),
+            companies!commissions_company_id_fkey (
+              company_name
+            )
+          `)
+          .eq('affiliate_id', profile.id)
+          .order('created_at', { ascending: false });
+
+        if (filter !== 'all') {
+          query = query.eq('status', filter);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        setCommissions(data || []);
       }
-
-      setCompanyId(companyData.id);
-
-      let query = supabase
-        .from('commissions')
-        .select(`
-          *,
-          deals!inner (
-            deal_value,
-            contact_submissions (name, email)
-          ),
-          profiles!commissions_affiliate_id_fkey (full_name, email)
-        `)
-        .eq('company_id', companyData.id)
-        .order('created_at', { ascending: false });
-
-      if (filter !== 'all') {
-        query = query.eq('status', filter);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      setCommissions(data || []);
     } catch (error) {
       console.error('Error loading commissions:', error);
     } finally {
@@ -254,24 +284,21 @@ export default function CommissionsScreen() {
 
   const platformFeeTotal = commissions.reduce((sum, c) => sum + c.platform_fee_amount, 0);
 
-  if (profile?.user_type !== 'company') {
-    return (
-      <View style={styles.container}>
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>This feature is only available for companies</Text>
-        </View>
-      </View>
-    );
-  }
+  const isCompany = profile?.user_type === 'company';
+  const isAffiliate = profile?.user_type === 'affiliate';
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Commissions</Text>
-          <Text style={styles.subtitle}>{commissions.length} total commissions</Text>
+          <Text style={styles.title}>{isCompany ? 'Commissions' : 'Earnings'}</Text>
+          <Text style={styles.subtitle}>
+            {isCompany
+              ? `${commissions.length} commission payments to process`
+              : `${commissions.length} commission payments earned`}
+          </Text>
         </View>
-        {pendingTotal > 0 && (
+        {isCompany && pendingTotal > 0 && (
           <TouchableOpacity style={styles.approveAllButton} onPress={handleBulkApprove}>
             <Check size={18} color="#fff" />
             <Text style={styles.approveAllText}>Approve All</Text>
@@ -279,8 +306,9 @@ export default function CommissionsScreen() {
         )}
       </View>
 
-      <View style={styles.dashboardContainer}>
-        <Text style={styles.dashboardTitle}>Performance Dashboard</Text>
+      {isCompany && (
+        <View style={styles.dashboardContainer}>
+          <Text style={styles.dashboardTitle}>Performance Dashboard</Text>
 
         <View style={styles.dashboardGrid}>
           <View style={styles.dashboardCard}>
@@ -320,7 +348,7 @@ export default function CommissionsScreen() {
           <View style={[styles.dashboardCard, styles.dashboardCardWide]}>
             <View style={styles.dashboardCardHeader}>
               <BarChart3 size={20} color="#F59E0B" />
-              <Text style={styles.dashboardCardLabel}>Revenue Earned</Text>
+              <Text style={styles.dashboardCardLabel}>Revenue Generated</Text>
             </View>
             <Text style={styles.dashboardCardValue}>
               {formatCurrency(pipelineMetrics.totalRevenue)}
@@ -329,22 +357,24 @@ export default function CommissionsScreen() {
           </View>
         </View>
       </View>
+      )}
+
 
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <AlertCircle size={20} color="#3B82F6" />
           <Text style={styles.statValue}>{formatCurrency(pendingTotal)}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={styles.statLabel}>{isCompany ? 'To Approve' : 'Pending'}</Text>
         </View>
         <View style={styles.statCard}>
           <Check size={20} color="#F59E0B" />
           <Text style={styles.statValue}>{formatCurrency(approvedTotal)}</Text>
-          <Text style={styles.statLabel}>Approved</Text>
+          <Text style={styles.statLabel}>{isCompany ? 'Approved' : 'Approved'}</Text>
         </View>
         <View style={styles.statCard}>
           <DollarSign size={20} color="#10B981" />
           <Text style={styles.statValue}>{formatCurrency(paidTotal)}</Text>
-          <Text style={styles.statLabel}>Paid Out</Text>
+          <Text style={styles.statLabel}>{isCompany ? 'Paid' : 'Received'}</Text>
         </View>
       </View>
 
@@ -381,11 +411,15 @@ export default function CommissionsScreen() {
       >
         {commissions.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No commissions found</Text>
+            <Text style={styles.emptyText}>
+              {isCompany ? 'No commissions found' : 'No earnings yet'}
+            </Text>
             <Text style={styles.emptySubtext}>
               {filter === 'all'
-                ? 'Commissions will appear here when deals are created'
-                : `No ${filter} commissions`}
+                ? isCompany
+                  ? 'Commissions will appear here when deals are created'
+                  : 'Your earnings will appear here when companies close deals from your referrals'
+                : `No ${filter} ${isCompany ? 'commissions' : 'earnings'}`}
             </Text>
           </View>
         ) : (
@@ -397,7 +431,9 @@ export default function CommissionsScreen() {
                     {commission.deals?.contact_submissions?.name || 'Customer'}
                   </Text>
                   <Text style={styles.affiliateName}>
-                    to {commission.profiles?.full_name || 'Affiliate'}
+                    {isCompany
+                      ? `to ${commission.profiles?.full_name || 'Affiliate'}`
+                      : `from ${commission.companies?.company_name || 'Company'}`}
                   </Text>
                 </View>
                 <View
@@ -425,27 +461,45 @@ export default function CommissionsScreen() {
                     {formatCurrency(commission.commission_amount)}
                   </Text>
                 </View>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Platform Fee</Text>
-                  <Text style={[styles.breakdownValue, { color: '#F59E0B' }]}>
-                    -{formatCurrency(commission.platform_fee_amount)}
-                  </Text>
-                </View>
+                {isCompany && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Platform Fee</Text>
+                    <Text style={[styles.breakdownValue, { color: '#F59E0B' }]}>
+                      {formatCurrency(commission.platform_fee_amount)}
+                    </Text>
+                  </View>
+                )}
+                {!isCompany && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Platform Fee</Text>
+                    <Text style={[styles.breakdownValue, { color: '#F59E0B' }]}>
+                      -{formatCurrency(commission.platform_fee_amount)}
+                    </Text>
+                  </View>
+                )}
                 <View style={[styles.breakdownRow, styles.breakdownTotal]}>
-                  <Text style={styles.breakdownTotalLabel}>Affiliate Payout</Text>
+                  <Text style={styles.breakdownTotalLabel}>
+                    {isCompany ? 'Total Payment' : 'Your Earnings'}
+                  </Text>
                   <Text style={styles.breakdownTotalValue}>
-                    {formatCurrency(commission.affiliate_payout_amount)}
+                    {isCompany
+                      ? formatCurrency(commission.commission_amount)
+                      : formatCurrency(commission.affiliate_payout_amount)}
                   </Text>
                 </View>
               </View>
 
               <Text style={styles.commissionDate}>
                 {commission.status === 'paid'
-                  ? `Paid ${formatDate(commission.created_at)}`
+                  ? isCompany
+                    ? `Paid to platform ${formatDate(commission.created_at)}`
+                    : `Received ${formatDate(commission.created_at)}`
+                  : isCompany
+                  ? `Due ${formatDate(commission.expected_payout_date)}`
                   : `Expected ${formatDate(commission.expected_payout_date)}`}
               </Text>
 
-              {commission.status === 'pending' && (
+              {isCompany && commission.status === 'pending' && (
                 <TouchableOpacity
                   style={styles.approveButton}
                   onPress={() => handleApprove(commission.id)}
@@ -458,7 +512,7 @@ export default function CommissionsScreen() {
           ))
         )}
 
-        {commissions.length > 0 && (
+        {isCompany && commissions.length > 0 && (
           <View style={styles.platformFeeCard}>
             <TrendingUp size={24} color="#8B5CF6" />
             <Text style={styles.platformFeeLabel}>Total Platform Fees</Text>
