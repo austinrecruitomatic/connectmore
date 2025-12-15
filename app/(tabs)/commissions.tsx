@@ -306,99 +306,9 @@ export default function CommissionsScreen() {
         )}
       </View>
 
-      {isCompany && (
-        <View style={styles.dashboardContainer}>
-          <Text style={styles.dashboardTitle}>Performance Dashboard</Text>
-
-        <View style={styles.dashboardGrid}>
-          <View style={styles.dashboardCard}>
-            <View style={styles.dashboardCardHeader}>
-              <Users size={20} color="#3B82F6" />
-              <Text style={styles.dashboardCardLabel}>Pipeline</Text>
-            </View>
-            <Text style={styles.dashboardCardValue}>{pipelineMetrics.totalLeads}</Text>
-            <Text style={styles.dashboardCardSubtext}>Total Leads</Text>
-            <View style={styles.dashboardCardBreakdown}>
-              <Text style={styles.breakdownItem}>
-                Qualified: {pipelineMetrics.qualifiedLeads}
-              </Text>
-              <Text style={styles.breakdownItem}>Closed: {pipelineMetrics.closedDeals}</Text>
-            </View>
-          </View>
-
-          <View style={styles.dashboardCard}>
-            <View style={styles.dashboardCardHeader}>
-              <Target size={20} color="#10B981" />
-              <Text style={styles.dashboardCardLabel}>Conversion</Text>
-            </View>
-            <Text style={styles.dashboardCardValue}>
-              {pipelineMetrics.conversionRate.toFixed(1)}%
-            </Text>
-            <Text style={styles.dashboardCardSubtext}>Close Rate</Text>
-            <View style={styles.conversionBar}>
-              <View
-                style={[
-                  styles.conversionBarFill,
-                  { width: `${Math.min(pipelineMetrics.conversionRate, 100)}%` },
-                ]}
-              />
-            </View>
-          </View>
-
-          <View style={[styles.dashboardCard, styles.dashboardCardWide]}>
-            <View style={styles.dashboardCardHeader}>
-              <BarChart3 size={20} color="#F59E0B" />
-              <Text style={styles.dashboardCardLabel}>Revenue Generated</Text>
-            </View>
-            <Text style={styles.dashboardCardValue}>
-              {formatCurrency(pipelineMetrics.totalRevenue)}
-            </Text>
-            <Text style={styles.dashboardCardSubtext}>Total Active Deal Value</Text>
-          </View>
-        </View>
-      </View>
-      )}
-
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <AlertCircle size={20} color="#3B82F6" />
-          <Text style={styles.statValue}>{formatCurrency(pendingTotal)}</Text>
-          <Text style={styles.statLabel}>{isCompany ? 'To Approve' : 'Pending'}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Check size={20} color="#F59E0B" />
-          <Text style={styles.statValue}>{formatCurrency(approvedTotal)}</Text>
-          <Text style={styles.statLabel}>{isCompany ? 'Approved' : 'Approved'}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <DollarSign size={20} color="#10B981" />
-          <Text style={styles.statValue}>{formatCurrency(paidTotal)}</Text>
-          <Text style={styles.statLabel}>{isCompany ? 'Paid' : 'Received'}</Text>
-        </View>
-      </View>
-
-      <View style={styles.filterContainer}>
-        {(['all', 'pending', 'approved', 'paid'] as const).map((status) => (
-          <TouchableOpacity
-            key={status}
-            style={[styles.filterButton, filter === status && styles.filterButtonActive]}
-            onPress={() => setFilter(status)}
-          >
-            <Text
-              style={[
-                styles.filterButtonText,
-                filter === status && styles.filterButtonTextActive,
-              ]}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       <ScrollView
         style={styles.content}
+        contentContainerStyle={styles.contentContainer}
         refreshControl={
           <RefreshControl
             refreshing={loading}
@@ -409,6 +319,95 @@ export default function CommissionsScreen() {
           />
         }
       >
+        {isCompany && (
+          <View style={styles.dashboardContainer}>
+            <Text style={styles.dashboardTitle}>Performance Dashboard</Text>
+
+            <View style={styles.dashboardGrid}>
+              <View style={styles.dashboardCard}>
+                <View style={styles.dashboardCardHeader}>
+                  <Users size={20} color="#3B82F6" />
+                  <Text style={styles.dashboardCardLabel}>Pipeline</Text>
+                </View>
+                <Text style={styles.dashboardCardValue}>{pipelineMetrics.totalLeads}</Text>
+                <Text style={styles.dashboardCardSubtext}>Total Leads</Text>
+                <View style={styles.dashboardCardBreakdown}>
+                  <Text style={styles.breakdownItem}>
+                    Qualified: {pipelineMetrics.qualifiedLeads}
+                  </Text>
+                  <Text style={styles.breakdownItem}>Closed: {pipelineMetrics.closedDeals}</Text>
+                </View>
+              </View>
+
+              <View style={styles.dashboardCard}>
+                <View style={styles.dashboardCardHeader}>
+                  <Target size={20} color="#10B981" />
+                  <Text style={styles.dashboardCardLabel}>Conversion</Text>
+                </View>
+                <Text style={styles.dashboardCardValue}>
+                  {pipelineMetrics.conversionRate.toFixed(1)}%
+                </Text>
+                <Text style={styles.dashboardCardSubtext}>Close Rate</Text>
+                <View style={styles.conversionBar}>
+                  <View
+                    style={[
+                      styles.conversionBarFill,
+                      { width: `${Math.min(pipelineMetrics.conversionRate, 100)}%` },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View style={[styles.dashboardCard, styles.dashboardCardWide]}>
+                <View style={styles.dashboardCardHeader}>
+                  <BarChart3 size={20} color="#F59E0B" />
+                  <Text style={styles.dashboardCardLabel}>Revenue Generated</Text>
+                </View>
+                <Text style={styles.dashboardCardValue}>
+                  {formatCurrency(pipelineMetrics.totalRevenue)}
+                </Text>
+                <Text style={styles.dashboardCardSubtext}>Total Active Deal Value</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <AlertCircle size={20} color="#3B82F6" />
+            <Text style={styles.statValue}>{formatCurrency(pendingTotal)}</Text>
+            <Text style={styles.statLabel}>{isCompany ? 'To Approve' : 'Pending'}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Check size={20} color="#F59E0B" />
+            <Text style={styles.statValue}>{formatCurrency(approvedTotal)}</Text>
+            <Text style={styles.statLabel}>{isCompany ? 'Approved' : 'Approved'}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <DollarSign size={20} color="#10B981" />
+            <Text style={styles.statValue}>{formatCurrency(paidTotal)}</Text>
+            <Text style={styles.statLabel}>{isCompany ? 'Paid' : 'Received'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.filterContainer}>
+          {(['all', 'pending', 'approved', 'paid'] as const).map((status) => (
+            <TouchableOpacity
+              key={status}
+              style={[styles.filterButton, filter === status && styles.filterButtonActive]}
+              onPress={() => setFilter(status)}
+            >
+              <Text
+                style={[
+                  styles.filterButtonText,
+                  filter === status && styles.filterButtonTextActive,
+                ]}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         {commissions.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
