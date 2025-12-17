@@ -44,9 +44,13 @@ type ContactSubmission = {
   created_at: string;
   landing_page_slug: string;
   affiliate_partnerships: {
-    affiliate_id: string;
-    profiles: {
+    affiliate_id?: string;
+    company_id?: string;
+    profiles?: {
       full_name: string;
+    };
+    companies?: {
+      company_name: string;
     };
   };
 };
@@ -73,60 +77,103 @@ export default function LeadsScreen() {
   }, [statusFilter]);
 
   const loadLeads = async () => {
-    if (profile?.user_type !== 'company') return;
+    if (!profile) return;
 
     setLoading(true);
 
     try {
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('user_id', profile.id)
-        .maybeSingle();
+      if (profile.user_type === 'company') {
+        // Load leads for companies
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('user_id', profile.id)
+          .maybeSingle();
 
-      if (!companyData) {
-        setLoading(false);
-        return;
-      }
+        if (!companyData) {
+          setLoading(false);
+          return;
+        }
 
-      const { data: partnerships } = await supabase
-        .from('affiliate_partnerships')
-        .select('id')
-        .eq('company_id', companyData.id);
+        const { data: partnerships } = await supabase
+          .from('affiliate_partnerships')
+          .select('id')
+          .eq('company_id', companyData.id);
 
-      if (!partnerships || partnerships.length === 0) {
-        setLeads([]);
-        setLoading(false);
-        return;
-      }
+        if (!partnerships || partnerships.length === 0) {
+          setLeads([]);
+          setLoading(false);
+          return;
+        }
 
-      const partnershipIds = partnerships.map(p => p.id);
+        const partnershipIds = partnerships.map(p => p.id);
 
-      let query = supabase
-        .from('contact_submissions')
-        .select(
-          `
-          *,
-          affiliate_partnerships (
-            affiliate_id,
-            profiles (
-              full_name
+        let query = supabase
+          .from('contact_submissions')
+          .select(
+            `
+            *,
+            affiliate_partnerships (
+              affiliate_id,
+              profiles (
+                full_name
+              )
             )
+          `
           )
-        `
-        )
-        .in('partnership_id', partnershipIds)
-        .order('created_at', { ascending: false });
+          .in('partnership_id', partnershipIds)
+          .order('created_at', { ascending: false });
 
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        if (statusFilter !== 'all') {
+          query = query.eq('status', statusFilter);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        setLeads(data || []);
+      } else if (profile.user_type === 'affiliate') {
+        // Load leads for affiliates
+        const { data: partnerships } = await supabase
+          .from('affiliate_partnerships')
+          .select('id')
+          .eq('affiliate_id', profile.id);
+
+        if (!partnerships || partnerships.length === 0) {
+          setLeads([]);
+          setLoading(false);
+          return;
+        }
+
+        const partnershipIds = partnerships.map(p => p.id);
+
+        let query = supabase
+          .from('contact_submissions')
+          .select(
+            `
+            *,
+            affiliate_partnerships (
+              company_id,
+              companies (
+                company_name
+              )
+            )
+          `
+          )
+          .in('partnership_id', partnershipIds)
+          .order('created_at', { ascending: false });
+
+        if (statusFilter !== 'all') {
+          query = query.eq('status', statusFilter);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        setLeads(data || []);
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      setLeads(data || []);
     } catch (error) {
       console.error('Error loading leads:', error);
     } finally {
@@ -194,7 +241,7 @@ export default function LeadsScreen() {
 
     const { data: partnershipData } = await supabase
       .from('affiliate_partnerships')
-      .select('id, company_id, product_id')
+      .select('id, company_id, product_id, affiliate_id')
       .eq('affiliate_id', lead.affiliate_partnerships.affiliate_id)
       .eq('company_id', companyData.id)
       .maybeSingle();
@@ -239,7 +286,7 @@ export default function LeadsScreen() {
         contact_submission_id: lead.id,
         partnership_id: partnershipData.id,
         company_id: companyData.id,
-        affiliate_id: lead.affiliate_partnerships.affiliate_id,
+        affiliate_id: partnershipData.affiliate_id,
         product_id: lead.product_id || partnershipData.product_id,
         deal_value: dealValue,
         contract_type: contractTypeMapping[lead.contract_type] || 'one_time',
@@ -283,7 +330,7 @@ export default function LeadsScreen() {
         .insert({
           deal_id: dealData.id,
           partnership_id: partnershipData.id,
-          affiliate_id: lead.affiliate_partnerships.affiliate_id,
+          affiliate_id: partnershipData.affiliate_id,
           company_id: companyData.id,
           commission_amount: commission,
           platform_fee_amount: platformFee,
@@ -386,47 +433,42 @@ export default function LeadsScreen() {
     return leads.filter((l) => l.status === status).length;
   };
 
-  if (profile?.user_type !== 'company') {
-    return (
-      <View style={styles.container}>
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>This feature is only available for companies</Text>
-        </View>
-      </View>
-    );
-  }
+  const isCompany = profile?.user_type === 'company';
+  const isAffiliate = profile?.user_type === 'affiliate';
 
   return (
     <View style={styles.container}>
-      {/* Tab Switcher */}
-      <View style={styles.tabSwitcher}>
-        <TouchableOpacity
-          style={[styles.tab, activeView === 'leads' && styles.activeTab]}
-          onPress={() => setActiveView('leads')}
-        >
-          <UsersIcon size={18} color={activeView === 'leads' ? '#60A5FA' : '#64748B'} />
-          <Text style={[styles.tabText, activeView === 'leads' && styles.activeTabText]}>
-            Leads
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeView === 'deals' && styles.activeTab]}
-          onPress={() => {
-            setActiveView('deals');
-            router.push('/(tabs)/deals');
-          }}
-        >
-          <CheckCircle size={18} color={activeView === 'deals' ? '#60A5FA' : '#64748B'} />
-          <Text style={[styles.tabText, activeView === 'deals' && styles.activeTabText]}>
-            Deals
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Tab Switcher - only show for companies */}
+      {isCompany && (
+        <View style={styles.tabSwitcher}>
+          <TouchableOpacity
+            style={[styles.tab, activeView === 'leads' && styles.activeTab]}
+            onPress={() => setActiveView('leads')}
+          >
+            <UsersIcon size={18} color={activeView === 'leads' ? '#60A5FA' : '#64748B'} />
+            <Text style={[styles.tabText, activeView === 'leads' && styles.activeTabText]}>
+              Leads
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeView === 'deals' && styles.activeTab]}
+            onPress={() => {
+              setActiveView('deals');
+              router.push('/(tabs)/deals');
+            }}
+          >
+            <CheckCircle size={18} color={activeView === 'deals' ? '#60A5FA' : '#64748B'} />
+            <Text style={[styles.tabText, activeView === 'deals' && styles.activeTabText]}>
+              Deals
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Leads</Text>
-          <Text style={styles.subtitle}>{leads.length} total contact submissions</Text>
+          <Text style={styles.title}>{isAffiliate ? 'My Leads' : 'Leads'}</Text>
+          <Text style={styles.subtitle}>{leads.length} total {isAffiliate ? 'leads submitted' : 'contact submissions'}</Text>
         </View>
         <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilterModal(true)}>
           <Filter size={20} color="#60A5FA" />
@@ -482,7 +524,10 @@ export default function LeadsScreen() {
               <View style={styles.leadFooter}>
                 <Text style={styles.leadDate}>{formatDate(lead.created_at)}</Text>
                 <Text style={styles.leadSource}>
-                  via {(lead.affiliate_partnerships?.profiles as any)?.full_name || 'Affiliate'}
+                  {isAffiliate
+                    ? `for ${lead.affiliate_partnerships?.companies?.company_name || 'Company'}`
+                    : `via ${lead.affiliate_partnerships?.profiles?.full_name || 'Affiliate'}`
+                  }
                 </Text>
               </View>
             </TouchableOpacity>
@@ -556,126 +601,164 @@ export default function LeadsScreen() {
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Status</Text>
-                  <View style={styles.statusGrid}>
-                    {statusOptions.map((status) => (
-                      <TouchableOpacity
-                        key={status}
-                        style={[
-                          styles.statusOption,
-                          selectedLead.status === status && styles.statusOptionActive,
-                          { borderColor: getStatusColor(status) },
-                        ]}
-                        onPress={() => handleUpdateStatus(status)}
-                      >
-                        {selectedLead.status === status && (
-                          <CheckCircle size={16} color={getStatusColor(status)} />
+                  {isCompany ? (
+                    <View style={styles.statusGrid}>
+                      {statusOptions.map((status) => (
+                        <TouchableOpacity
+                          key={status}
+                          style={[
+                            styles.statusOption,
+                            selectedLead.status === status && styles.statusOptionActive,
+                            { borderColor: getStatusColor(status) },
+                          ]}
+                          onPress={() => handleUpdateStatus(status)}
+                        >
+                          {selectedLead.status === status && (
+                            <CheckCircle size={16} color={getStatusColor(status)} />
+                          )}
+                          <Text
+                            style={[
+                              styles.statusOptionText,
+                              selectedLead.status === status && { color: getStatusColor(status) },
+                            ]}
+                          >
+                            {status.replace('_', ' ')}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : (
+                    <View
+                      style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedLead.status) + '20' }]}
+                    >
+                      <Text style={[styles.statusText, { color: getStatusColor(selectedLead.status) }]}>
+                        {selectedLead.status.replace('_', ' ')}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {isCompany && (
+                  <>
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Contract Value</Text>
+                      <View style={styles.contractCard}>
+                        <View style={styles.contractInputRow}>
+                          <DollarSign size={18} color="#60A5FA" />
+                          <TextInput
+                            style={styles.contractInput}
+                            value={contractValue}
+                            onChangeText={setContractValue}
+                            placeholder="Enter value"
+                            placeholderTextColor="#64748B"
+                            keyboardType="decimal-pad"
+                          />
+                        </View>
+                        <View style={styles.contractTypeRow}>
+                          <TouchableOpacity
+                            style={[
+                              styles.contractTypeOption,
+                              contractType === 'total' && styles.contractTypeOptionActive,
+                            ]}
+                            onPress={() => setContractType('total')}
+                          >
+                            <Text
+                              style={[
+                                styles.contractTypeText,
+                                contractType === 'total' && styles.contractTypeTextActive,
+                              ]}
+                            >
+                              Total
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.contractTypeOption,
+                              contractType === 'monthly' && styles.contractTypeOptionActive,
+                            ]}
+                            onPress={() => setContractType('monthly')}
+                          >
+                            <Text
+                              style={[
+                                styles.contractTypeText,
+                                contractType === 'monthly' && styles.contractTypeTextActive,
+                              ]}
+                            >
+                              Monthly
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                        {contractType === 'monthly' && (
+                          <View style={styles.contractLengthRow}>
+                            <Text style={styles.contractLengthLabel}>Contract Length (months)</Text>
+                            <TextInput
+                              style={styles.contractLengthInput}
+                              value={contractLength}
+                              onChangeText={setContractLength}
+                              placeholder="e.g., 3, 6, 12"
+                              placeholderTextColor="#64748B"
+                              keyboardType="number-pad"
+                            />
+                          </View>
                         )}
-                        <Text
-                          style={[
-                            styles.statusOptionText,
-                            selectedLead.status === status && { color: getStatusColor(status) },
-                          ]}
-                        >
-                          {status.replace('_', ' ')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Contract Value</Text>
-                  <View style={styles.contractCard}>
-                    <View style={styles.contractInputRow}>
-                      <DollarSign size={18} color="#60A5FA" />
-                      <TextInput
-                        style={styles.contractInput}
-                        value={contractValue}
-                        onChangeText={setContractValue}
-                        placeholder="Enter value"
-                        placeholderTextColor="#64748B"
-                        keyboardType="decimal-pad"
-                      />
-                    </View>
-                    <View style={styles.contractTypeRow}>
-                      <TouchableOpacity
-                        style={[
-                          styles.contractTypeOption,
-                          contractType === 'total' && styles.contractTypeOptionActive,
-                        ]}
-                        onPress={() => setContractType('total')}
-                      >
-                        <Text
-                          style={[
-                            styles.contractTypeText,
-                            contractType === 'total' && styles.contractTypeTextActive,
-                          ]}
-                        >
-                          Total
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.contractTypeOption,
-                          contractType === 'monthly' && styles.contractTypeOptionActive,
-                        ]}
-                        onPress={() => setContractType('monthly')}
-                      >
-                        <Text
-                          style={[
-                            styles.contractTypeText,
-                            contractType === 'monthly' && styles.contractTypeTextActive,
-                          ]}
-                        >
-                          Monthly
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    {contractType === 'monthly' && (
-                      <View style={styles.contractLengthRow}>
-                        <Text style={styles.contractLengthLabel}>Contract Length (months)</Text>
-                        <TextInput
-                          style={styles.contractLengthInput}
-                          value={contractLength}
-                          onChangeText={setContractLength}
-                          placeholder="e.g., 3, 6, 12"
-                          placeholderTextColor="#64748B"
-                          keyboardType="number-pad"
-                        />
                       </View>
-                    )}
+                    </View>
+
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Internal Notes</Text>
+                      <TextInput
+                        style={styles.notesInput}
+                        value={notes}
+                        onChangeText={setNotes}
+                        placeholder="Add notes about this lead..."
+                        placeholderTextColor="#64748B"
+                        multiline
+                        numberOfLines={4}
+                        textAlignVertical="top"
+                      />
+                      <TouchableOpacity
+                        style={[styles.saveNotesButton, savingNotes && styles.saveNotesButtonDisabled]}
+                        onPress={handleSaveNotes}
+                        disabled={savingNotes}
+                      >
+                        <Text style={styles.saveNotesButtonText}>
+                          {savingNotes ? 'Saving...' : 'Save Details'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+
+                {selectedLead.contract_value && isAffiliate && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Deal Information</Text>
+                    <View style={styles.sourceCard}>
+                      <Text style={styles.sourceText}>
+                        Contract Value: ${selectedLead.contract_value}
+                        {selectedLead.contract_type === 'monthly' && ' /month'}
+                      </Text>
+                      {selectedLead.contract_length_months && (
+                        <Text style={styles.sourceText}>
+                          Contract Length: {selectedLead.contract_length_months} months
+                        </Text>
+                      )}
+                    </View>
                   </View>
-                </View>
+                )}
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Internal Notes</Text>
-                  <TextInput
-                    style={styles.notesInput}
-                    value={notes}
-                    onChangeText={setNotes}
-                    placeholder="Add notes about this lead..."
-                    placeholderTextColor="#64748B"
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
-                  <TouchableOpacity
-                    style={[styles.saveNotesButton, savingNotes && styles.saveNotesButtonDisabled]}
-                    onPress={handleSaveNotes}
-                    disabled={savingNotes}
-                  >
-                    <Text style={styles.saveNotesButtonText}>
-                      {savingNotes ? 'Saving...' : 'Save Details'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Lead Source</Text>
+                  <Text style={styles.detailLabel}>{isAffiliate ? 'Lead Information' : 'Lead Source'}</Text>
                   <View style={styles.sourceCard}>
-                    <Text style={styles.sourceText}>
-                      Referred by: {(selectedLead.affiliate_partnerships?.profiles as any)?.full_name || 'Affiliate'}
-                    </Text>
+                    {isCompany && (
+                      <Text style={styles.sourceText}>
+                        Referred by: {selectedLead.affiliate_partnerships?.profiles?.full_name || 'Affiliate'}
+                      </Text>
+                    )}
+                    {isAffiliate && (
+                      <Text style={styles.sourceText}>
+                        Company: {selectedLead.affiliate_partnerships?.companies?.company_name || 'Company'}
+                      </Text>
+                    )}
                     <Text style={styles.sourceText}>
                       Page: {selectedLead.landing_page_slug}
                     </Text>
