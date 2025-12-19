@@ -69,6 +69,23 @@ type TrackingStats = {
   } | null;
 };
 
+type LeadSubmission = {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  status: string;
+  created_at: string;
+  contract_value: number | null;
+  affiliate_notes: string | null;
+  companies: {
+    company_name: string;
+  };
+  landing_page_templates: {
+    title: string;
+  } | null;
+};
+
 export default function CommissionsScreen() {
   const { profile } = useAuth();
   const [commissions, setCommissions] = useState<Commission[]>([]);
@@ -82,6 +99,7 @@ export default function CommissionsScreen() {
     conversionRate: 0,
     topPerformingTemplate: null,
   });
+  const [leadSubmissions, setLeadSubmissions] = useState<LeadSubmission[]>([]);
   const [pipelineMetrics, setPipelineMetrics] = useState<PipelineMetrics>({
     totalLeads: 0,
     qualifiedLeads: 0,
@@ -272,6 +290,29 @@ export default function CommissionsScreen() {
         conversionRate,
         topPerformingTemplate: topTemplate,
       });
+
+      const { data: leads, error: leadsError } = await supabase
+        .from('contact_submissions')
+        .select(`
+          id,
+          name,
+          email,
+          company,
+          status,
+          created_at,
+          contract_value,
+          affiliate_notes,
+          companies!contact_submissions_company_id_fkey (company_name),
+          landing_page_templates (title)
+        `)
+        .eq('affiliate_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (leadsError) {
+        console.error('Error loading leads:', leadsError);
+      } else {
+        setLeadSubmissions(leads || []);
+      }
     } catch (error) {
       console.error('Error loading tracking stats:', error);
     }
@@ -347,6 +388,21 @@ export default function CommissionsScreen() {
         return '#10B981';
       default:
         return '#3B82F6';
+    }
+  };
+
+  const getLeadStatusColor = (status: string) => {
+    switch (status) {
+      case 'closed':
+        return '#10B981';
+      case 'qualified':
+        return '#F59E0B';
+      case 'contacted':
+        return '#3B82F6';
+      case 'lost':
+        return '#EF4444';
+      default:
+        return '#64748B';
     }
   };
 
@@ -680,6 +736,72 @@ export default function CommissionsScreen() {
                   </View>
                 </View>
               )}
+
+              <View style={styles.leadsSection}>
+                <Text style={styles.leadsSectionTitle}>Your Leads ({leadSubmissions.length})</Text>
+                {leadSubmissions.length === 0 ? (
+                  <View style={styles.emptyLeadsState}>
+                    <Text style={styles.emptyLeadsText}>No leads submitted yet</Text>
+                    <Text style={styles.emptyLeadsSubtext}>
+                      Leads will appear here when people fill out your landing pages
+                    </Text>
+                  </View>
+                ) : (
+                  leadSubmissions.map((lead) => (
+                    <View key={lead.id} style={styles.leadCard}>
+                      <View style={styles.leadHeader}>
+                        <View style={styles.leadMainInfo}>
+                          <Text style={styles.leadName}>{lead.name}</Text>
+                          <Text style={styles.leadEmail}>{lead.email}</Text>
+                          <Text style={styles.leadCompanyInfo}>
+                            at {lead.company} • via {lead.companies.company_name}
+                          </Text>
+                          {lead.landing_page_templates && (
+                            <Text style={styles.leadTemplate}>
+                              Page: {lead.landing_page_templates.title}
+                            </Text>
+                          )}
+                        </View>
+                        <View
+                          style={[
+                            styles.leadStatusBadge,
+                            { backgroundColor: getLeadStatusColor(lead.status) + '20' },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.leadStatusText,
+                              { color: getLeadStatusColor(lead.status) },
+                            ]}
+                          >
+                            {lead.status}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {lead.contract_value && (
+                        <View style={styles.leadValueRow}>
+                          <DollarSign size={16} color="#10B981" />
+                          <Text style={styles.leadValue}>
+                            {formatCurrency(lead.contract_value)} contract value
+                          </Text>
+                        </View>
+                      )}
+
+                      {lead.affiliate_notes && (
+                        <View style={styles.leadNotesBox}>
+                          <Text style={styles.leadNotesLabel}>Your Notes:</Text>
+                          <Text style={styles.leadNotes}>{lead.affiliate_notes}</Text>
+                        </View>
+                      )}
+
+                      <Text style={styles.leadDate}>
+                        Submitted {formatDate(lead.created_at)}
+                      </Text>
+                    </View>
+                  ))
+                )}
+              </View>
 
               <View style={styles.trackingTip}>
                 <AlertCircle size={20} color="#3B82F6" />
@@ -1108,5 +1230,113 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 20,
+  },
+  leadsSection: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  leadsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  leadCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  leadHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  leadMainInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  leadName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  leadEmail: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 4,
+  },
+  leadCompanyInfo: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  leadTemplate: {
+    fontSize: 12,
+    color: '#64748B',
+    fontStyle: 'italic',
+  },
+  leadStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  leadStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  leadValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  leadValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  leadNotesBox: {
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  leadNotesLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 4,
+  },
+  leadNotes: {
+    fontSize: 13,
+    color: '#E2E8F0',
+    lineHeight: 18,
+  },
+  leadDate: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  emptyLeadsState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyLeadsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  emptyLeadsSubtext: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
   },
 });
