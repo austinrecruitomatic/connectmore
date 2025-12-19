@@ -92,13 +92,17 @@ export default function LandingPageView() {
         const content = customPage.content as any;
         const template = (customPage as any).landing_page_templates;
 
-        const productId = partnership?.product_id || '';
+        const productId = partnership?.product_id || null;
 
-        const { data: products } = await supabase
-          .from('products')
-          .select('id, product_url, name, affiliate_discount_enabled, affiliate_discount_type, affiliate_discount_value')
-          .eq('id', productId)
-          .maybeSingle();
+        let products = null;
+        if (productId) {
+          const { data } = await supabase
+            .from('products')
+            .select('id, product_url, name, affiliate_discount_enabled, affiliate_discount_type, affiliate_discount_value')
+            .eq('id', productId)
+            .maybeSingle();
+          products = data;
+        }
 
         const productUrl = content?.buttonUrl || products?.product_url || '';
 
@@ -343,15 +347,17 @@ export default function LandingPageView() {
           <Text style={styles.ctaButtonText}>{pageData.ctaText}</Text>
         </TouchableOpacity>
 
-        {pageData.productUrl && (
+        {pageData.productUrl ? (
           <TouchableOpacity
             style={[styles.visitButton, { borderColor: primaryColor }]}
             onPress={handleVisitWebsite}
           >
-            <ExternalLink size={18} color={primaryColor} />
-            <Text style={[styles.visitButtonText, { color: primaryColor }]}>Visit Website</Text>
+            <View style={styles.visitButtonContent}>
+              <ExternalLink size={18} color={primaryColor} />
+              <Text style={[styles.visitButtonText, { color: primaryColor }]}>Visit Website</Text>
+            </View>
           </TouchableOpacity>
-        )}
+        ) : null}
 
         <View style={styles.footer}>
           <Text style={styles.poweredBy}>Powered by {pageData.companyName}</Text>
@@ -576,16 +582,18 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   visitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
     marginTop: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: '#007AFF',
+  },
+  visitButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   visitButtonText: {
     color: '#007AFF',
