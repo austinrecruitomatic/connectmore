@@ -3,7 +3,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { Webhook, Shield, Tag, Save } from 'lucide-react-native';
+import { Webhook, Shield, Tag, Save, ArrowLeft } from 'lucide-react-native';
 
 export default function WebhookSettings() {
   const { profile, user } = useAuth();
@@ -81,14 +81,22 @@ export default function WebhookSettings() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Webhook size={32} color="#60A5FA" />
-        <Text style={styles.title}>Webhook Settings</Text>
-        <Text style={styles.subtitle}>
-          Automatically send leads to your CRM when affiliates submit them
-        </Text>
+    <View style={styles.container}>
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color="#FFFFFF" />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
       </View>
+
+      <ScrollView>
+        <View style={styles.header}>
+          <Webhook size={32} color="#60A5FA" />
+          <Text style={styles.title}>Webhook Settings</Text>
+          <Text style={styles.subtitle}>
+            Automatically send leads to your CRM when affiliates submit them
+          </Text>
+        </View>
 
       <View style={styles.section}>
         <View style={styles.switchContainer}>
@@ -187,17 +195,18 @@ export default function WebhookSettings() {
         </Text>
       </View>
 
-      <TouchableOpacity
-        style={[styles.saveButton, loading && styles.saveButtonDisabled]}
-        onPress={saveWebhookSettings}
-        disabled={loading}
-      >
-        <Save size={20} color="#FFFFFF" />
-        <Text style={styles.saveButtonText}>
-          {loading ? 'Saving...' : 'Save Webhook Settings'}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity
+          style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+          onPress={saveWebhookSettings}
+          disabled={loading}
+        >
+          <Save size={20} color="#FFFFFF" />
+          <Text style={styles.saveButtonText}>
+            {loading ? 'Saving...' : 'Save Webhook Settings'}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -205,6 +214,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
+  },
+  navBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#1E293B',
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   header: {
     padding: 24,
