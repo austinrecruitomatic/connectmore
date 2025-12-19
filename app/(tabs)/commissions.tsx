@@ -292,30 +292,36 @@ export default function CommissionsScreen() {
         topPerformingTemplate: topTemplate,
       });
 
-      const { data: leads, error: leadsError } = await supabase
-        .from('contact_submissions')
-        .select(`
-          id,
-          name,
-          email,
-          company_name,
-          status,
-          created_at,
-          contract_value,
-          affiliate_notes,
-          landing_page_slug,
-          affiliate_partnerships!inner (
-            affiliate_id,
-            companies (company_name)
-          )
-        `)
-        .eq('affiliate_partnerships.affiliate_id', profile.id)
-        .order('created_at', { ascending: false });
+      const partnershipIds = partnerships.map((p) => p.id);
 
-      if (leadsError) {
-        console.error('Error loading leads:', leadsError);
+      if (partnershipIds.length > 0) {
+        const { data: leads, error: leadsError } = await supabase
+          .from('contact_submissions')
+          .select(`
+            id,
+            name,
+            email,
+            company_name,
+            status,
+            created_at,
+            contract_value,
+            affiliate_notes,
+            landing_page_slug,
+            affiliate_partnerships!inner (
+              affiliate_id,
+              companies (company_name)
+            )
+          `)
+          .in('partnership_id', partnershipIds)
+          .order('created_at', { ascending: false });
+
+        if (leadsError) {
+          console.error('Error loading leads:', leadsError);
+        } else {
+          setLeadSubmissions(leads || []);
+        }
       } else {
-        setLeadSubmissions(leads || []);
+        setLeadSubmissions([]);
       }
     } catch (error) {
       console.error('Error loading tracking stats:', error);
