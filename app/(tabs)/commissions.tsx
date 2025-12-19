@@ -73,17 +73,18 @@ type LeadSubmission = {
   id: string;
   name: string;
   email: string;
-  company: string;
+  company_name: string | null;
   status: string;
   created_at: string;
   contract_value: number | null;
   affiliate_notes: string | null;
-  companies: {
-    company_name: string;
+  landing_page_slug: string | null;
+  affiliate_partnerships: {
+    affiliate_id: string;
+    companies: {
+      company_name: string;
+    };
   };
-  landing_page_templates: {
-    title: string;
-  } | null;
 };
 
 export default function CommissionsScreen() {
@@ -297,15 +298,18 @@ export default function CommissionsScreen() {
           id,
           name,
           email,
-          company,
+          company_name,
           status,
           created_at,
           contract_value,
           affiliate_notes,
-          companies!contact_submissions_company_id_fkey (company_name),
-          landing_page_templates (title)
+          landing_page_slug,
+          affiliate_partnerships!inner (
+            affiliate_id,
+            companies (company_name)
+          )
         `)
-        .eq('affiliate_id', profile.id)
+        .eq('affiliate_partnerships.affiliate_id', profile.id)
         .order('created_at', { ascending: false });
 
       if (leadsError) {
@@ -753,13 +757,14 @@ export default function CommissionsScreen() {
                         <View style={styles.leadMainInfo}>
                           <Text style={styles.leadName}>{lead.name}</Text>
                           <Text style={styles.leadEmail}>{lead.email}</Text>
+                          {lead.company_name && (
+                            <Text style={styles.leadCompanyInfo}>at {lead.company_name}</Text>
+                          )}
                           <Text style={styles.leadCompanyInfo}>
-                            at {lead.company} • via {lead.companies.company_name}
+                            via {lead.affiliate_partnerships.companies.company_name}
                           </Text>
-                          {lead.landing_page_templates && (
-                            <Text style={styles.leadTemplate}>
-                              Page: {lead.landing_page_templates.title}
-                            </Text>
+                          {lead.landing_page_slug && (
+                            <Text style={styles.leadTemplate}>Page: {lead.landing_page_slug}</Text>
                           )}
                         </View>
                         <View
