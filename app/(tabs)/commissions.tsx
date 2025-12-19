@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Modal,
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +20,9 @@ import {
   Users,
   Target,
   BarChart3,
+  Eye,
+  MousePointer,
+  Send,
 } from 'lucide-react-native';
 
 type Commission = {
@@ -53,12 +57,31 @@ type PipelineMetrics = {
   totalRevenue: number;
 };
 
+type TrackingStats = {
+  totalViews: number;
+  totalSubmissions: number;
+  conversionRate: number;
+  topPerformingTemplate: {
+    id: string;
+    title: string;
+    views: number;
+    submissions: number;
+  } | null;
+};
+
 export default function CommissionsScreen() {
   const { profile } = useAuth();
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'paid'>('all');
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [trackingStats, setTrackingStats] = useState<TrackingStats>({
+    totalViews: 0,
+    totalSubmissions: 0,
+    conversionRate: 0,
+    topPerformingTemplate: null,
+  });
   const [pipelineMetrics, setPipelineMetrics] = useState<PipelineMetrics>({
     totalLeads: 0,
     qualifiedLeads: 0,
@@ -70,6 +93,9 @@ export default function CommissionsScreen() {
   useEffect(() => {
     loadCommissions();
     loadPipelineMetrics();
+    if (isAffiliate) {
+      loadTrackingStats();
+    }
   }, [filter]);
 
   const loadCommissions = async () => {
@@ -197,6 +223,60 @@ export default function CommissionsScreen() {
     }
   };
 
+  const loadTrackingStats = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data: partnerships } = await supabase
+        .from('affiliate_partnerships')
+        .select('id, landing_page_templates(id, title, page_views)')
+        .eq('affiliate_id', profile.id);
+
+      if (!partnerships) return;
+
+      let totalViews = 0;
+      let templateStats: Array<{ id: string; title: string; views: number; submissions: number }> = [];
+
+      for (const partnership of partnerships) {
+        const templates = partnership.landing_page_templates || [];
+        for (const template of templates) {
+          totalViews += template.page_views || 0;
+
+          const { data: submissions } = await supabase
+            .from('contact_submissions')
+            .select('id')
+            .eq('template_id', template.id);
+
+          templateStats.push({
+            id: template.id,
+            title: template.title,
+            views: template.page_views || 0,
+            submissions: submissions?.length || 0,
+          });
+        }
+      }
+
+      const { data: allSubmissions } = await supabase
+        .from('contact_submissions')
+        .select('id')
+        .eq('affiliate_id', profile.id);
+
+      const totalSubmissions = allSubmissions?.length || 0;
+      const conversionRate = totalViews > 0 ? (totalSubmissions / totalViews) * 100 : 0;
+
+      const topTemplate = templateStats.sort((a, b) => b.submissions - a.submissions)[0] || null;
+
+      setTrackingStats({
+        totalViews,
+        totalSubmissions,
+        conversionRate,
+        topPerformingTemplate: topTemplate,
+      });
+    } catch (error) {
+      console.error('Error loading tracking stats:', error);
+    }
+  };
+
   const handleApprove = async (commissionId: string) => {
     try {
       const { error } = await supabase
@@ -302,6 +382,15 @@ export default function CommissionsScreen() {
           <TouchableOpacity style={styles.approveAllButton} onPress={handleBulkApprove}>
             <Check size={18} color="#fff" />
             <Text style={styles.approveAllText}>Approve All</Text>
+          </TouchableOpacity>
+        )}
+        {isAffiliate && (
+          <TouchableOpacity
+            style={styles.trackingButton}
+            onPress={() => setShowTrackingModal(true)}
+          >
+            <BarChart3 size={18} color="#fff" />
+            <Text style={styles.trackingButtonText}>Stats</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -519,6 +608,90 @@ export default function CommissionsScreen() {
           </View>
         )}
       </ScrollView>
+
+      <Modal
+        visible={showTrackingModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTrackingModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Performance Tracking</Text>
+              <TouchableOpacity onPress={() => setShowTrackingModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.trackingStatsGrid}>
+                <View style={styles.trackingStatCard}>
+                  <Eye size={24} color="#3B82F6" />
+                  <Text style={styles.trackingStatValue}>{trackingStats.totalViews}</Text>
+                  <Text style={styles.trackingStatLabel}>Total Views</Text>
+                  <Text style={styles.trackingStatSubtext}>Landing page visits</Text>
+                </View>
+
+                <View style={styles.trackingStatCard}>
+                  <MousePointer size={24} color="#10B981" />
+                  <Text style={styles.trackingStatValue}>{trackingStats.totalSubmissions}</Text>
+                  <Text style={styles.trackingStatLabel}>Conversions</Text>
+                  <Text style={styles.trackingStatSubtext}>Form submissions</Text>
+                </View>
+
+                <View style={[styles.trackingStatCard, styles.trackingStatCardWide]}>
+                  <Target size={24} color="#F59E0B" />
+                  <Text style={styles.trackingStatValue}>
+                    {trackingStats.conversionRate.toFixed(2)}%
+                  </Text>
+                  <Text style={styles.trackingStatLabel}>Conversion Rate</Text>
+                  <Text style={styles.trackingStatSubtext}>Views to submissions</Text>
+                  <View style={styles.conversionBar}>
+                    <View
+                      style={[
+                        styles.conversionBarFill,
+                        { width: `${Math.min(trackingStats.conversionRate, 100)}%` },
+                      ]}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {trackingStats.topPerformingTemplate && (
+                <View style={styles.topTemplateCard}>
+                  <Text style={styles.topTemplateTitle}>Top Performing Page</Text>
+                  <Text style={styles.topTemplateName}>
+                    {trackingStats.topPerformingTemplate.title}
+                  </Text>
+                  <View style={styles.topTemplateStats}>
+                    <View style={styles.topTemplateStat}>
+                      <Eye size={16} color="#64748B" />
+                      <Text style={styles.topTemplateStatText}>
+                        {trackingStats.topPerformingTemplate.views} views
+                      </Text>
+                    </View>
+                    <View style={styles.topTemplateStat}>
+                      <Send size={16} color="#64748B" />
+                      <Text style={styles.topTemplateStatText}>
+                        {trackingStats.topPerformingTemplate.submissions} submissions
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.trackingTip}>
+                <AlertCircle size={20} color="#3B82F6" />
+                <Text style={styles.trackingTipText}>
+                  Track your affiliate link performance and optimize your marketing strategy with
+                  real-time data.
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -810,5 +983,130 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#8B5CF6',
+  },
+  trackingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  trackingButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#1E293B',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  trackingStatsGrid: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  trackingStatCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+  },
+  trackingStatCardWide: {
+    width: '100%',
+  },
+  trackingStatValue: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  trackingStatLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 4,
+  },
+  trackingStatSubtext: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 8,
+  },
+  topTemplateCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 20,
+  },
+  topTemplateTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  topTemplateName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  topTemplateStats: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  topTemplateStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  topTemplateStatText: {
+    fontSize: 14,
+    color: '#94A3B8',
+  },
+  trackingTip: {
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: '#1E3A8A20',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#3B82F620',
+  },
+  trackingTipText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 20,
+  },
+  contentContainer: {
+    paddingBottom: 20,
   },
 });
