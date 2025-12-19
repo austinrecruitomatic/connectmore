@@ -160,11 +160,15 @@ export default function LandingPageView() {
         ? partnership.companies[0]
         : partnership.companies;
 
-      const { data: products } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', partnership.product_id)
-        .maybeSingle();
+      let products = null;
+      if (partnership.product_id) {
+        const { data } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', partnership.product_id)
+          .maybeSingle();
+        products = data;
+      }
 
       const product = products || {};
 

@@ -248,37 +248,48 @@ export default function CommissionsScreen() {
     try {
       const { data: partnerships } = await supabase
         .from('affiliate_partnerships')
-        .select('id, landing_page_templates(id, title, page_views)')
+        .select('id')
         .eq('affiliate_id', profile.id);
 
       if (!partnerships) return;
 
+      const partnershipIds = partnerships.map((p) => p.id);
+
+      const { data: landingPages } = await supabase
+        .from('landing_pages')
+        .select('id, template_id, landing_page_templates(id, title, page_views)')
+        .in('partnership_id', partnershipIds)
+        .eq('is_published', true);
+
       let totalViews = 0;
       let templateStats: Array<{ id: string; title: string; views: number; submissions: number }> = [];
 
-      for (const partnership of partnerships) {
-        const templates = partnership.landing_page_templates || [];
-        for (const template of templates) {
-          totalViews += template.page_views || 0;
+      if (landingPages) {
+        for (const page of landingPages) {
+          const template = page.landing_page_templates as any;
+          if (template) {
+            totalViews += template.page_views || 0;
 
-          const { data: submissions } = await supabase
-            .from('contact_submissions')
-            .select('id')
-            .eq('template_id', template.id);
+            const { data: submissions } = await supabase
+              .from('contact_submissions')
+              .select('id')
+              .in('partnership_id', partnershipIds)
+              .eq('landing_page_slug', page.id);
 
-          templateStats.push({
-            id: template.id,
-            title: template.title,
-            views: template.page_views || 0,
-            submissions: submissions?.length || 0,
-          });
+            templateStats.push({
+              id: template.id,
+              title: template.title,
+              views: template.page_views || 0,
+              submissions: submissions?.length || 0,
+            });
+          }
         }
       }
 
       const { data: allSubmissions } = await supabase
         .from('contact_submissions')
         .select('id')
-        .eq('affiliate_id', profile.id);
+        .in('partnership_id', partnershipIds);
 
       const totalSubmissions = allSubmissions?.length || 0;
       const conversionRate = totalViews > 0 ? (totalSubmissions / totalViews) * 100 : 0;
@@ -291,8 +302,6 @@ export default function CommissionsScreen() {
         conversionRate,
         topPerformingTemplate: topTemplate,
       });
-
-      const partnershipIds = partnerships.map((p) => p.id);
 
       if (partnershipIds.length > 0) {
         const { data: leads, error: leadsError } = await supabase
