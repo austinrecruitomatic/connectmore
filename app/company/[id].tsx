@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Star, DollarSign, Package, MessageSquare } from 'lucide-react-native';
+import { ArrowLeft, Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard } from 'lucide-react-native';
 
 type Company = {
   id: string;
@@ -22,6 +22,11 @@ type Product = {
   commission_rate: number;
   commission_type: string;
   is_active: boolean;
+  sale_type?: 'lead_generation' | 'direct_sale';
+  product_price?: number;
+  currency?: string;
+  inventory_tracking?: boolean;
+  inventory_quantity?: number;
 };
 
 type Review = {
@@ -48,6 +53,7 @@ export default function CompanyDetailScreen() {
   const [partnershipStatus, setPartnershipStatus] = useState<string>('');
   const [canReview, setCanReview] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
+  const [partnerships, setPartnerships] = useState<any[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -74,21 +80,22 @@ export default function CompanyDetailScreen() {
       setProducts(productsRes.data || []);
 
       if (profile) {
-        const { data: partnerships } = await supabase
+        const { data: partnershipsData } = await supabase
           .from('affiliate_partnerships')
           .select('company_id, status, id, affiliate_code')
           .eq('affiliate_id', profile.id)
           .eq('company_id', id);
 
-        if (partnerships && partnerships.length > 0) {
+        if (partnershipsData && partnershipsData.length > 0) {
+          setPartnerships(partnershipsData);
           setHasPartnership(true);
-          const firstPartnership = partnerships[0];
+          const firstPartnership = partnershipsData[0];
           setPartnershipStatus(firstPartnership.status);
 
-          const hasApprovedPartnership = partnerships.some(p => p.status === 'approved');
+          const hasApprovedPartnership = partnershipsData.some(p => p.status === 'approved');
 
           if (hasApprovedPartnership) {
-            const approvedPartnership = partnerships.find(p => p.status === 'approved');
+            const approvedPartnership = partnershipsData.find(p => p.status === 'approved');
             if (approvedPartnership) {
               const { data: leadsData, count } = await supabase
                 .from('analytics_events')
@@ -254,25 +261,67 @@ export default function CompanyDetailScreen() {
               <Text style={styles.emptyText}>No active products</Text>
             </View>
           ) : (
-            products.map(product => (
-              <View key={product.id} style={styles.productCard}>
-                <View style={styles.productHeader}>
-                  <Text style={styles.productName}>{product.name}</Text>
-                  <View style={styles.commissionBadge}>
-                    <DollarSign size={14} color="#10B981" />
-                    <Text style={styles.commissionText}>
-                      {product.commission_type === 'percentage'
-                        ? `${product.commission_rate}%`
-                        : `$${product.commission_rate}`}
-                    </Text>
-                  </View>
-                </View>
+            products.map(product => {
+              const approvedPartnership = partnerships.find(p => p.status === 'approved' && p.company_id === id);
 
-                {product.description && (
-                  <Text style={styles.productDescription}>{product.description}</Text>
-                )}
-              </View>
-            ))
+              return (
+                <View key={product.id} style={styles.productCard}>
+                  <View style={styles.productHeader}>
+                    <View style={styles.productTitleRow}>
+                      <Text style={styles.productName}>{product.name}</Text>
+                      {product.sale_type === 'direct_sale' && (
+                        <View style={styles.saleTypeBadge}>
+                          <ShoppingCart size={12} color="#F59E0B" />
+                          <Text style={styles.saleTypeText}>Direct Sale</Text>
+                        </View>
+                      )}
+                      {(!product.sale_type || product.sale_type === 'lead_generation') && (
+                        <View style={[styles.saleTypeBadge, styles.leadGenBadge]}>
+                          <Clipboard size={12} color="#60A5FA" />
+                          <Text style={[styles.saleTypeText, styles.leadGenText]}>Lead Gen</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.commissionBadge}>
+                      <DollarSign size={14} color="#10B981" />
+                      <Text style={styles.commissionText}>
+                        {product.commission_type === 'percentage'
+                          ? `${product.commission_rate}%`
+                          : `$${product.commission_rate}`}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {product.description && (
+                    <Text style={styles.productDescription}>{product.description}</Text>
+                  )}
+
+                  {product.sale_type === 'direct_sale' && product.product_price && (
+                    <View style={styles.priceRow}>
+                      <Text style={styles.priceLabel}>Price:</Text>
+                      <Text style={styles.priceValue}>
+                        {product.currency || 'USD'} ${product.product_price.toFixed(2)}
+                      </Text>
+                      {product.inventory_tracking && (
+                        <Text style={styles.inventoryText}>
+                          {product.inventory_quantity || 0} in stock
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
+                  {approvedPartnership && product.sale_type === 'direct_sale' && (
+                    <TouchableOpacity
+                      style={styles.buyNowButton}
+                      onPress={() => router.push(`/product/${product.id}/checkout?partnershipId=${approvedPartnership.id}`)}
+                    >
+                      <ShoppingCart size={16} color="#FFFFFF" />
+                      <Text style={styles.buyNowText}>Sell This Product</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })
           )}
         </View>
 
@@ -562,5 +611,73 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#FCD34D',
     textAlign: 'center',
+  },
+  productTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  saleTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  leadGenBadge: {
+    backgroundColor: 'rgba(96, 165, 250, 0.15)',
+    borderColor: '#60A5FA',
+  },
+  saleTypeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  leadGenText: {
+    color: '#60A5FA',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  priceLabel: {
+    fontSize: 14,
+    color: '#94A3B8',
+  },
+  priceValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  inventoryText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginLeft: 'auto',
+  },
+  buyNowButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  buyNowText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

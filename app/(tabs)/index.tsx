@@ -36,6 +36,12 @@ type Product = {
   affiliate_discount_enabled?: boolean;
   affiliate_discount_type?: 'percentage' | 'fixed_amount';
   affiliate_discount_value?: number;
+  sale_type?: 'lead_generation' | 'direct_sale';
+  product_price?: number;
+  currency?: string;
+  inventory_tracking?: boolean;
+  inventory_quantity?: number;
+  external_checkout_url?: string;
 };
 
 type Company = {
@@ -73,6 +79,12 @@ export default function HomeScreen() {
     affiliate_discount_enabled: false,
     affiliate_discount_type: 'percentage' as 'percentage' | 'fixed_amount',
     affiliate_discount_value: '',
+    sale_type: 'lead_generation' as 'lead_generation' | 'direct_sale',
+    product_price: '',
+    currency: 'USD',
+    inventory_tracking: false,
+    inventory_quantity: '',
+    external_checkout_url: '',
   });
 
   useEffect(() => {
@@ -156,6 +168,12 @@ export default function HomeScreen() {
       affiliate_discount_enabled: false,
       affiliate_discount_type: 'percentage',
       affiliate_discount_value: '',
+      sale_type: 'lead_generation',
+      product_price: '',
+      currency: 'USD',
+      inventory_tracking: false,
+      inventory_quantity: '',
+      external_checkout_url: '',
     });
     setEditingProductId(null);
   };
@@ -176,6 +194,12 @@ export default function HomeScreen() {
       affiliate_discount_enabled: product.affiliate_discount_enabled || false,
       affiliate_discount_type: product.affiliate_discount_type || 'percentage',
       affiliate_discount_value: product.affiliate_discount_value?.toString() || '',
+      sale_type: product.sale_type || 'lead_generation',
+      product_price: product.product_price?.toString() || '',
+      currency: product.currency || 'USD',
+      inventory_tracking: product.inventory_tracking || false,
+      inventory_quantity: product.inventory_quantity?.toString() || '',
+      external_checkout_url: product.external_checkout_url || '',
     });
     setEditingProductId(product.id);
     setShowAddModal(true);
@@ -214,6 +238,14 @@ export default function HomeScreen() {
         affiliate_discount_value: newProduct.affiliate_discount_enabled && newProduct.affiliate_discount_value
           ? parseFloat(newProduct.affiliate_discount_value)
           : null,
+        sale_type: newProduct.sale_type,
+        product_price: newProduct.product_price ? parseFloat(newProduct.product_price) : null,
+        currency: newProduct.currency,
+        inventory_tracking: newProduct.inventory_tracking,
+        inventory_quantity: newProduct.inventory_tracking && newProduct.inventory_quantity
+          ? parseInt(newProduct.inventory_quantity)
+          : null,
+        external_checkout_url: newProduct.external_checkout_url || null,
       };
 
       let error;
@@ -535,6 +567,106 @@ export default function HomeScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                <Text style={styles.sectionHeader}>Sale Type & Pricing</Text>
+                <Text style={styles.helperText}>
+                  Choose how this product will be sold - as a lead generation tool or direct sale
+                </Text>
+
+                <Text style={styles.label}>Sale Type</Text>
+                <View style={styles.typeSelector}>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      newProduct.sale_type === 'lead_generation' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setNewProduct({ ...newProduct, sale_type: 'lead_generation' })}
+                  >
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        newProduct.sale_type === 'lead_generation' && styles.typeButtonTextActive,
+                      ]}
+                    >
+                      Lead Generation
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      newProduct.sale_type === 'direct_sale' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setNewProduct({ ...newProduct, sale_type: 'direct_sale' })}
+                  >
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        newProduct.sale_type === 'direct_sale' && styles.typeButtonTextActive,
+                      ]}
+                    >
+                      Direct Sale
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {newProduct.sale_type === 'direct_sale' && (
+                  <>
+                    <Text style={styles.label}>Product Price</Text>
+                    <View style={styles.priceRow}>
+                      <Text style={styles.currencySymbol}>$</Text>
+                      <TextInput
+                        style={[styles.input, styles.priceInput]}
+                        value={newProduct.product_price}
+                        onChangeText={(text) => setNewProduct({ ...newProduct, product_price: text })}
+                        placeholder="99.00"
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+
+                    <Text style={styles.label}>Currency</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={newProduct.currency}
+                      onChangeText={(text) => setNewProduct({ ...newProduct, currency: text.toUpperCase() })}
+                      placeholder="USD"
+                      maxLength={3}
+                    />
+
+                    <Text style={styles.label}>External Checkout URL (Optional)</Text>
+                    <Text style={styles.helperText}>
+                      If you have your own checkout system, enter the URL here
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={newProduct.external_checkout_url}
+                      onChangeText={(text) => setNewProduct({ ...newProduct, external_checkout_url: text })}
+                      placeholder="https://yoursite.com/checkout"
+                    />
+
+                    <TouchableOpacity
+                      style={styles.checkboxRow}
+                      onPress={() => setNewProduct({ ...newProduct, inventory_tracking: !newProduct.inventory_tracking })}
+                    >
+                      <View style={[styles.checkbox, newProduct.inventory_tracking && styles.checkboxActive]}>
+                        {newProduct.inventory_tracking && <Text style={styles.checkmark}>✓</Text>}
+                      </View>
+                      <Text style={styles.checkboxLabel}>Enable inventory tracking</Text>
+                    </TouchableOpacity>
+
+                    {newProduct.inventory_tracking && (
+                      <>
+                        <Text style={styles.label}>Inventory Quantity</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={newProduct.inventory_quantity}
+                          onChangeText={(text) => setNewProduct({ ...newProduct, inventory_quantity: text })}
+                          placeholder="100"
+                          keyboardType="numeric"
+                        />
+                      </>
+                    )}
+                  </>
+                )}
 
                 <Text style={styles.sectionHeader}>Affiliate Link Discount</Text>
                 <Text style={styles.helperText}>
@@ -1057,5 +1189,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#FFFFFF',
     fontWeight: '500',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  currencySymbol: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  priceInput: {
+    flex: 1,
+    marginBottom: 0,
   },
 });
