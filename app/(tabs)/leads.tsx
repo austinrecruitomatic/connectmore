@@ -37,6 +37,7 @@ type ContactSubmission = {
   message: string | null;
   status: 'new' | 'contacted' | 'qualified' | 'not_interested' | 'closed';
   notes: string | null;
+  affiliate_notes: string | null;
   contract_value: number | null;
   contract_type: 'monthly' | 'total';
   contract_length_months: number | null;
@@ -66,6 +67,7 @@ export default function LeadsScreen() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [notes, setNotes] = useState('');
+  const [affiliateNotes, setAffiliateNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [contractValue, setContractValue] = useState('');
   const [contractType, setContractType] = useState<'monthly' | 'total'>('total');
@@ -184,6 +186,7 @@ export default function LeadsScreen() {
   const handleLeadClick = (lead: ContactSubmission) => {
     setSelectedLead(lead);
     setNotes(lead.notes || '');
+    setAffiliateNotes(lead.affiliate_notes || '');
     setContractValue(lead.contract_value?.toString() || '');
     setContractType(lead.contract_type || 'total');
     setContractLength(lead.contract_length_months?.toString() || '');
@@ -381,6 +384,34 @@ export default function LeadsScreen() {
     }
   };
 
+  const handleSaveAffiliateNotes = async () => {
+    if (!selectedLead) return;
+
+    setSavingNotes(true);
+
+    try {
+      const updateData: any = { affiliate_notes: affiliateNotes };
+
+      const { error } = await supabase
+        .from('contact_submissions')
+        .update(updateData)
+        .eq('id', selectedLead.id);
+
+      if (error) throw error;
+
+      setSelectedLead({ ...selectedLead, ...updateData });
+      loadLeads();
+      setSaveMessage({ type: 'success', text: 'Notes saved successfully' });
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      console.error('Error saving affiliate notes:', error);
+      setSaveMessage({ type: 'error', text: 'Failed to save notes' });
+      setTimeout(() => setSaveMessage(null), 3000);
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
   const handleEmailClick = (email: string) => {
     Linking.openURL(`mailto:${email}`);
   };
@@ -436,6 +467,19 @@ export default function LeadsScreen() {
   const isCompany = profile?.user_type === 'company';
   const isAffiliate = profile?.user_type === 'affiliate';
 
+  const getUniquePages = () => {
+    const pages = new Set(leads.map(l => l.landing_page_slug));
+    return pages.size;
+  };
+
+  const getLeadsByPage = () => {
+    const pageMap: { [key: string]: number } = {};
+    leads.forEach(lead => {
+      pageMap[lead.landing_page_slug] = (pageMap[lead.landing_page_slug] || 0) + 1;
+    });
+    return Object.entries(pageMap).sort((a, b) => b[1] - a[1]);
+  };
+
   return (
     <View style={styles.container}>
       {/* Tab Switcher - only show for companies */}
@@ -474,6 +518,41 @@ export default function LeadsScreen() {
           <Filter size={20} color="#60A5FA" />
         </TouchableOpacity>
       </View>
+
+      {isAffiliate && leads.length > 0 && (
+        <View style={styles.statsContainer}>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <ExternalLink size={20} color="#60A5FA" />
+              <Text style={styles.statValue}>{getUniquePages()}</Text>
+              <Text style={styles.statLabel}>Active Pages</Text>
+            </View>
+            <View style={styles.statCard}>
+              <UsersIcon size={20} color="#10B981" />
+              <Text style={styles.statValue}>{leads.length}</Text>
+              <Text style={styles.statLabel}>Total Leads</Text>
+            </View>
+            <View style={styles.statCard}>
+              <CheckCircle size={20} color="#8B5CF6" />
+              <Text style={styles.statValue}>{getStatusCount('closed')}</Text>
+              <Text style={styles.statLabel}>Closed Deals</Text>
+            </View>
+          </View>
+          {getLeadsByPage().length > 0 && (
+            <View style={styles.topPagesCard}>
+              <Text style={styles.topPagesTitle}>Top Performing Pages</Text>
+              {getLeadsByPage().slice(0, 3).map(([slug, count]) => (
+                <View key={slug} style={styles.pageRow}>
+                  <Text style={styles.pageSlug} numberOfLines={1}>{slug}</Text>
+                  <View style={styles.pageCount}>
+                    <Text style={styles.pageCountText}>{count}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
       <ScrollView
         style={styles.content}
@@ -746,6 +825,41 @@ export default function LeadsScreen() {
                   </View>
                 )}
 
+                {isAffiliate && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>My Follow-up Notes</Text>
+                    <Text style={styles.helperText}>Track your conversations with the company about this lead</Text>
+                    <TextInput
+                      style={styles.notesInput}
+                      value={affiliateNotes}
+                      onChangeText={setAffiliateNotes}
+                      placeholder="Add notes about follow-ups, deal progress, conversations with the company..."
+                      placeholderTextColor="#64748B"
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                    <TouchableOpacity
+                      style={[styles.saveNotesButton, savingNotes && styles.saveNotesButtonDisabled]}
+                      onPress={handleSaveAffiliateNotes}
+                      disabled={savingNotes}
+                    >
+                      <Text style={styles.saveNotesButtonText}>
+                        {savingNotes ? 'Saving...' : 'Save Notes'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {isCompany && selectedLead.affiliate_notes && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Affiliate Notes</Text>
+                    <View style={styles.sourceCard}>
+                      <Text style={styles.sourceText}>{selectedLead.affiliate_notes}</Text>
+                    </View>
+                  </View>
+                )}
+
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>{isAffiliate ? 'Lead Information' : 'Lead Source'}</Text>
                   <View style={styles.sourceCard}>
@@ -855,6 +969,76 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     paddingTop: 16,
+  },
+  statsContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  topPagesCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  topPagesTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  pageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  pageSlug: {
+    flex: 1,
+    fontSize: 14,
+    color: '#94A3B8',
+    marginRight: 12,
+  },
+  pageCount: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  pageCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   title: {
     fontSize: 28,
@@ -1007,6 +1191,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 12,
     textTransform: 'uppercase',
+  },
+  helperText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 12,
+    lineHeight: 18,
   },
   contactCard: {
     backgroundColor: '#0F172A',
