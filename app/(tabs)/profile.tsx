@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, TextInput, Image, Modal } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'expo-router';
-import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown } from 'lucide-react-native';
+import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown, Webhook } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -457,6 +457,34 @@ export default function ProfileScreen() {
                 </Text>
               </TouchableOpacity>
             )}
+          </View>
+        </View>
+      )}
+
+      {profile?.user_type === 'company' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>CRM Integration</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Webhook size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Webhook Integration</Text>
+                <Text style={styles.infoValue}>
+                  Automatically send leads to your CRM
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.configureButton}
+              onPress={() => router.push('/webhook-settings')}
+            >
+              <Webhook size={16} color="#60A5FA" />
+              <Text style={styles.configureButtonText}>
+                Configure Webhook
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
