@@ -236,7 +236,7 @@ export default function LandingPageView() {
         .from('contact_submissions')
         .insert({
           partnership_id: pageData.partnershipId,
-          product_id: pageData.productId,
+          product_id: pageData.productId || null,
           landing_page_slug: pageData.affiliateCode,
           name: formData.name,
           email: formData.email,
@@ -321,7 +321,7 @@ export default function LandingPageView() {
 
         <Text style={styles.headline}>{pageData.headline}</Text>
 
-        {pageData.discountEnabled && pageData.discountValue && pageData.discountValue > 0 && (
+        {pageData.discountEnabled && pageData.discountValue && pageData.discountValue > 0 ? (
           <View style={styles.discountBadge}>
             <Text style={styles.discountText}>
               SPECIAL OFFER: {pageData.discountType === 'percentage'
@@ -330,7 +330,7 @@ export default function LandingPageView() {
             </Text>
             <Text style={styles.discountSubtext}>Exclusive discount through this link</Text>
           </View>
-        )}
+        ) : null}
 
         {pageData.description ? (
           <Text style={styles.description}>{pageData.description}</Text>
