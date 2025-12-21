@@ -104,13 +104,11 @@ export default function MarketplaceScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Company Marketplace</Text>
-        <Text style={styles.subtitle}>Browse companies and choose your partnerships</Text>
-      </View>
+        <Text style={styles.title}>Marketplace</Text>
+        <Text style={styles.subtitle}>Find your next partnership</Text>
 
-      <View style={styles.searchSection}>
         <View style={styles.searchBar}>
-          <Search size={20} color="#64748B" />
+          <Search size={18} color="#64748B" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search companies..."
@@ -119,32 +117,31 @@ export default function MarketplaceScreen() {
             placeholderTextColor="#64748B"
           />
         </View>
-      </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        {CATEGORIES.map(category => (
-          <TouchableOpacity
-            key={category.value}
-            style={[
-              styles.categoryChip,
-              selectedCategory === category.value && styles.categoryChipActive
-            ]}
-            onPress={() => setSelectedCategory(category.value)}
-          >
-            <Text style={[
-              styles.categoryChipText,
-              selectedCategory === category.value && styles.categoryChipTextActive
-            ]}>
-              {category.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          {CATEGORIES.map(category => (
+            <TouchableOpacity
+              key={category.value}
+              style={[
+                styles.categoryChip,
+                selectedCategory === category.value && styles.categoryChipActive
+              ]}
+              onPress={() => setSelectedCategory(category.value)}
+            >
+              <Text style={[
+                styles.categoryChipText,
+                selectedCategory === category.value && styles.categoryChipTextActive
+              ]}>
+                {category.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <View style={styles.centerContent}>
@@ -170,13 +167,13 @@ export default function MarketplaceScreen() {
                     {company.logo_url ? (
                       <Text style={styles.companyLogoText}>{company.company_name[0]}</Text>
                     ) : (
-                      <Building2 size={24} color="#60A5FA" />
+                      <Building2 size={22} color="#60A5FA" />
                     )}
                   </View>
                   <View style={styles.companyInfo}>
                     <Text style={styles.companyName}>{company.company_name}</Text>
                     <View style={styles.ratingContainer}>
-                      <Star size={14} color="#F59E0B" fill="#F59E0B" />
+                      <Star size={13} color="#F59E0B" fill="#F59E0B" />
                       <Text style={styles.ratingText}>
                         {company.average_rating > 0 ? company.average_rating.toFixed(1) : 'No reviews'}
                       </Text>
@@ -209,56 +206,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
   },
   header: {
-    padding: 20,
     paddingTop: 60,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     backgroundColor: '#1E293B',
     borderBottomWidth: 1,
     borderBottomColor: '#334155',
+    gap: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
     color: '#94A3B8',
-  },
-  searchSection: {
-    padding: 16,
-    backgroundColor: '#1E293B',
+    marginTop: -8,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0F172A',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
     borderWidth: 1,
     borderColor: '#334155',
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: '#FFFFFF',
   },
-  categoriesContainer: {
-    backgroundColor: '#1E293B',
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-  },
   categoriesContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 4,
     gap: 8,
   },
   categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: '#0F172A',
     marginRight: 8,
     borderWidth: 1,
@@ -269,8 +258,8 @@ const styles = StyleSheet.create({
     borderColor: '#3B82F6',
   },
   categoryChipText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     color: '#94A3B8',
   },
   categoryChipTextActive: {
@@ -281,25 +270,25 @@ const styles = StyleSheet.create({
   },
   companiesContent: {
     padding: 16,
-    gap: 16,
+    gap: 12,
   },
   companyCard: {
     backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 14,
     borderWidth: 1,
     borderColor: '#334155',
   },
   companyHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 10,
     gap: 12,
   },
   companyLogo: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 10,
     backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
@@ -307,16 +296,16 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
   },
   companyLogoText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#60A5FA',
   },
   companyInfo: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   companyName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
@@ -326,31 +315,31 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: '#FFFFFF',
   },
   reviewCount: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#94A3B8',
   },
   categoryBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     backgroundColor: '#0F172A',
     borderWidth: 1,
     borderColor: '#334155',
   },
   categoryBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '600',
     color: '#94A3B8',
   },
   companyDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#94A3B8',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   centerContent: {
     flex: 1,
