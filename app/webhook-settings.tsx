@@ -1,9 +1,9 @@
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { Webhook, Shield, Tag, Save, ArrowLeft } from 'lucide-react-native';
+import { Webhook, Shield, Tag, Save, ArrowLeft, Zap, CheckCircle, XCircle } from 'lucide-react-native';
 
 export default function WebhookSettings() {
   const { profile, user } = useAuth();
@@ -13,6 +13,8 @@ export default function WebhookSettings() {
   const [webhookSecret, setWebhookSecret] = useState('');
   const [webhookEnabled, setWebhookEnabled] = useState(false);
   const [leadSourceTag, setLeadSourceTag] = useState('connect more');
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; status?: number } | null>(null);
 
   useEffect(() => {
     if (profile?.user_type !== 'company') {
@@ -80,6 +82,76 @@ export default function WebhookSettings() {
     setWebhookSecret(secret);
   }
 
+  async function testWebhook() {
+    if (!webhookUrl) {
+      Alert.alert('Error', 'Please enter a webhook URL first');
+      return;
+    }
+
+    if (!webhookUrl.startsWith('http')) {
+      Alert.alert('Error', 'Webhook URL must start with http:// or https://');
+      return;
+    }
+
+    setTesting(true);
+    setTestResult(null);
+
+    const samplePayload = {
+      lead_id: "test-" + Date.now(),
+      product_name: "Sample Product",
+      affiliate_name: "Test Affiliate",
+      contact_name: "John Doe",
+      email: "john.doe@example.com",
+      phone: "+1234567890",
+      company: "Acme Corp",
+      message: "This is a test webhook from Connect More",
+      contract_value: 5000,
+      contract_length_months: 12,
+      source_tag: leadSourceTag,
+      submitted_at: new Date().toISOString(),
+      is_test: true
+    };
+
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (webhookSecret) {
+        headers['X-Webhook-Secret'] = webhookSecret;
+      }
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(samplePayload),
+      });
+
+      const responseText = await response.text();
+
+      if (response.ok) {
+        setTestResult({
+          success: true,
+          message: `Success! Your webhook responded with status ${response.status}`,
+          status: response.status
+        });
+      } else {
+        setTestResult({
+          success: false,
+          message: `Failed with status ${response.status}: ${responseText.substring(0, 200)}`,
+          status: response.status
+        });
+      }
+    } catch (error: any) {
+      setTestResult({
+        success: false,
+        message: `Connection failed: ${error.message || 'Unable to reach webhook URL'}`
+      });
+    } finally {
+      setTesting(false);
+    }
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.navBar}>
@@ -118,12 +190,54 @@ export default function WebhookSettings() {
           <TextInput
             style={styles.input}
             value={webhookUrl}
-            onChangeText={setWebhookUrl}
+            onChangeText={(text) => {
+              setWebhookUrl(text);
+              setTestResult(null);
+            }}
             placeholder="https://your-crm.com/api/leads"
             placeholderTextColor="#64748B"
             autoCapitalize="none"
             autoCorrect={false}
           />
+
+          <TouchableOpacity
+            style={[styles.testButton, testing && styles.testButtonDisabled]}
+            onPress={testWebhook}
+            disabled={testing || !webhookUrl}
+          >
+            {testing ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Zap size={18} color="#FFFFFF" />
+            )}
+            <Text style={styles.testButtonText}>
+              {testing ? 'Testing...' : 'Test Webhook'}
+            </Text>
+          </TouchableOpacity>
+
+          {testResult && (
+            <View style={[
+              styles.testResult,
+              testResult.success ? styles.testResultSuccess : styles.testResultError
+            ]}>
+              <View style={styles.testResultIcon}>
+                {testResult.success ? (
+                  <CheckCircle size={20} color="#10B981" />
+                ) : (
+                  <XCircle size={20} color="#EF4444" />
+                )}
+              </View>
+              <View style={styles.testResultContent}>
+                <Text style={[
+                  styles.testResultTitle,
+                  testResult.success ? styles.testResultTitleSuccess : styles.testResultTitleError
+                ]}>
+                  {testResult.success ? 'Test Successful' : 'Test Failed'}
+                </Text>
+                <Text style={styles.testResultMessage}>{testResult.message}</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         <View style={styles.field}>
@@ -186,12 +300,14 @@ export default function WebhookSettings() {
   "contract_value": number,
   "contract_length_months": number,
   "source_tag": "${leadSourceTag}",
-  "submitted_at": "timestamp"
+  "submitted_at": "timestamp",
+  "is_test": false
 }`}</Text>
         </View>
         <Text style={styles.infoText}>
           Headers will include: Content-Type: application/json
           {webhookSecret && '\nX-Webhook-Secret: [your secret]'}
+          {'\n\nNote: Test webhooks will have "is_test": true'}
         </Text>
       </View>
 
@@ -366,5 +482,62 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  testButton: {
+    flexDirection: 'row',
+    backgroundColor: '#10B981',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  testButtonDisabled: {
+    opacity: 0.5,
+  },
+  testButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  testResult: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: 12,
+    borderWidth: 1,
+  },
+  testResultSuccess: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: '#10B981',
+  },
+  testResultError: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: '#EF4444',
+  },
+  testResultIcon: {
+    paddingTop: 2,
+  },
+  testResultContent: {
+    flex: 1,
+  },
+  testResultTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  testResultTitleSuccess: {
+    color: '#10B981',
+  },
+  testResultTitleError: {
+    color: '#EF4444',
+  },
+  testResultMessage: {
+    fontSize: 12,
+    color: '#94A3B8',
+    lineHeight: 18,
   },
 });
