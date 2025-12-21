@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Plus, X, Trash2, Pencil, Layout } from 'lucide-react-native';
+import { Plus, X, Trash2, Pencil, Layout, Star } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 type Product = {
@@ -49,6 +49,9 @@ type Company = {
   company_name: string;
   logo_url: string;
   description: string;
+  average_rating: number;
+  total_reviews: number;
+  business_category: string;
 };
 
 export default function HomeScreen() {
@@ -150,7 +153,8 @@ export default function HomeScreen() {
       const { data } = await supabase
         .from('companies')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('average_rating', { ascending: false })
+        .order('total_reviews', { ascending: false });
 
       setCompanies(data || []);
 
@@ -478,41 +482,54 @@ export default function HomeScreen() {
     </View>
   );
 
-  const renderCompany = ({ item }: { item: Company }) => {
+  const renderCompany = (item: Company) => {
     const hasPartnership = partnerships.has(item.id);
 
     return (
       <TouchableOpacity
-        style={styles.productCard}
-        onPress={() => Alert.alert('View Company', `You clicked on ${item.company_name}`)}
+        key={item.id}
+        style={styles.companyCard}
+        onPress={() => router.push({ pathname: '/company/[id]', params: { id: item.id } })}
       >
-        <View style={styles.imageWrapper}>
+        <View style={styles.companyImageWrapper}>
           {item.logo_url ? (
-            <Image source={{ uri: item.logo_url }} style={styles.productImage} />
+            <Image source={{ uri: item.logo_url }} style={styles.companyImage} />
           ) : (
-            <View style={[styles.productImage, styles.placeholderImage]}>
+            <View style={[styles.companyImage, styles.placeholderImage]}>
               <Text style={styles.placeholderText}>No Logo</Text>
             </View>
           )}
         </View>
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{item.company_name}</Text>
-          <Text style={styles.productDescription} numberOfLines={3}>
+        <View style={styles.companyInfo}>
+          <Text style={styles.companyCardName} numberOfLines={1}>{item.company_name}</Text>
+
+          <View style={styles.ratingRow}>
+            <Star size={16} color="#F59E0B" fill={item.average_rating > 0 ? '#F59E0B' : 'transparent'} />
+            <Text style={styles.ratingText}>
+              {item.average_rating > 0 ? item.average_rating.toFixed(1) : 'No reviews'}
+            </Text>
+            {item.total_reviews > 0 && (
+              <Text style={styles.reviewCount}>({item.total_reviews})</Text>
+            )}
+          </View>
+
+          <Text style={styles.companyCardDescription} numberOfLines={2}>
             {item.description || 'No description'}
           </Text>
+
           {!hasPartnership ? (
             <TouchableOpacity
-              style={styles.applyButton}
+              style={styles.companyCardButton}
               onPress={(e) => {
                 e.stopPropagation();
                 handleRequestPartnership(item.id);
               }}
             >
-              <Text style={styles.applyButtonText}>Request Partnership</Text>
+              <Text style={styles.companyCardButtonText}>Request Partnership</Text>
             </TouchableOpacity>
           ) : (
-            <View style={styles.partnershipBadge}>
-              <Text style={styles.partnershipBadgeText}>Partnership Active</Text>
+            <View style={styles.companyCardBadge}>
+              <Text style={styles.companyCardBadgeText}>Partner</Text>
             </View>
           )}
         </View>
@@ -1003,23 +1020,30 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={companies}
-        renderItem={renderCompany}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadProducts} />}
-        ListEmptyComponent={
+    <ScrollView
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={loadProducts} />}
+    >
+      <View style={styles.topRatedSection}>
+        <Text style={styles.sectionTitle}>Top Rated Companies</Text>
+        {companies.length === 0 && !loading ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>No companies available</Text>
             <Text style={styles.emptySubtitle}>
               Check back later for new companies to partner with
             </Text>
           </View>
-        }
-      />
-    </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {companies.map((company) => renderCompany(company))}
+          </ScrollView>
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -1422,5 +1446,91 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748B',
     textAlign: 'center',
+  },
+  topRatedSection: {
+    paddingTop: 16,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  horizontalScroll: {
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  companyCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    width: 280,
+    overflow: 'hidden',
+  },
+  companyImageWrapper: {
+    width: '100%',
+    height: 140,
+    backgroundColor: '#0F172A',
+  },
+  companyImage: {
+    width: '100%',
+    height: '100%',
+  },
+  companyInfo: {
+    padding: 16,
+  },
+  companyCardName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  ratingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  reviewCount: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  companyCardDescription: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginBottom: 12,
+    lineHeight: 18,
+    height: 36,
+  },
+  companyCardButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  companyCardButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  companyCardBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  companyCardBadgeText: {
+    color: '#10B981',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
