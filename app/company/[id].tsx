@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard } from 'lucide-react-native';
+import { ArrowLeft, Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard, Trash2 } from 'lucide-react-native';
 
 type Company = {
   id: string;
@@ -210,6 +210,52 @@ export default function CompanyDetailScreen() {
     router.push(`/company/${id}/write-review`);
   };
 
+  const handleDeleteReview = async (reviewId: string) => {
+    if (Platform.OS === 'web') {
+      if (!confirm('Are you sure you want to delete this review?')) {
+        return;
+      }
+    } else {
+      Alert.alert(
+        'Delete Review',
+        'Are you sure you want to delete this review?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: async () => await performDelete(reviewId) }
+        ]
+      );
+      return;
+    }
+    await performDelete(reviewId);
+  };
+
+  const performDelete = async (reviewId: string) => {
+    try {
+      const { error } = await supabase
+        .from('company_reviews')
+        .delete()
+        .eq('id', reviewId);
+
+      if (error) throw error;
+
+      if (Platform.OS === 'web') {
+        alert('Review deleted successfully');
+      } else {
+        Alert.alert('Success', 'Review deleted successfully');
+      }
+
+      fetchCompanyDetails();
+    } catch (error: any) {
+      console.error('Error deleting review:', error);
+      const message = error.message || 'Failed to delete review';
+      if (Platform.OS === 'web') {
+        alert(message);
+      } else {
+        Alert.alert('Error', message);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -392,15 +438,25 @@ export default function CompanyDetailScreen() {
               <View key={review.id} style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
                   <Text style={styles.reviewerName}>{review.reviewer.full_name}</Text>
-                  <View style={styles.reviewRating}>
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        size={14}
-                        color="#F59E0B"
-                        fill={i < review.rating ? '#F59E0B' : 'transparent'}
-                      />
-                    ))}
+                  <View style={styles.reviewHeaderRight}>
+                    <View style={styles.reviewRating}>
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={14}
+                          color="#F59E0B"
+                          fill={i < review.rating ? '#F59E0B' : 'transparent'}
+                        />
+                      ))}
+                    </View>
+                    {profile?.is_super_admin && (
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => handleDeleteReview(review.id)}
+                      >
+                        <Trash2 size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
                 <Text style={styles.reviewTitle}>{review.title}</Text>
@@ -600,9 +656,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  reviewHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   reviewRating: {
     flexDirection: 'row',
     gap: 2,
+  },
+  deleteButton: {
+    padding: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#EF4444',
   },
   reviewTitle: {
     fontSize: 16,
