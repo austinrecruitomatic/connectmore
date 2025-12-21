@@ -61,13 +61,55 @@ export default function CompanyDetailScreen() {
     }
   }, [id]);
 
+  const fetchAccessibleProducts = async (companyId: string) => {
+    const { data: allProducts, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('is_active', true);
+
+    if (error || !allProducts) {
+      return { data: [], error };
+    }
+
+    if (!profile) {
+      return { data: [], error: null };
+    }
+
+    const publicProducts = allProducts.filter(p => !(p as any).access_type || (p as any).access_type === 'public');
+
+    const restrictedProductIds = allProducts
+      .filter(p => (p as any).access_type === 'restricted')
+      .map(p => p.id);
+
+    if (restrictedProductIds.length === 0) {
+      return { data: publicProducts, error: null };
+    }
+
+    const { data: accessGrants } = await supabase
+      .from('product_affiliate_access')
+      .select('product_id')
+      .eq('affiliate_id', profile.id)
+      .in('product_id', restrictedProductIds);
+
+    const accessibleRestrictedIds = new Set((accessGrants || []).map(g => g.product_id));
+    const accessibleRestrictedProducts = allProducts.filter(
+      p => (p as any).access_type === 'restricted' && accessibleRestrictedIds.has(p.id)
+    );
+
+    return {
+      data: [...publicProducts, ...accessibleRestrictedProducts],
+      error: null,
+    };
+  };
+
   const fetchCompanyDetails = async () => {
     try {
       setLoading(true);
 
       const [companyRes, productsRes, reviewsRes] = await Promise.all([
         supabase.from('companies').select('*').eq('id', id).single(),
-        supabase.from('products').select('*').eq('company_id', id).eq('is_active', true),
+        fetchAccessibleProducts(id.toString()),
         supabase
           .from('company_reviews')
           .select('*, reviewer:profiles(full_name)')

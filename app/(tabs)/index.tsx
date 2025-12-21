@@ -85,16 +85,33 @@ export default function HomeScreen() {
     inventory_tracking: false,
     inventory_quantity: '',
     external_checkout_url: '',
+    access_type: 'public' as 'public' | 'restricted',
   });
+
+  const [affiliates, setAffiliates] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
+  const [selectedAffiliates, setSelectedAffiliates] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (profile) {
       loadProducts();
       if (isCompany) {
         loadCompanyId();
+        loadAffiliates();
       }
     }
   }, [profile, isCompany]);
+
+  const loadAffiliates = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('user_type', 'affiliate')
+      .order('full_name');
+
+    if (data) {
+      setAffiliates(data);
+    }
+  };
 
   const loadCompanyId = async () => {
     if (!profile?.id) return;
@@ -174,11 +191,13 @@ export default function HomeScreen() {
       inventory_tracking: false,
       inventory_quantity: '',
       external_checkout_url: '',
+      access_type: 'public',
     });
+    setSelectedAffiliates(new Set());
     setEditingProductId(null);
   };
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = async (product: Product) => {
     setNewProduct({
       name: product.name,
       description: product.description || '',
@@ -200,7 +219,18 @@ export default function HomeScreen() {
       inventory_tracking: product.inventory_tracking || false,
       inventory_quantity: product.inventory_quantity?.toString() || '',
       external_checkout_url: product.external_checkout_url || '',
+      access_type: (product as any).access_type || 'public',
     });
+
+    const { data: accessData } = await supabase
+      .from('product_affiliate_access')
+      .select('affiliate_id')
+      .eq('product_id', product.id);
+
+    if (accessData) {
+      setSelectedAffiliates(new Set(accessData.map(a => a.affiliate_id)));
+    }
+
     setEditingProductId(product.id);
     setShowAddModal(true);
   };
@@ -246,9 +276,11 @@ export default function HomeScreen() {
           ? parseInt(newProduct.inventory_quantity)
           : null,
         external_checkout_url: newProduct.external_checkout_url || null,
+        access_type: newProduct.access_type,
       };
 
       let error;
+      let productId = editingProductId;
 
       if (editingProductId) {
         const result = await supabase
@@ -257,8 +289,11 @@ export default function HomeScreen() {
           .eq('id', editingProductId);
         error = result.error;
       } else {
-        const result = await supabase.from('products').insert(productData);
+        const result = await supabase.from('products').insert(productData).select('id').single();
         error = result.error;
+        if (!error && result.data) {
+          productId = result.data.id;
+        }
       }
 
       if (error) {
@@ -266,6 +301,35 @@ export default function HomeScreen() {
         Alert.alert('Error', `Failed to ${editingProductId ? 'update' : 'add'} product: ` + error.message);
         setSaving(false);
         return;
+      }
+
+      if (productId && newProduct.access_type === 'restricted') {
+        await supabase
+          .from('product_affiliate_access')
+          .delete()
+          .eq('product_id', productId);
+
+        if (selectedAffiliates.size > 0) {
+          const accessRecords = Array.from(selectedAffiliates).map(affiliateId => ({
+            product_id: productId,
+            affiliate_id: affiliateId,
+            granted_by: profile?.id,
+          }));
+
+          const { error: accessError } = await supabase
+            .from('product_affiliate_access')
+            .insert(accessRecords);
+
+          if (accessError) {
+            console.error('Access error:', accessError);
+            Alert.alert('Warning', 'Product saved but failed to set affiliate access');
+          }
+        }
+      } else if (productId && newProduct.access_type === 'public') {
+        await supabase
+          .from('product_affiliate_access')
+          .delete()
+          .eq('product_id', productId);
       }
 
       Alert.alert('Success', `Product ${editingProductId ? 'updated' : 'added'} successfully!`);
@@ -384,18 +448,31 @@ export default function HomeScreen() {
           </Text>
         </View>
         {isCompany && (
-          <TouchableOpacity
-            style={styles.templatesButton}
-            onPress={() =>
-              router.push({
-                pathname: '/product/[id]/templates',
-                params: { id: item.id },
-              })
-            }
-          >
-            <Layout size={16} color="#60A5FA" />
-            <Text style={styles.templatesButtonText}>Manage Templates</Text>
-          </TouchableOpacity>
+          <View style={styles.productActions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() =>
+                router.push({
+                  pathname: '/product/[id]/templates',
+                  params: { id: item.id },
+                })
+              }
+            >
+              <Layout size={16} color="#60A5FA" />
+              <Text style={styles.actionButtonText}>Templates</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() =>
+                router.push({
+                  pathname: '/product/[id]/access',
+                  params: { id: item.id },
+                })
+              }
+            >
+              <Text style={styles.actionButtonText}>Access</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     </View>
@@ -821,6 +898,87 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 </View>
 
+                <Text style={styles.sectionHeader}>Affiliate Access Control</Text>
+                <Text style={styles.helperText}>
+                  Choose who can promote this product
+                </Text>
+
+                <Text style={styles.label}>Access Type</Text>
+                <View style={styles.typeSelector}>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      newProduct.access_type === 'public' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setNewProduct({ ...newProduct, access_type: 'public' })}
+                  >
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        newProduct.access_type === 'public' && styles.typeButtonTextActive,
+                      ]}
+                    >
+                      Public
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      newProduct.access_type === 'restricted' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setNewProduct({ ...newProduct, access_type: 'restricted' })}
+                  >
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        newProduct.access_type === 'restricted' && styles.typeButtonTextActive,
+                      ]}
+                    >
+                      Restricted
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {newProduct.access_type === 'restricted' && (
+                  <>
+                    <Text style={styles.label}>Select Affiliates</Text>
+                    <Text style={styles.helperText}>
+                      Choose which affiliates can promote this product
+                    </Text>
+                    <View style={styles.affiliateList}>
+                      {affiliates.map(affiliate => (
+                        <TouchableOpacity
+                          key={affiliate.id}
+                          style={[
+                            styles.affiliateItem,
+                            selectedAffiliates.has(affiliate.id) && styles.affiliateItemSelected,
+                          ]}
+                          onPress={() => {
+                            const newSet = new Set(selectedAffiliates);
+                            if (newSet.has(affiliate.id)) {
+                              newSet.delete(affiliate.id);
+                            } else {
+                              newSet.add(affiliate.id);
+                            }
+                            setSelectedAffiliates(newSet);
+                          }}
+                        >
+                          <View style={[styles.checkbox, selectedAffiliates.has(affiliate.id) && styles.checkboxActive]}>
+                            {selectedAffiliates.has(affiliate.id) && <Text style={styles.checkmark}>✓</Text>}
+                          </View>
+                          <View style={styles.affiliateInfo}>
+                            <Text style={styles.affiliateName}>{affiliate.full_name}</Text>
+                            <Text style={styles.affiliateEmail}>{affiliate.email}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                      {affiliates.length === 0 && (
+                        <Text style={styles.emptyText}>No affiliates found</Text>
+                      )}
+                    </View>
+                  </>
+                )}
+
                 <TouchableOpacity
                   style={[styles.addButton, saving && styles.addButtonDisabled]}
                   onPress={handleAddProduct}
@@ -980,6 +1138,29 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   templatesButtonText: {
+    color: '#60A5FA',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  productActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(96, 165, 250, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(96, 165, 250, 0.3)',
+  },
+  actionButtonText: {
     color: '#60A5FA',
     fontSize: 13,
     fontWeight: '600',
@@ -1204,5 +1385,42 @@ const styles = StyleSheet.create({
   priceInput: {
     flex: 1,
     marginBottom: 0,
+  },
+  affiliateList: {
+    marginBottom: 20,
+    maxHeight: 300,
+  },
+  affiliateItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 8,
+  },
+  affiliateItemSelected: {
+    borderColor: '#3B82F6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  affiliateInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  affiliateName: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  affiliateEmail: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
   },
 });
