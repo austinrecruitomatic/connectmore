@@ -190,7 +190,15 @@ export default function MarketplaceScreen() {
                     )}
                   </View>
                   <View style={styles.companyInfo}>
-                    <Text style={styles.companyName}>{company.company_name}</Text>
+                    <View style={styles.companyNameRow}>
+                      <Text style={styles.companyName}>{company.company_name}</Text>
+                      {company.average_rating >= 4.0 && (
+                        <View style={styles.activeBadge}>
+                          <View style={styles.activeDot} />
+                          <Text style={styles.activeText}>Active</Text>
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.ratingContainer}>
                       <Star size={13} color="#F59E0B" fill="#F59E0B" />
                       <Text style={styles.ratingText}>
@@ -323,10 +331,35 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  companyNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   companyName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: '#10B98120',
+    borderRadius: 8,
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  activeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#10B981',
   },
   ratingContainer: {
     flexDirection: 'row',
