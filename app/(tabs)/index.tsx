@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Plus, X, Trash2, Pencil, Layout, Star } from 'lucide-react-native';
+import { Plus, X, Trash2, Pencil, Layout, Star, TrendingUp, Users, DollarSign, Target } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 type Product = {
@@ -94,15 +94,68 @@ export default function HomeScreen() {
   const [affiliates, setAffiliates] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
   const [selectedAffiliates, setSelectedAffiliates] = useState<Set<string>>(new Set());
 
+  const [affiliateStats, setAffiliateStats] = useState({
+    totalLeads: 0,
+    totalDeals: 0,
+    conversionRate: 0,
+    totalCommissions: 0,
+    activePartnerships: 0,
+  });
+
   useEffect(() => {
     if (profile) {
       loadProducts();
       if (isCompany) {
         loadCompanyId();
         loadAffiliates();
+      } else {
+        loadAffiliateStats();
       }
     }
   }, [profile, isCompany]);
+
+  const loadAffiliateStats = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const [leadsRes, dealsRes, commissionsRes, partnershipsRes] = await Promise.all([
+        supabase
+          .from('contact_submissions')
+          .select('id', { count: 'exact', head: true })
+          .eq('affiliate_id', profile.id),
+        supabase
+          .from('deals')
+          .select('id', { count: 'exact', head: true })
+          .eq('affiliate_id', profile.id),
+        supabase
+          .from('commissions')
+          .select('affiliate_payout_amount')
+          .eq('affiliate_id', profile.id)
+          .in('status', ['approved', 'paid']),
+        supabase
+          .from('affiliate_partnerships')
+          .select('id', { count: 'exact', head: true })
+          .eq('affiliate_id', profile.id)
+          .eq('status', 'approved'),
+      ]);
+
+      const totalLeads = leadsRes.count || 0;
+      const totalDeals = dealsRes.count || 0;
+      const conversionRate = totalLeads > 0 ? (totalDeals / totalLeads) * 100 : 0;
+      const totalCommissions = commissionsRes.data?.reduce((sum, c) => sum + (parseFloat(c.affiliate_payout_amount as any) || 0), 0) || 0;
+      const activePartnerships = partnershipsRes.count || 0;
+
+      setAffiliateStats({
+        totalLeads,
+        totalDeals,
+        conversionRate,
+        totalCommissions,
+        activePartnerships,
+      });
+    } catch (error) {
+      console.error('Error loading affiliate stats:', error);
+    }
+  };
 
   const loadAffiliates = async () => {
     const { data } = await supabase
@@ -1024,6 +1077,51 @@ export default function HomeScreen() {
       style={styles.container}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={loadProducts} />}
     >
+      <View style={styles.statsSection}>
+        <Text style={styles.sectionTitle}>Your Performance</Text>
+
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrapper}>
+              <Target size={20} color="#60A5FA" />
+            </View>
+            <Text style={styles.statValue}>{affiliateStats.totalLeads}</Text>
+            <Text style={styles.statLabel}>Total Leads</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrapper}>
+              <TrendingUp size={20} color="#10B981" />
+            </View>
+            <Text style={styles.statValue}>{affiliateStats.totalDeals}</Text>
+            <Text style={styles.statLabel}>Conversions</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrapper}>
+              <Users size={20} color="#F59E0B" />
+            </View>
+            <Text style={styles.statValue}>{affiliateStats.activePartnerships}</Text>
+            <Text style={styles.statLabel}>Active Partners</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrapper}>
+              <DollarSign size={20} color="#8B5CF6" />
+            </View>
+            <Text style={styles.statValue}>${affiliateStats.totalCommissions.toFixed(2)}</Text>
+            <Text style={styles.statLabel}>Total Earned</Text>
+          </View>
+        </View>
+
+        {affiliateStats.totalLeads > 0 && (
+          <View style={styles.conversionBanner}>
+            <Text style={styles.conversionLabel}>Conversion Rate</Text>
+            <Text style={styles.conversionValue}>{affiliateStats.conversionRate.toFixed(1)}%</Text>
+          </View>
+        )}
+      </View>
+
       <View style={styles.topRatedSection}>
         <Text style={styles.sectionTitle}>Top Rated Companies</Text>
         {companies.length === 0 && !loading ? (
@@ -1447,8 +1545,13 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
   },
-  topRatedSection: {
+  statsSection: {
     paddingTop: 16,
+    paddingBottom: 8,
+  },
+  topRatedSection: {
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   sectionTitle: {
     fontSize: 24,
@@ -1456,6 +1559,64 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 16,
     paddingHorizontal: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+  },
+  statIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  conversionBanner: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  conversionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  conversionValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#10B981',
   },
   horizontalScroll: {
     paddingHorizontal: 16,
