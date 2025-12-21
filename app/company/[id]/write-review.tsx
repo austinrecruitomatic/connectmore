@@ -29,17 +29,24 @@ export default function WriteReviewScreen() {
     try {
       const { data: partnerships } = await supabase
         .from('affiliate_partnerships')
-        .select('id, status')
+        .select('id, status, product_id')
         .eq('affiliate_id', profile.id)
-        .eq('company_id', id)
-        .eq('status', 'approved');
+        .eq('company_id', id);
 
       if (partnerships && partnerships.length > 0) {
-        const partnership = partnerships[0];
+        const approvedPartnerships = partnerships.filter(p => p.status === 'approved');
+
+        if (approvedPartnerships.length > 0) {
+          setCanReview(true);
+          setCheckingEligibility(false);
+          return;
+        }
+
+        const partnershipIds = partnerships.map(p => p.id);
         const { count } = await supabase
-          .from('analytics_events')
+          .from('contact_submissions')
           .select('*', { count: 'exact', head: true })
-          .eq('partnership_id', partnership.id);
+          .in('partnership_id', partnershipIds);
 
         const hasLeads = (count ?? 0) > 0;
         setCanReview(hasLeads);
@@ -54,7 +61,7 @@ export default function WriteReviewScreen() {
           router.back();
         }
       } else {
-        const message = 'You must have an active partnership with this company to write a review.';
+        const message = 'You must have a partnership with this company or send them leads to write a review.';
         if (Platform.OS === 'web') {
           alert(message);
         } else {
