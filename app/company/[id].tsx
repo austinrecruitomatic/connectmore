@@ -136,22 +136,25 @@ export default function CompanyDetailScreen() {
 
           const hasApprovedPartnership = partnershipsData.some(p => p.status === 'approved');
 
-          if (hasApprovedPartnership) {
-            const approvedPartnership = partnershipsData.find(p => p.status === 'approved');
-            if (approvedPartnership) {
-              const { data: leadsData, count } = await supabase
-                .from('analytics_events')
-                .select('*', { count: 'exact', head: true })
-                .eq('partnership_id', approvedPartnership.id);
+          // Check if user has sent leads OR contact submissions to this company
+          const partnershipIds = partnershipsData.map(p => p.id);
 
-              const hasLeads = (count ?? 0) > 0;
-              setCanReview(hasLeads);
-            } else {
-              setCanReview(false);
-            }
-          } else {
-            setCanReview(false);
-          }
+          const [analyticsRes, contactsRes] = await Promise.all([
+            supabase
+              .from('analytics_events')
+              .select('*', { count: 'exact', head: true })
+              .in('partnership_id', partnershipIds),
+            supabase
+              .from('contact_submissions')
+              .select('*', { count: 'exact', head: true })
+              .in('partnership_id', partnershipIds)
+          ]);
+
+          const hasAnalyticsLeads = (analyticsRes.count ?? 0) > 0;
+          const hasContactSubmissions = (contactsRes.count ?? 0) > 0;
+
+          // Can review if they have approved partnership OR have sent any leads/contacts
+          setCanReview(hasApprovedPartnership || hasAnalyticsLeads || hasContactSubmissions);
         } else {
           setHasPartnership(false);
           setPartnershipStatus('');
