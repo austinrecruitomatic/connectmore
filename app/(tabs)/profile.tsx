@@ -95,7 +95,7 @@ export default function ProfileScreen() {
     enable_customer_referrals: true,
     notify_on_new_leads: true,
     notify_on_lead_updates: true,
-    notify_on_deal_closed: true,
+    notify_on_new_partnerships: true,
   });
   const [recruiterInfo, setRecruiterInfo] = useState<{
     recruiter: { full_name: string; email: string } | null;
@@ -195,7 +195,7 @@ export default function ProfileScreen() {
         enable_customer_referrals: settingsData.enable_customer_referrals ?? true,
         notify_on_new_leads: settingsData.notify_on_new_leads ?? true,
         notify_on_lead_updates: settingsData.notify_on_lead_updates ?? true,
-        notify_on_deal_closed: settingsData.notify_on_deal_closed ?? true,
+        notify_on_new_partnerships: settingsData.notify_on_new_partnerships ?? true,
       });
     }
   };
@@ -348,7 +348,7 @@ export default function ProfileScreen() {
         enable_customer_referrals: settingsForm.enable_customer_referrals,
         notify_on_new_leads: settingsForm.notify_on_new_leads,
         notify_on_lead_updates: settingsForm.notify_on_lead_updates,
-        notify_on_deal_closed: settingsForm.notify_on_deal_closed,
+        notify_on_new_partnerships: settingsForm.notify_on_new_partnerships,
       };
 
       if (profile?.is_super_admin) {
@@ -1120,7 +1120,10 @@ export default function ProfileScreen() {
                 style={styles.toggleRow}
                 onPress={() => setSettingsForm({ ...settingsForm, notify_on_new_leads: !settingsForm.notify_on_new_leads })}
               >
-                <Text style={styles.toggleLabel}>Notify on New Leads</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>New Leads</Text>
+                  <Text style={styles.toggleDescription}>When an affiliate sends a new lead</Text>
+                </View>
                 <View style={[styles.toggle, settingsForm.notify_on_new_leads && styles.toggleActive]}>
                   <View style={[styles.toggleThumb, settingsForm.notify_on_new_leads && styles.toggleThumbActive]} />
                 </View>
@@ -1130,7 +1133,10 @@ export default function ProfileScreen() {
                 style={styles.toggleRow}
                 onPress={() => setSettingsForm({ ...settingsForm, notify_on_lead_updates: !settingsForm.notify_on_lead_updates })}
               >
-                <Text style={styles.toggleLabel}>Notify on Lead Update Requests</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>Lead Update Requests</Text>
+                  <Text style={styles.toggleDescription}>When an affiliate requests an update on a lead</Text>
+                </View>
                 <View style={[styles.toggle, settingsForm.notify_on_lead_updates && styles.toggleActive]}>
                   <View style={[styles.toggleThumb, settingsForm.notify_on_lead_updates && styles.toggleThumbActive]} />
                 </View>
@@ -1138,11 +1144,14 @@ export default function ProfileScreen() {
 
               <TouchableOpacity
                 style={styles.toggleRow}
-                onPress={() => setSettingsForm({ ...settingsForm, notify_on_deal_closed: !settingsForm.notify_on_deal_closed })}
+                onPress={() => setSettingsForm({ ...settingsForm, notify_on_new_partnerships: !settingsForm.notify_on_new_partnerships })}
               >
-                <Text style={styles.toggleLabel}>Notify on Deal Closed</Text>
-                <View style={[styles.toggle, settingsForm.notify_on_deal_closed && styles.toggleActive]}>
-                  <View style={[styles.toggleThumb, settingsForm.notify_on_deal_closed && styles.toggleThumbActive]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>New Affiliate Requests</Text>
+                  <Text style={styles.toggleDescription}>When you get a new affiliate partnership request</Text>
+                </View>
+                <View style={[styles.toggle, settingsForm.notify_on_new_partnerships && styles.toggleActive]}>
+                  <View style={[styles.toggleThumb, settingsForm.notify_on_new_partnerships && styles.toggleThumbActive]} />
                 </View>
               </TouchableOpacity>
 
@@ -1713,7 +1722,12 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontSize: 16,
     color: '#FFFFFF',
-    flex: 1,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  toggleDescription: {
+    fontSize: 13,
+    color: '#94A3B8',
   },
   toggle: {
     width: 50,
