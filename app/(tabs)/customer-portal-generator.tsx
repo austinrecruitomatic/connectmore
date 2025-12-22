@@ -55,7 +55,6 @@ export default function CustomerPortalGenerator() {
   const loadPartnerships = async () => {
     try {
       setLoading(true);
-      console.log('Loading partnerships for user:', user?.id);
 
       const { data, error } = await supabase
         .from('affiliate_partnerships')
@@ -73,19 +72,12 @@ export default function CustomerPortalGenerator() {
         .eq('affiliate_id', user?.id)
         .eq('status', 'approved');
 
-      console.log('Partnership query result:', { data, error });
-
-      if (error) {
-        console.error('Partnership query error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       const typedData = (data || []) as any[];
-      console.log('Parsed partnerships:', typedData);
       setPartnerships(typedData);
 
       const grouped = groupPartnershipsByCompany(typedData);
-      console.log('Grouped companies:', grouped);
       setCompanyGroups(grouped);
 
       if (typedData.length > 0) {
@@ -93,7 +85,7 @@ export default function CustomerPortalGenerator() {
       }
     } catch (error: any) {
       console.error('Error loading partnerships:', error);
-      Alert.alert('Error', 'Failed to load partnerships: ' + (error?.message || JSON.stringify(error)));
+      Alert.alert('Error', 'Failed to load partnerships');
     } finally {
       setLoading(false);
     }
@@ -125,21 +117,33 @@ export default function CustomerPortalGenerator() {
   };
 
   const shareLink = async (partnership: Partnership) => {
-    try {
-      const link = getCustomerPortalLink(partnership);
-      const company = partnership.company?.company_name || 'this company';
+    const link = getCustomerPortalLink(partnership);
+    const company = partnership.company?.company_name || 'this company';
+    const message = `Join ${company}'s Customer Referral Program!\n\nSign up through my link and start earning money by referring friends. When your friends make purchases, you earn commissions - and they can refer too!\n\nUnlimited earning potential\nPassive income from your network\nEasy to get started\n\nJoin here: ${link}`;
 
-      await Share.share({
-        message: `🎁 Join ${company}'s Customer Referral Program!\n\nSign up through my link and start earning money by referring friends. When your friends make purchases, you earn commissions - and they can refer too!\n\n💰 Unlimited earning potential\n📈 Passive income from your network\n✨ Easy to get started\n\nJoin here: ${link}`,
-      });
+    try {
+      await Share.share({ message });
     } catch (error) {
-      console.error('Error sharing:', error);
+      Alert.alert(
+        'Share Link',
+        `Copy this message to share:\n\n${message}`,
+        [{ text: 'OK' }]
+      );
     }
   };
 
   const copyLink = async (partnership: Partnership) => {
     const link = getCustomerPortalLink(partnership);
-    Alert.alert('Link Copied', `Customer portal link copied to clipboard:\n\n${link}`);
+    Alert.alert(
+      'Customer Portal Link',
+      link,
+      [
+        {
+          text: 'OK',
+          style: 'default',
+        },
+      ]
+    );
   };
 
 
@@ -171,9 +175,6 @@ export default function CustomerPortalGenerator() {
         <Text style={styles.emptyTitle}>No Partnerships Yet</Text>
         <Text style={styles.emptyText}>
           Partner with companies first to get access to the customer referral program
-        </Text>
-        <Text style={styles.emptyText}>
-          User ID: {user?.id?.substring(0, 8)}...
         </Text>
       </View>
     );
