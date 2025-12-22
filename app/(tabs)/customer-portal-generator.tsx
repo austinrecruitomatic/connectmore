@@ -8,6 +8,7 @@ import {
   Share,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -116,34 +117,21 @@ export default function CustomerPortalGenerator() {
     return `https://yourapp.com/customer-portal?ref=${partnership.affiliate_code}`;
   };
 
-  const shareLink = async (partnership: Partnership) => {
+  const shareLink = (partnership: Partnership) => {
+    console.log('shareLink called');
     const link = getCustomerPortalLink(partnership);
     const company = partnership.company?.company_name || 'this company';
     const message = `Join ${company}'s Customer Referral Program!\n\nSign up through my link and start earning money by referring friends. When your friends make purchases, you earn commissions - and they can refer too!\n\nUnlimited earning potential\nPassive income from your network\nEasy to get started\n\nJoin here: ${link}`;
 
-    try {
-      await Share.share({ message });
-    } catch (error) {
-      Alert.alert(
-        'Share Link',
-        `Copy this message to share:\n\n${message}`,
-        [{ text: 'OK' }]
-      );
-    }
+    console.log('Showing alert with message:', message);
+    alert(`Share Link\n\n${message}`);
   };
 
-  const copyLink = async (partnership: Partnership) => {
+  const copyLink = (partnership: Partnership) => {
+    console.log('copyLink called');
     const link = getCustomerPortalLink(partnership);
-    Alert.alert(
-      'Customer Portal Link',
-      link,
-      [
-        {
-          text: 'OK',
-          style: 'default',
-        },
-      ]
-    );
+    console.log('Link:', link);
+    alert(`Customer Portal Link\n\n${link}`);
   };
 
 
