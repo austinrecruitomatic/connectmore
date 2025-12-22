@@ -102,6 +102,7 @@ export default function CommissionsScreen() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'paid'>('all');
   const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [showLeadsModal, setShowLeadsModal] = useState(false);
   const [trackingStats, setTrackingStats] = useState<TrackingStats>({
     totalViews: 0,
     totalSubmissions: 0,
@@ -527,13 +528,22 @@ export default function CommissionsScreen() {
           </TouchableOpacity>
         )}
         {isAffiliate && (
-          <TouchableOpacity
-            style={styles.trackingButton}
-            onPress={() => setShowTrackingModal(true)}
-          >
-            <BarChart3 size={18} color="#fff" />
-            <Text style={styles.trackingButtonText}>Stats</Text>
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity
+              style={styles.trackingButton}
+              onPress={() => setShowTrackingModal(true)}
+            >
+              <BarChart3 size={18} color="#fff" />
+              <Text style={styles.trackingButtonText}>Stats</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.trackingButton}
+              onPress={() => setShowLeadsModal(true)}
+            >
+              <Users size={18} color="#fff" />
+              <Text style={styles.trackingButtonText}>Leads</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -957,6 +967,93 @@ export default function CommissionsScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showLeadsModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLeadsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Your Leads</Text>
+              <TouchableOpacity onPress={() => setShowLeadsModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.leadsSection}>
+                <Text style={styles.leadsSectionTitle}>All Submissions ({leadSubmissions.length})</Text>
+                {leadSubmissions.length === 0 ? (
+                  <View style={styles.emptyLeadsState}>
+                    <Text style={styles.emptyLeadsText}>No leads submitted yet</Text>
+                    <Text style={styles.emptyLeadsSubtext}>
+                      Leads will appear here when people fill out your landing pages
+                    </Text>
+                  </View>
+                ) : (
+                  leadSubmissions.map((lead) => (
+                    <View key={lead.id} style={styles.leadCard}>
+                      <View style={styles.leadHeader}>
+                        <View style={styles.leadMainInfo}>
+                          <Text style={styles.leadName}>{lead.name}</Text>
+                          <Text style={styles.leadEmail}>{lead.email}</Text>
+                          {lead.company_name && (
+                            <Text style={styles.leadCompanyInfo}>at {lead.company_name}</Text>
+                          )}
+                          <Text style={styles.leadCompanyInfo}>
+                            via {lead.affiliate_partnerships.companies.company_name}
+                          </Text>
+                          {lead.landing_page_slug && (
+                            <Text style={styles.leadTemplate}>Page: {lead.landing_page_slug}</Text>
+                          )}
+                        </View>
+                        <View
+                          style={[
+                            styles.leadStatusBadge,
+                            { backgroundColor: getLeadStatusColor(lead.status) + '20' },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.leadStatusText,
+                              { color: getLeadStatusColor(lead.status) },
+                            ]}
+                          >
+                            {lead.status}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {lead.contract_value && (
+                        <View style={styles.leadValueRow}>
+                          <DollarSign size={16} color="#10B981" />
+                          <Text style={styles.leadValue}>
+                            {formatCurrency(lead.contract_value)} contract value
+                          </Text>
+                        </View>
+                      )}
+
+                      {lead.affiliate_notes && (
+                        <View style={styles.leadNotesBox}>
+                          <Text style={styles.leadNotesLabel}>Your Notes:</Text>
+                          <Text style={styles.leadNotes}>{lead.affiliate_notes}</Text>
+                        </View>
+                      )}
+
+                      <Text style={styles.leadDate}>
+                        Submitted {formatDate(lead.created_at)}
+                      </Text>
+                    </View>
+                  ))
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1248,6 +1345,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#8B5CF6',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
   },
   trackingButton: {
     flexDirection: 'row',
