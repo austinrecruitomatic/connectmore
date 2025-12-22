@@ -8,7 +8,6 @@ import {
   Share,
   ActivityIndicator,
   Alert,
-  TextInput,
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -18,13 +17,14 @@ import {
   Users,
   Gift,
   TrendingUp,
-  Mail,
-  MessageSquare,
+  Building2,
+  ExternalLink,
 } from 'lucide-react-native';
 
 type Partnership = {
   id: string;
   affiliate_code: string;
+  company_id: string;
   company: {
     company_name: string;
   };
@@ -33,11 +33,18 @@ type Partnership = {
   } | null;
 };
 
+type CompanyGroup = {
+  company_id: string;
+  company_name: string;
+  partnerships: Partnership[];
+};
+
 export default function CustomerPortalGenerator() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [partnerships, setPartnerships] = useState<Partnership[]>([]);
-  const [selectedPartnership, setSelectedPartnership] = useState<Partnership | null>(null);
+  const [companyGroups, setCompanyGroups] = useState<CompanyGroup[]>([]);
+  const [expandedCompany, setExpandedCompany] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -54,7 +61,8 @@ export default function CustomerPortalGenerator() {
         .select(`
           id,
           affiliate_code,
-          company:companies (
+          company_id,
+          company:companies!company_id (
             company_name
           ),
           product:products (
@@ -68,8 +76,12 @@ export default function CustomerPortalGenerator() {
 
       const typedData = data as any[];
       setPartnerships(typedData);
+
+      const grouped = groupPartnershipsByCompany(typedData);
+      setCompanyGroups(grouped);
+
       if (typedData.length > 0) {
-        setSelectedPartnership(typedData[0]);
+        setExpandedCompany(grouped[0]?.company_id || null);
       }
     } catch (error) {
       console.error('Error loading partnerships:', error);
@@ -79,15 +91,35 @@ export default function CustomerPortalGenerator() {
     }
   };
 
-  const getCustomerPortalLink = () => {
-    if (!selectedPartnership) return '';
-    return `https://yourapp.com/customer-portal?ref=${selectedPartnership.affiliate_code}`;
+  const groupPartnershipsByCompany = (partnerships: Partnership[]): CompanyGroup[] => {
+    const groups: { [key: string]: CompanyGroup } = {};
+
+    partnerships.forEach((partnership) => {
+      const companyId = partnership.company_id;
+      const companyName = partnership.company?.company_name || 'Unknown Company';
+
+      if (!groups[companyId]) {
+        groups[companyId] = {
+          company_id: companyId,
+          company_name: companyName,
+          partnerships: [],
+        };
+      }
+
+      groups[companyId].partnerships.push(partnership);
+    });
+
+    return Object.values(groups);
   };
 
-  const shareLink = async () => {
+  const getCustomerPortalLink = (partnership: Partnership) => {
+    return `https://yourapp.com/customer-portal?ref=${partnership.affiliate_code}`;
+  };
+
+  const shareLink = async (partnership: Partnership) => {
     try {
-      const link = getCustomerPortalLink();
-      const company = selectedPartnership?.company?.company_name || 'this company';
+      const link = getCustomerPortalLink(partnership);
+      const company = partnership.company?.company_name || 'this company';
 
       await Share.share({
         message: `🎁 Join ${company}'s Customer Referral Program!\n\nSign up through my link and start earning money by referring friends. When your friends make purchases, you earn commissions - and they can refer too!\n\n💰 Unlimited earning potential\n📈 Passive income from your network\n✨ Easy to get started\n\nJoin here: ${link}`,
@@ -97,37 +129,11 @@ export default function CustomerPortalGenerator() {
     }
   };
 
-  const copyLink = async () => {
-    const link = getCustomerPortalLink();
+  const copyLink = async (partnership: Partnership) => {
+    const link = getCustomerPortalLink(partnership);
     Alert.alert('Link Copied', `Customer portal link copied to clipboard:\n\n${link}`);
   };
 
-  const getEmailTemplate = () => {
-    const company = selectedPartnership?.company?.company_name || 'this company';
-    return `Subject: Join Our Customer Referral Program - Earn Money Together!
-
-Hi there!
-
-I wanted to share an exciting opportunity with you. ${company} has a customer referral program that lets you earn money by simply referring friends and family.
-
-Here's how it works:
-• Sign up through my referral link
-• Get your own unique referral code
-• Share it with friends
-• Earn commissions when anyone in your network makes a purchase
-• Your referrals can also refer others, and you still earn!
-
-It's a win-win situation - you get to help friends discover great products while earning passive income.
-
-Ready to get started? Sign up here:
-${getCustomerPortalLink()}
-
-Let me know if you have any questions!`;
-  };
-
-  const copyEmailTemplate = () => {
-    Alert.alert('Template Copied', 'Email template copied! Paste it into your email app.');
-  };
 
   if (loading) {
     return (
@@ -154,9 +160,9 @@ Let me know if you have any questions!`;
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Gift size={32} color="#60A5FA" />
-        <Text style={styles.title}>Customer Portal</Text>
+        <Text style={styles.title}>Customer Portals</Text>
         <Text style={styles.subtitle}>
-          Share this link with customers to join your referral network
+          Share portal links with customers to build your referral network
         </Text>
       </View>
 
@@ -208,89 +214,68 @@ Let me know if you have any questions!`;
         </View>
       </View>
 
-      {partnerships.length > 1 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Partnership</Text>
-          {partnerships.map((partnership) => (
-            <TouchableOpacity
-              key={partnership.id}
-              style={[
-                styles.partnershipCard,
-                selectedPartnership?.id === partnership.id && styles.partnershipCardSelected,
-              ]}
-              onPress={() => setSelectedPartnership(partnership)}
-            >
-              <View style={styles.partnershipInfo}>
-                <Text style={styles.partnershipCompany}>
-                  {partnership.company?.company_name}
-                </Text>
-                {partnership.product && (
-                  <Text style={styles.partnershipProduct}>
-                    {partnership.product.product_name}
-                  </Text>
-                )}
-              </View>
-              <View
-                style={[
-                  styles.radioButton,
-                  selectedPartnership?.id === partnership.id && styles.radioButtonSelected,
-                ]}
-              >
-                {selectedPartnership?.id === partnership.id && (
-                  <View style={styles.radioButtonInner} />
-                )}
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Your Customer Portal Link</Text>
-        <View style={styles.linkCard}>
-          <LinkIcon size={24} color="#60A5FA" />
-          <View style={styles.linkTextContainer}>
-            <Text style={styles.linkLabel}>Portal Link</Text>
-            <Text style={styles.linkText} numberOfLines={1}>
-              {getCustomerPortalLink()}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={shareLink}>
-            <TrendingUp size={20} color="#FFF" />
-            <Text style={styles.actionButtonText}>Share Link</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.actionButtonSecondary]}
-            onPress={copyLink}
-          >
-            <Copy size={20} color="#60A5FA" />
-            <Text style={[styles.actionButtonText, styles.actionButtonTextSecondary]}>
-              Copy Link
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Email Template</Text>
+        <Text style={styles.sectionTitle}>Your Customer Portals</Text>
         <Text style={styles.sectionDescription}>
-          Copy this template to invite customers via email
+          Each partnership has its own customer portal. Share these links to build your network.
         </Text>
-        <View style={styles.templateCard}>
-          <TextInput
-            style={styles.templateText}
-            value={getEmailTemplate()}
-            multiline
-            editable={false}
-          />
-        </View>
-        <TouchableOpacity style={styles.copyTemplateButton} onPress={copyEmailTemplate}>
-          <Mail size={20} color="#FFF" />
-          <Text style={styles.copyTemplateButtonText}>Copy Email Template</Text>
-        </TouchableOpacity>
+
+        {companyGroups.map((group) => (
+          <View key={group.company_id} style={styles.companyGroup}>
+            <TouchableOpacity
+              style={styles.companyHeader}
+              onPress={() =>
+                setExpandedCompany(expandedCompany === group.company_id ? null : group.company_id)
+              }
+            >
+              <View style={styles.companyHeaderLeft}>
+                <Building2 size={24} color="#60A5FA" />
+                <View style={styles.companyHeaderText}>
+                  <Text style={styles.companyName}>{group.company_name}</Text>
+                  <Text style={styles.companyCount}>
+                    {group.partnerships.length} portal{group.partnerships.length !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+              </View>
+              <ExternalLink size={20} color="#94A3B8" />
+            </TouchableOpacity>
+
+            {expandedCompany === group.company_id &&
+              group.partnerships.map((partnership) => (
+                <View key={partnership.id} style={styles.portalCard}>
+                  {partnership.product && (
+                    <Text style={styles.portalProduct}>{partnership.product.product_name}</Text>
+                  )}
+
+                  <View style={styles.portalLinkContainer}>
+                    <LinkIcon size={18} color="#60A5FA" />
+                    <Text style={styles.portalLink} numberOfLines={1}>
+                      {getCustomerPortalLink(partnership)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.portalActions}>
+                    <TouchableOpacity
+                      style={styles.portalActionButton}
+                      onPress={() => shareLink(partnership)}
+                    >
+                      <TrendingUp size={18} color="#FFF" />
+                      <Text style={styles.portalActionText}>Share</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.portalActionButton, styles.portalActionButtonSecondary]}
+                      onPress={() => copyLink(partnership)}
+                    >
+                      <Copy size={18} color="#60A5FA" />
+                      <Text style={[styles.portalActionText, styles.portalActionTextSecondary]}>
+                        Copy
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+          </View>
+        ))}
       </View>
 
       <View style={styles.tipsCard}>
@@ -431,132 +416,93 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 20,
   },
-  partnershipCard: {
+  companyGroup: {
+    marginBottom: 16,
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    overflow: 'hidden',
+  },
+  companyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#334155',
+    backgroundColor: '#1E293B',
   },
-  partnershipCardSelected: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#1E3A5F',
-  },
-  partnershipInfo: {
+  companyHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     flex: 1,
   },
-  partnershipCompany: {
-    fontSize: 16,
+  companyHeaderText: {
+    flex: 1,
+  },
+  companyName: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  partnershipProduct: {
+  companyCount: {
     fontSize: 14,
     color: '#94A3B8',
   },
-  radioButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#64748B',
-    justifyContent: 'center',
-    alignItems: 'center',
+  portalCard: {
+    padding: 16,
+    backgroundColor: '#0F172A',
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
   },
-  radioButtonSelected: {
-    borderColor: '#3B82F6',
+  portalProduct: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 12,
   },
-  radioButtonInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#3B82F6',
-  },
-  linkCard: {
+  portalLinkContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     backgroundColor: '#1E293B',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
   },
-  linkTextContainer: {
+  portalLink: {
     flex: 1,
-    marginLeft: 16,
-  },
-  linkLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  linkText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#60A5FA',
     fontWeight: '500',
   },
-  actionButtons: {
+  portalActions: {
     flexDirection: 'row',
     gap: 12,
   },
-  actionButton: {
+  portalActionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#3B82F6',
-    padding: 16,
-    borderRadius: 12,
+    padding: 12,
+    borderRadius: 8,
   },
-  actionButtonSecondary: {
+  portalActionButtonSecondary: {
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: '#60A5FA',
   },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  portalActionText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#FFF',
   },
-  actionButtonTextSecondary: {
+  portalActionTextSecondary: {
     color: '#60A5FA',
-  },
-  templateCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-    maxHeight: 300,
-  },
-  templateText: {
-    fontSize: 13,
-    color: '#CBD5E1',
-    lineHeight: 20,
-    fontFamily: 'monospace',
-  },
-  copyTemplateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#10B981',
-    padding: 16,
-    borderRadius: 12,
-  },
-  copyTemplateButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFF',
   },
   tipsCard: {
     backgroundColor: '#1E3A5F',
