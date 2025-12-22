@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { DollarSign, TrendingUp, Clock, CheckCircle, Settings } from 'lucide-react-native';
+import { DollarSign, TrendingUp, Clock, CheckCircle, Settings, BarChart3, Users } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 type CustomerData = {
@@ -337,6 +337,23 @@ export default function CustomerEarnings() {
             <Text style={styles.statLabel}>Total Paid</Text>
           </View>
         </View>
+
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/customer-referrals')}
+          >
+            <BarChart3 size={20} color="#007AFF" />
+            <Text style={styles.actionButtonText}>Stats</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/customer-referrals')}
+          >
+            <Users size={20} color="#007AFF" />
+            <Text style={styles.actionButtonText}>Leads</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -645,5 +662,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });
