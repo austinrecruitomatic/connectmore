@@ -93,6 +93,9 @@ export default function ProfileScreen() {
     rep_override_commission_rate: '3.00',
     customer_payout_minimum: '50.00',
     enable_customer_referrals: true,
+    notify_on_new_leads: true,
+    notify_on_lead_updates: true,
+    notify_on_deal_closed: true,
   });
   const [recruiterInfo, setRecruiterInfo] = useState<{
     recruiter: { full_name: string; email: string } | null;
@@ -190,6 +193,9 @@ export default function ProfileScreen() {
         rep_override_commission_rate: (settingsData.rep_override_commission_rate || 3).toString(),
         customer_payout_minimum: (settingsData.customer_payout_minimum || 50).toString(),
         enable_customer_referrals: settingsData.enable_customer_referrals ?? true,
+        notify_on_new_leads: settingsData.notify_on_new_leads ?? true,
+        notify_on_lead_updates: settingsData.notify_on_lead_updates ?? true,
+        notify_on_deal_closed: settingsData.notify_on_deal_closed ?? true,
       });
     }
   };
@@ -340,6 +346,9 @@ export default function ProfileScreen() {
         rep_override_commission_rate: parseFloat(settingsForm.rep_override_commission_rate || '3'),
         customer_payout_minimum: parseFloat(settingsForm.customer_payout_minimum || '50'),
         enable_customer_referrals: settingsForm.enable_customer_referrals,
+        notify_on_new_leads: settingsForm.notify_on_new_leads,
+        notify_on_lead_updates: settingsForm.notify_on_lead_updates,
+        notify_on_deal_closed: settingsForm.notify_on_deal_closed,
       };
 
       if (profile?.is_super_admin) {
@@ -1099,6 +1108,43 @@ export default function ProfileScreen() {
                 placeholderTextColor="#64748B"
                 keyboardType="number-pad"
               />
+
+              <View style={styles.divider} />
+
+              <Text style={styles.sectionTitle}>Notification Settings</Text>
+              <Text style={styles.helpText}>
+                Choose which events trigger notifications
+              </Text>
+
+              <TouchableOpacity
+                style={styles.toggleRow}
+                onPress={() => setSettingsForm({ ...settingsForm, notify_on_new_leads: !settingsForm.notify_on_new_leads })}
+              >
+                <Text style={styles.toggleLabel}>Notify on New Leads</Text>
+                <View style={[styles.toggle, settingsForm.notify_on_new_leads && styles.toggleActive]}>
+                  <View style={[styles.toggleThumb, settingsForm.notify_on_new_leads && styles.toggleThumbActive]} />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.toggleRow}
+                onPress={() => setSettingsForm({ ...settingsForm, notify_on_lead_updates: !settingsForm.notify_on_lead_updates })}
+              >
+                <Text style={styles.toggleLabel}>Notify on Lead Update Requests</Text>
+                <View style={[styles.toggle, settingsForm.notify_on_lead_updates && styles.toggleActive]}>
+                  <View style={[styles.toggleThumb, settingsForm.notify_on_lead_updates && styles.toggleThumbActive]} />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.toggleRow}
+                onPress={() => setSettingsForm({ ...settingsForm, notify_on_deal_closed: !settingsForm.notify_on_deal_closed })}
+              >
+                <Text style={styles.toggleLabel}>Notify on Deal Closed</Text>
+                <View style={[styles.toggle, settingsForm.notify_on_deal_closed && styles.toggleActive]}>
+                  <View style={[styles.toggleThumb, settingsForm.notify_on_deal_closed && styles.toggleThumbActive]} />
+                </View>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
