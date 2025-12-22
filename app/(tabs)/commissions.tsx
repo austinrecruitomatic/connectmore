@@ -513,7 +513,7 @@ export default function CommissionsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerTitleContainer}>
           <Text style={styles.title}>{isCompany ? 'Commissions' : 'Earnings'}</Text>
           <Text style={styles.subtitle}>
             {isCompany
@@ -533,14 +533,14 @@ export default function CommissionsScreen() {
               style={styles.trackingButton}
               onPress={() => setShowTrackingModal(true)}
             >
-              <BarChart3 size={18} color="#fff" />
+              <BarChart3 size={16} color="#fff" />
               <Text style={styles.trackingButtonText}>Stats</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.trackingButton}
               onPress={() => setShowLeadsModal(true)}
             >
-              <Users size={18} color="#fff" />
+              <Users size={16} color="#fff" />
               <Text style={styles.trackingButtonText}>Leads</Text>
             </TouchableOpacity>
           </View>
@@ -776,7 +776,11 @@ export default function CommissionsScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+            >
               <View style={styles.trackingStatsGrid}>
                 <View style={styles.trackingStatCard}>
                   <Eye size={24} color="#3B82F6" />
@@ -983,7 +987,11 @@ export default function CommissionsScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+            >
               <View style={styles.leadsSection}>
                 <Text style={styles.leadsSectionTitle}>All Submissions ({leadSubmissions.length})</Text>
                 {leadSubmissions.length === 0 ? (
@@ -1066,19 +1074,25 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: 20,
     paddingTop: 60,
+    gap: 12,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    minWidth: 0,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#94A3B8',
+    flexWrap: 'wrap',
   },
   approveAllButton: {
     flexDirection: 'row',
@@ -1348,20 +1362,21 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
+    flexShrink: 0,
   },
   trackingButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: '#3B82F6',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   trackingButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   modalOverlay: {
@@ -1373,7 +1388,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E293B',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '85%',
+    height: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1390,6 +1406,7 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 20,
+    paddingBottom: 40,
   },
   trackingStatsGrid: {
     gap: 12,
@@ -1508,8 +1525,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   leadEmail: {
+    flexWrap: 'wrap',
     fontSize: 14,
     color: '#94A3B8',
     marginBottom: 4,
@@ -1518,16 +1537,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B',
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   leadTemplate: {
     fontSize: 12,
     color: '#64748B',
     fontStyle: 'italic',
+    flexWrap: 'wrap',
   },
   leadStatusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
   },
   leadStatusText: {
     fontSize: 11,
@@ -1539,11 +1562,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 12,
+    flexWrap: 'wrap',
   },
   leadValue: {
     fontSize: 14,
     fontWeight: '600',
     color: '#10B981',
+    flexWrap: 'wrap',
+    flex: 1,
   },
   leadNotesBox: {
     backgroundColor: '#1E293B',
@@ -1563,10 +1589,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#E2E8F0',
     lineHeight: 18,
+    flexWrap: 'wrap',
   },
   leadDate: {
     fontSize: 12,
     color: '#64748B',
+    flexWrap: 'wrap',
   },
   emptyLeadsState: {
     alignItems: 'center',
