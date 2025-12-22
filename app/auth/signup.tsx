@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/AuthContext';
-import { ChevronDown, X } from 'lucide-react-native';
+import { ChevronDown, X, Upload, ImageIcon } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '@/lib/supabase';
 
 const CATEGORIES = [
   { value: 'accounting', label: 'Accounting' },
@@ -53,8 +55,40 @@ export default function SignupScreen() {
   const [recruiterCode, setRecruiterCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [logoUri, setLogoUri] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<{ uri: string; type: string; name: string } | null>(null);
   const { signUp } = useAuth();
   const router = useRouter();
+
+  const pickLogo = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      if (Platform.OS === 'web') {
+        alert('Permission to access photos is required');
+      } else {
+        Alert.alert('Permission Required', 'Permission to access photos is required');
+      }
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setLogoUri(asset.uri);
+      setLogoFile({
+        uri: asset.uri,
+        type: 'image/png',
+        name: 'logo.png',
+      });
+    }
+  };
 
   const handleSignup = async () => {
     if (!fullName || !email || !password) {
@@ -75,14 +109,56 @@ export default function SignupScreen() {
     setLoading(true);
     setError('');
 
-    const { error: signUpError } = await signUp(email, password, fullName, userType, companyName, businessCategory, recruiterCode);
+    const { error: signUpError, userId, companyId } = await signUp(email, password, fullName, userType, companyName, businessCategory, recruiterCode);
 
     if (signUpError) {
       setError(signUpError.message);
       setLoading(false);
-    } else {
-      router.replace('/(tabs)');
+      return;
     }
+
+    if (userType === 'company' && logoFile && companyId) {
+      try {
+        const fileExt = logoFile.name.split('.').pop() || 'png';
+        const fileName = `${companyId}/logo.${fileExt}`;
+
+        let fileData: any;
+
+        if (Platform.OS === 'web') {
+          const response = await fetch(logoFile.uri);
+          const blob = await response.blob();
+          fileData = blob;
+        } else {
+          const response = await fetch(logoFile.uri);
+          const blob = await response.blob();
+          fileData = blob;
+        }
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('company-logos')
+          .upload(fileName, fileData, {
+            upsert: true,
+            contentType: logoFile.type,
+          });
+
+        if (!uploadError && uploadData) {
+          const { data: publicUrlData } = supabase.storage
+            .from('company-logos')
+            .getPublicUrl(fileName);
+
+          await supabase
+            .from('companies')
+            .update({ logo_url: publicUrlData.publicUrl })
+            .eq('id', companyId);
+        } else if (uploadError) {
+          console.error('Upload error:', uploadError);
+        }
+      } catch (logoError) {
+        console.error('Error uploading logo:', logoError);
+      }
+    }
+
+    router.replace('/(tabs)');
   };
 
   return (
@@ -152,6 +228,22 @@ export default function SignupScreen() {
                   onChangeText={setCompanyName}
                   placeholderTextColor="#64748B"
                 />
+
+                <Text style={styles.label}>Company Logo</Text>
+                <TouchableOpacity style={styles.logoUpload} onPress={pickLogo}>
+                  {logoUri ? (
+                    <View style={styles.logoPreviewContainer}>
+                      <Image source={{ uri: logoUri }} style={styles.logoPreview} />
+                      <Text style={styles.logoChangeText}>Tap to change</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.logoPlaceholder}>
+                      <ImageIcon size={32} color="#64748B" />
+                      <Text style={styles.logoPlaceholderText}>Upload Logo (Optional)</Text>
+                      <Text style={styles.logoHelpText}>Square image recommended</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
 
                 <Text style={styles.label}>Business Category</Text>
                 <TouchableOpacity
@@ -419,5 +511,43 @@ const styles = StyleSheet.create({
   categoryItemTextActive: {
     color: '#60A5FA',
     fontWeight: '600',
+  },
+  logoUpload: {
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#1E293B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 150,
+  },
+  logoPlaceholder: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  logoPlaceholderText: {
+    fontSize: 16,
+    color: '#94A3B8',
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  logoHelpText: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  logoPreviewContainer: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoPreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+  },
+  logoChangeText: {
+    fontSize: 14,
+    color: '#60A5FA',
+    fontWeight: '500',
   },
 });

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -182,13 +182,13 @@ export default function MarketplaceScreen() {
                 onPress={() => handleCompanyPress(company.id)}
               >
                 <View style={styles.companyHeader}>
-                  <View style={styles.companyLogo}>
-                    {company.logo_url ? (
-                      <Text style={styles.companyLogoText}>{company.company_name[0]}</Text>
-                    ) : (
+                  {company.logo_url ? (
+                    <Image source={{ uri: company.logo_url }} style={styles.companyLogo} />
+                  ) : (
+                    <View style={styles.companyLogo}>
                       <Building2 size={22} color="#60A5FA" />
-                    )}
-                  </View>
+                    </View>
+                  )}
                   <View style={styles.companyInfo}>
                     <View style={styles.companyNameRow}>
                       <Text style={styles.companyName}>{company.company_name}</Text>

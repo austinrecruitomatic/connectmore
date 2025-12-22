@@ -20,7 +20,7 @@ type AuthContextType = {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string, userType: 'company' | 'affiliate', companyName?: string, businessCategory?: string, recruiterCode?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, userType: 'company' | 'affiliate', companyName?: string, businessCategory?: string, recruiterCode?: string) => Promise<{ error: any; userId?: string; companyId?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -132,15 +132,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: profileError };
     }
 
+    let companyId: string | undefined;
     if (userType === 'company' && authData.user) {
-      await supabase.from('companies').insert({
-        user_id: authData.user.id,
-        company_name: companyName || fullName,
-        business_category: businessCategory || 'other',
-      });
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          user_id: authData.user.id,
+          company_name: companyName || fullName,
+          business_category: businessCategory || 'other',
+        })
+        .select('id')
+        .single();
+
+      if (companyData && !companyError) {
+        companyId = companyData.id;
+      }
     }
 
-    return { error: null };
+    return { error: null, userId: authData.user.id, companyId };
   };
 
   const signOut = async () => {

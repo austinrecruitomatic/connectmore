@@ -1,9 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Alert, Platform, Image } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard, Trash2, Building2 } from 'lucide-react-native';
 
 type Company = {
   id: string;
@@ -13,6 +13,7 @@ type Company = {
   business_category: string;
   average_rating: number;
   total_reviews: number;
+  logo_url?: string;
 };
 
 type Product = {
@@ -288,7 +289,16 @@ export default function CompanyDetailScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.companyHeader}>
           <View style={styles.companyTitleRow}>
-            <Text style={styles.companyName}>{company.company_name}</Text>
+            {company.logo_url ? (
+              <Image source={{ uri: company.logo_url }} style={styles.companyLogo} />
+            ) : (
+              <View style={styles.companyLogoPlaceholder}>
+                <Building2 size={32} color="#64748B" />
+              </View>
+            )}
+            <View style={styles.companyInfo}>
+              <Text style={styles.companyName}>{company.company_name}</Text>
+            </View>
           </View>
 
           <View style={styles.ratingRow}>
@@ -508,7 +518,31 @@ const styles = StyleSheet.create({
     borderBottomColor: '#334155',
   },
   companyTitleRow: {
-    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  companyLogo: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  companyLogoPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  companyInfo: {
+    flex: 1,
   },
   companyName: {
     fontSize: 24,

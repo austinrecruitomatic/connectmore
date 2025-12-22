@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, Modal, TextInput, Image } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -18,6 +18,7 @@ interface Company {
   avg_rating: number;
   platform_fee_rate?: number;
   platform_fee_paid_by?: 'company' | 'affiliate';
+  logo_url?: string;
 }
 
 export default function AdminCompanies() {
@@ -107,7 +108,7 @@ export default function AdminCompanies() {
     try {
       const { data: companiesData, error } = await supabase
         .from('companies')
-        .select('id, company_name, description, website, business_category, created_at')
+        .select('id, company_name, description, website, business_category, created_at, logo_url')
         .order('created_at', { ascending: false });
 
       console.log('Companies query result:', { data: companiesData, error });
@@ -228,6 +229,13 @@ export default function AdminCompanies() {
             }
           >
             <View style={styles.companyHeader}>
+              {company.logo_url ? (
+                <Image source={{ uri: company.logo_url }} style={styles.companyLogo} />
+              ) : (
+                <View style={styles.companyLogoPlaceholder}>
+                  <Building2 size={24} color="#64748B" />
+                </View>
+              )}
               <View style={styles.companyInfo}>
                 <View style={styles.companyNameRow}>
                   <Text style={styles.companyName}>{company.company_name}</Text>
@@ -457,7 +465,28 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
   },
   companyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
+    gap: 12,
+  },
+  companyLogo: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  companyLogoPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   companyInfo: {
     flex: 1,
