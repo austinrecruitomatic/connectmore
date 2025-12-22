@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Home, TrendingUp, User, Store, Users, DollarSign, Shield } from 'lucide-react-native';
+import { Home, TrendingUp, User, Store, Users, DollarSign, Shield, Gift } from 'lucide-react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useEffect } from 'react';
 
@@ -57,6 +57,15 @@ export default function TabLayout() {
         options={{
           title: isCompany ? 'Affiliates' : 'My Links',
           tabBarIcon: ({ size, color }) => <Users size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="customer-portal-generator"
+        options={{
+          title: 'Customers',
+          headerTitle: 'Customer Portal',
+          tabBarIcon: ({ size, color }) => <Gift size={size} color={color} />,
+          href: isAffiliate ? undefined : null,
         }}
       />
       <Tabs.Screen
