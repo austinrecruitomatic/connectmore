@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Image, Modal, Platform } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'expo-router';
-import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown, Webhook } from 'lucide-react-native';
+import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown, Webhook, ImageIcon } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import * as ImagePicker from 'expo-image-picker';
 
 type Company = {
   id: string;
@@ -74,6 +75,7 @@ export default function ProfileScreen() {
     logo_url: '',
     business_category: 'other',
   });
+  const [logoFile, setLogoFile] = useState<{ uri: string; type: string; name: string } | null>(null);
   const [paymentForm, setPaymentForm] = useState({
     payment_method: profile?.payment_method || '',
     payment_details: '',
@@ -194,7 +196,38 @@ export default function ProfileScreen() {
   };
 
   const handleEditCompany = () => {
+    setLogoFile(null);
     setShowEditModal(true);
+  };
+
+  const pickLogo = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      if (Platform.OS === 'web') {
+        alert('Permission to access photos is required');
+      } else {
+        Alert.alert('Permission Required', 'Permission to access photos is required');
+      }
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setLogoFile({
+        uri: asset.uri,
+        type: 'image/png',
+        name: 'logo.png',
+      });
+      setEditForm({ ...editForm, logo_url: asset.uri });
+    }
   };
 
   const handleSaveCompany = async () => {
@@ -208,11 +241,52 @@ export default function ProfileScreen() {
     setSaving(true);
 
     try {
+      let logoUrl = editForm.logo_url;
+
+      if (logoFile && !logoFile.uri.startsWith('http')) {
+        try {
+          const fileExt = logoFile.name.split('.').pop() || 'png';
+          const fileName = `${company.id}/logo.${fileExt}`;
+
+          let fileData: any;
+
+          if (Platform.OS === 'web') {
+            const response = await fetch(logoFile.uri);
+            const blob = await response.blob();
+            fileData = blob;
+          } else {
+            const response = await fetch(logoFile.uri);
+            const blob = await response.blob();
+            fileData = blob;
+          }
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('company-logos')
+            .upload(fileName, fileData, {
+              upsert: true,
+              contentType: logoFile.type,
+            });
+
+          if (!uploadError && uploadData) {
+            const { data: publicUrlData } = supabase.storage
+              .from('company-logos')
+              .getPublicUrl(fileName);
+            logoUrl = publicUrlData.publicUrl;
+          } else if (uploadError) {
+            console.error('Upload error:', uploadError);
+            throw uploadError;
+          }
+        } catch (logoError) {
+          console.error('Error uploading logo:', logoError);
+          Alert.alert('Warning', 'Failed to upload logo, but other changes will be saved');
+        }
+      }
+
       const { error } = await supabase
         .from('companies')
         .update({
           company_name: editForm.company_name,
-          logo_url: editForm.logo_url,
+          logo_url: logoUrl,
           business_category: editForm.business_category,
         })
         .eq('id', company.id);
@@ -221,6 +295,7 @@ export default function ProfileScreen() {
 
       Alert.alert('Success', 'Company profile updated successfully!');
       setShowEditModal(false);
+      setLogoFile(null);
       await loadCompany();
     } catch (error) {
       Alert.alert('Error', 'Failed to update company profile');
@@ -589,21 +664,21 @@ export default function ProfileScreen() {
                 placeholder="Enter company name"
               />
 
-              <Text style={styles.label}>Logo URL</Text>
-              <TextInput
-                style={styles.input}
-                value={editForm.logo_url}
-                onChangeText={(text) => setEditForm({ ...editForm, logo_url: text })}
-                placeholder="https://example.com/logo.png"
-                placeholderTextColor="#64748B"
-              />
-
-              {editForm.logo_url && (
-                <View style={styles.logoPreview}>
-                  <Text style={styles.previewLabel}>Logo Preview:</Text>
-                  <Image source={{ uri: editForm.logo_url }} style={styles.previewImage} />
-                </View>
-              )}
+              <Text style={styles.label}>Company Logo</Text>
+              <TouchableOpacity style={styles.logoUpload} onPress={pickLogo}>
+                {editForm.logo_url ? (
+                  <View style={styles.logoPreviewContainer}>
+                    <Image source={{ uri: editForm.logo_url }} style={styles.logoPreviewImage} />
+                    <Text style={styles.logoChangeText}>Tap to change logo</Text>
+                  </View>
+                ) : (
+                  <View style={styles.logoPlaceholder}>
+                    <ImageIcon size={32} color="#64748B" />
+                    <Text style={styles.logoPlaceholderText}>Upload Logo</Text>
+                    <Text style={styles.logoHelpText}>Square image recommended</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
 
               <Text style={styles.label}>Business Category</Text>
               <TouchableOpacity
@@ -1138,6 +1213,45 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: '#0F172A',
     color: '#FFFFFF',
+  },
+  logoUpload: {
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 150,
+    marginBottom: 16,
+  },
+  logoPlaceholder: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  logoPlaceholderText: {
+    fontSize: 16,
+    color: '#94A3B8',
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  logoHelpText: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  logoPreviewContainer: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoPreviewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+  },
+  logoChangeText: {
+    fontSize: 14,
+    color: '#60A5FA',
+    fontWeight: '500',
   },
   logoPreview: {
     marginBottom: 16,
