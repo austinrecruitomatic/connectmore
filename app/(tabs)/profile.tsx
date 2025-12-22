@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Image, Modal, Platform } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'expo-router';
-import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown, Webhook, ImageIcon } from 'lucide-react-native';
+import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown, Webhook, ImageIcon, Bell } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
@@ -103,6 +103,11 @@ export default function ProfileScreen() {
     recruits: [],
     referralCode: '',
   });
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    notification_lead_dispositioned: true,
+    notification_lead_closed: true,
+    notification_customer_submission: true,
+  });
 
   useEffect(() => {
     if (profile?.user_type === 'company') {
@@ -117,6 +122,13 @@ export default function ProfileScreen() {
         payment_method: profile.payment_method || '',
         payment_details: profile.payment_details?.details || '',
       });
+      if (profile.user_type === 'affiliate') {
+        setNotificationPrefs({
+          notification_lead_dispositioned: profile.notification_lead_dispositioned ?? true,
+          notification_lead_closed: profile.notification_lead_closed ?? true,
+          notification_customer_submission: profile.notification_customer_submission ?? true,
+        });
+      }
     }
   }, [profile]);
 
@@ -384,6 +396,26 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleToggleNotification = async (key: keyof typeof notificationPrefs) => {
+    if (!profile?.id) return;
+
+    const newValue = !notificationPrefs[key];
+    setNotificationPrefs({ ...notificationPrefs, [key]: newValue });
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ [key]: newValue })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Failed to update notification preference:', error);
+      setNotificationPrefs({ ...notificationPrefs, [key]: !newValue });
+      Alert.alert('Error', 'Failed to update notification preference');
+    }
+  };
+
   const handleSignOut = () => {
     setShowSignOutModal(true);
   };
@@ -623,6 +655,67 @@ export default function ProfileScreen() {
               <Text style={styles.referralHint}>
                 Share this code with new affiliates to earn recruitment bonuses
               </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {profile?.user_type === 'affiliate' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Bell size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Lead Status Updates</Text>
+                <Text style={styles.infoSubtext}>
+                  Get notified when a lead status changes
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleToggleNotification('notification_lead_dispositioned')}
+                style={[styles.toggle, notificationPrefs.notification_lead_dispositioned && styles.toggleActive]}
+              >
+                <View style={[styles.toggleThumb, notificationPrefs.notification_lead_dispositioned && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Bell size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Lead Closed</Text>
+                <Text style={styles.infoSubtext}>
+                  Get notified when a lead is marked as closed
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleToggleNotification('notification_lead_closed')}
+                style={[styles.toggle, notificationPrefs.notification_lead_closed && styles.toggleActive]}
+              >
+                <View style={[styles.toggleThumb, notificationPrefs.notification_lead_closed && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+              <View style={styles.infoIcon}>
+                <Bell size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Customer Submissions</Text>
+                <Text style={styles.infoSubtext}>
+                  Get notified when a customer submits through your portal
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleToggleNotification('notification_customer_submission')}
+                style={[styles.toggle, notificationPrefs.notification_customer_submission && styles.toggleActive]}
+              >
+                <View style={[styles.toggleThumb, notificationPrefs.notification_customer_submission && styles.toggleThumbActive]} />
+              </TouchableOpacity>
             </View>
           </View>
         </View>
