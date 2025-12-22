@@ -69,6 +69,14 @@ type TrackingStats = {
   } | null;
 };
 
+type CustomerReferralStats = {
+  totalCustomers: number;
+  activeReferrers: number;
+  totalReferrals: number;
+  convertedReferrals: number;
+  referralCommissions: number;
+};
+
 type LeadSubmission = {
   id: string;
   name: string;
@@ -108,12 +116,20 @@ export default function CommissionsScreen() {
     conversionRate: 0,
     totalRevenue: 0,
   });
+  const [customerReferralStats, setCustomerReferralStats] = useState<CustomerReferralStats>({
+    totalCustomers: 0,
+    activeReferrers: 0,
+    totalReferrals: 0,
+    convertedReferrals: 0,
+    referralCommissions: 0,
+  });
 
   useEffect(() => {
     loadCommissions();
     loadPipelineMetrics();
     if (isAffiliate) {
       loadTrackingStats();
+      loadCustomerReferralStats();
     }
   }, [filter]);
 
@@ -334,6 +350,57 @@ export default function CommissionsScreen() {
       }
     } catch (error) {
       console.error('Error loading tracking stats:', error);
+    }
+  };
+
+  const loadCustomerReferralStats = async () => {
+    if (!profile?.id) return;
+
+    try {
+      // Get all customers that this affiliate brought in
+      const { data: customers, error: customersError } = await supabase
+        .from('customers')
+        .select('id, total_referrals, first_purchase_at')
+        .eq('original_affiliate_id', profile.id);
+
+      if (customersError) throw customersError;
+
+      const totalCustomers = customers?.length || 0;
+      const activeReferrers = customers?.filter((c) => c.total_referrals > 0).length || 0;
+      const totalReferrals = customers?.reduce((sum, c) => sum + (c.total_referrals || 0), 0) || 0;
+
+      // Get customer referral records
+      const { data: referrals, error: referralsError } = await supabase
+        .from('customer_referrals')
+        .select('id, status')
+        .eq('original_affiliate_id', profile.id);
+
+      if (referralsError) throw referralsError;
+
+      const convertedReferrals =
+        referrals?.filter((r) => r.status === 'converted' || r.status === 'rewarded').length || 0;
+
+      // Get commissions from customer referrals
+      const { data: referralCommissions, error: commissionsError } = await supabase
+        .from('commissions')
+        .select('affiliate_payout_amount')
+        .eq('affiliate_id', profile.id)
+        .eq('referral_tier', 'customer_referral');
+
+      if (commissionsError) throw commissionsError;
+
+      const referralCommissionsTotal =
+        referralCommissions?.reduce((sum, c) => sum + (c.affiliate_payout_amount || 0), 0) || 0;
+
+      setCustomerReferralStats({
+        totalCustomers,
+        activeReferrers,
+        totalReferrals,
+        convertedReferrals,
+        referralCommissions: referralCommissionsTotal,
+      });
+    } catch (error) {
+      console.error('Error loading customer referral stats:', error);
     }
   };
 
@@ -823,11 +890,67 @@ export default function CommissionsScreen() {
                 )}
               </View>
 
+              {customerReferralStats.totalCustomers > 0 && (
+                <View style={styles.referralSection}>
+                  <Text style={styles.referralSectionTitle}>
+                    Customer Referral Network
+                  </Text>
+                  <Text style={styles.referralSectionSubtitle}>
+                    Your customers are bringing in new business
+                  </Text>
+
+                  <View style={styles.referralStatsGrid}>
+                    <View style={styles.referralStatCard}>
+                      <Users size={20} color="#3B82F6" />
+                      <Text style={styles.referralStatValue}>
+                        {customerReferralStats.totalCustomers}
+                      </Text>
+                      <Text style={styles.referralStatLabel}>Total Customers</Text>
+                    </View>
+
+                    <View style={styles.referralStatCard}>
+                      <TrendingUp size={20} color="#10B981" />
+                      <Text style={styles.referralStatValue}>
+                        {customerReferralStats.activeReferrers}
+                      </Text>
+                      <Text style={styles.referralStatLabel}>Active Referrers</Text>
+                    </View>
+
+                    <View style={styles.referralStatCard}>
+                      <Target size={20} color="#F59E0B" />
+                      <Text style={styles.referralStatValue}>
+                        {customerReferralStats.totalReferrals}
+                      </Text>
+                      <Text style={styles.referralStatLabel}>Total Referrals</Text>
+                    </View>
+
+                    <View style={styles.referralStatCard}>
+                      <Check size={20} color="#8B5CF6" />
+                      <Text style={styles.referralStatValue}>
+                        {customerReferralStats.convertedReferrals}
+                      </Text>
+                      <Text style={styles.referralStatLabel}>Converted</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.referralEarningsCard}>
+                    <DollarSign size={24} color="#10B981" />
+                    <Text style={styles.referralEarningsLabel}>Customer Referral Earnings</Text>
+                    <Text style={styles.referralEarningsValue}>
+                      {formatCurrency(customerReferralStats.referralCommissions)}
+                    </Text>
+                    <Text style={styles.referralEarningsSubtext}>
+                      Earned from customer-to-customer referrals
+                    </Text>
+                  </View>
+                </View>
+              )}
+
               <View style={styles.trackingTip}>
                 <AlertCircle size={20} color="#3B82F6" />
                 <Text style={styles.trackingTipText}>
                   Track your affiliate link performance and optimize your marketing strategy with
-                  real-time data.
+                  real-time data. Customer referrals multiply your impact!
                 </Text>
               </View>
             </ScrollView>
@@ -1356,6 +1479,73 @@ const styles = StyleSheet.create({
   },
   emptyLeadsSubtext: {
     fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  referralSection: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  referralSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  referralSectionSubtitle: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 16,
+  },
+  referralStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+  },
+  referralStatCard: {
+    width: '48%',
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+  },
+  referralStatValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  referralStatLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  referralEarningsCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+  },
+  referralEarningsLabel: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  referralEarningsValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#10B981',
+    marginBottom: 4,
+  },
+  referralEarningsSubtext: {
+    fontSize: 13,
     color: '#64748B',
     textAlign: 'center',
   },

@@ -50,6 +50,7 @@ export default function LandingPageView() {
     phone: '',
     company_name: '',
     message: '',
+    customer_referral_code: '',
   });
 
   useEffect(() => {
@@ -251,6 +252,7 @@ export default function LandingPageView() {
           phone: formData.phone || null,
           company_name: formData.company_name || null,
           message: formData.message || null,
+          customer_referral_code: formData.customer_referral_code || null,
         })
         .select()
         .single();
@@ -275,6 +277,7 @@ export default function LandingPageView() {
         phone: '',
         company_name: '',
         message: '',
+        customer_referral_code: '',
       });
 
       setTimeout(() => {
@@ -441,6 +444,19 @@ export default function LandingPageView() {
                   numberOfLines={4}
                   textAlignVertical="top"
                 />
+
+                <Text style={styles.label}>Referral Code</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.customer_referral_code}
+                  onChangeText={(text) => setFormData({ ...formData, customer_referral_code: text.toUpperCase() })}
+                  placeholder="(Optional) Enter a customer referral code"
+                  placeholderTextColor="#999"
+                  autoCapitalize="characters"
+                />
+                <Text style={styles.helperText}>
+                  Have a referral code from a friend? Enter it here to help them earn rewards!
+                </Text>
 
                 <TouchableOpacity
                   style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
@@ -637,6 +653,13 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 6,
     marginTop: 12,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   input: {
     borderWidth: 1,
