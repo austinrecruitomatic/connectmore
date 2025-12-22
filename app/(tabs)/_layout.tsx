@@ -65,7 +65,7 @@ export default function TabLayout() {
           title: 'Customers',
           headerTitle: 'Customer Portal',
           tabBarIcon: ({ size, color }) => <Gift size={size} color={color} />,
-          href: isAffiliate ? undefined : null,
+          href: null,
         }}
       />
       <Tabs.Screen

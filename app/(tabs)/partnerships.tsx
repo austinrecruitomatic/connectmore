@@ -15,8 +15,8 @@ import {
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'expo-router';
-import { Check, X, Copy, ExternalLink, List, Plus, Search } from 'lucide-react-native';
+import { useRouter, useNavigation } from 'expo-router';
+import { Check, X, Copy, ExternalLink, List, Plus, Search, Gift } from 'lucide-react-native';
 
 type Partnership = {
   id: string;
@@ -51,6 +51,7 @@ type Product = {
 export default function PartnershipsScreen() {
   const { profile } = useAuth();
   const isCompany = profile?.user_type === 'company';
+  const isAffiliate = profile?.user_type === 'affiliate';
   const [partnerships, setPartnerships] = useState<Partnership[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -62,6 +63,33 @@ export default function PartnershipsScreen() {
   const [saving, setSaving] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const router = useRouter();
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (isAffiliate) {
+      navigation.setOptions({
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/customer-portal-generator')}
+            style={{ paddingRight: 16 }}
+          >
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              backgroundColor: '#3B82F6',
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 8,
+            }}>
+              <Gift size={18} color="#FFF" />
+              <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>Customers</Text>
+            </View>
+          </TouchableOpacity>
+        ),
+      });
+    }
+  }, [isAffiliate, navigation, router]);
 
   useEffect(() => {
     loadPartnerships();
