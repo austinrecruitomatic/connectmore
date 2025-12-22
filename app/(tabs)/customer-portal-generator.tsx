@@ -29,7 +29,7 @@ type Partnership = {
     company_name: string;
   };
   product: {
-    product_name: string;
+    name: string;
   } | null;
 };
 
@@ -55,6 +55,7 @@ export default function CustomerPortalGenerator() {
   const loadPartnerships = async () => {
     try {
       setLoading(true);
+      console.log('Loading partnerships for user:', user?.id);
 
       const { data, error } = await supabase
         .from('affiliate_partnerships')
@@ -62,30 +63,37 @@ export default function CustomerPortalGenerator() {
           id,
           affiliate_code,
           company_id,
-          company:companies!company_id (
+          company:companies (
             company_name
           ),
           product:products (
-            product_name
+            name
           )
         `)
         .eq('affiliate_id', user?.id)
         .eq('status', 'approved');
 
-      if (error) throw error;
+      console.log('Partnership query result:', { data, error });
 
-      const typedData = data as any[];
+      if (error) {
+        console.error('Partnership query error:', error);
+        throw error;
+      }
+
+      const typedData = (data || []) as any[];
+      console.log('Parsed partnerships:', typedData);
       setPartnerships(typedData);
 
       const grouped = groupPartnershipsByCompany(typedData);
+      console.log('Grouped companies:', grouped);
       setCompanyGroups(grouped);
 
       if (typedData.length > 0) {
         setExpandedCompany(grouped[0]?.company_id || null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading partnerships:', error);
-      Alert.alert('Error', 'Failed to load partnerships');
+      Alert.alert('Error', 'Failed to load partnerships: ' + (error?.message || JSON.stringify(error)));
     } finally {
       setLoading(false);
     }
@@ -144,6 +152,18 @@ export default function CustomerPortalGenerator() {
     );
   }
 
+  if (!user) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Users size={64} color="#64748B" />
+        <Text style={styles.emptyTitle}>Not Authenticated</Text>
+        <Text style={styles.emptyText}>
+          Please log in to access customer portals
+        </Text>
+      </View>
+    );
+  }
+
   if (partnerships.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -151,6 +171,9 @@ export default function CustomerPortalGenerator() {
         <Text style={styles.emptyTitle}>No Partnerships Yet</Text>
         <Text style={styles.emptyText}>
           Partner with companies first to get access to the customer referral program
+        </Text>
+        <Text style={styles.emptyText}>
+          User ID: {user?.id?.substring(0, 8)}...
         </Text>
       </View>
     );
@@ -244,7 +267,7 @@ export default function CustomerPortalGenerator() {
               group.partnerships.map((partnership) => (
                 <View key={partnership.id} style={styles.portalCard}>
                   {partnership.product && (
-                    <Text style={styles.portalProduct}>{partnership.product.product_name}</Text>
+                    <Text style={styles.portalProduct}>{partnership.product.name}</Text>
                   )}
 
                   <View style={styles.portalLinkContainer}>
