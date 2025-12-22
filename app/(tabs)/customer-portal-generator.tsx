@@ -114,7 +114,7 @@ export default function CustomerPortalGenerator() {
   };
 
   const getCustomerPortalLink = (partnership: Partnership) => {
-    return `https://yourapp.com/customer-portal?ref=${partnership.affiliate_code}`;
+    return `https://connect-more.io/customer-portal?ref=${partnership.affiliate_code}`;
   };
 
   const shareLink = (partnership: Partnership) => {
