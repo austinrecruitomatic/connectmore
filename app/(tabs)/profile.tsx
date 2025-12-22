@@ -111,6 +111,11 @@ export default function ProfileScreen() {
     notification_lead_closed: true,
     notification_customer_submission: true,
   });
+  const [companyNotificationPrefs, setCompanyNotificationPrefs] = useState({
+    notify_on_new_leads: true,
+    notify_on_lead_updates: true,
+    notify_on_new_partnerships: true,
+  });
 
   useEffect(() => {
     if (profile?.user_type === 'company') {
@@ -193,6 +198,11 @@ export default function ProfileScreen() {
         rep_override_commission_rate: (settingsData.rep_override_commission_rate || 3).toString(),
         customer_payout_minimum: (settingsData.customer_payout_minimum || 50).toString(),
         enable_customer_referrals: settingsData.enable_customer_referrals ?? true,
+        notify_on_new_leads: settingsData.notify_on_new_leads ?? true,
+        notify_on_lead_updates: settingsData.notify_on_lead_updates ?? true,
+        notify_on_new_partnerships: settingsData.notify_on_new_partnerships ?? true,
+      });
+      setCompanyNotificationPrefs({
         notify_on_new_leads: settingsData.notify_on_new_leads ?? true,
         notify_on_lead_updates: settingsData.notify_on_lead_updates ?? true,
         notify_on_new_partnerships: settingsData.notify_on_new_partnerships ?? true,
@@ -425,6 +435,26 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleToggleCompanyNotification = async (key: keyof typeof companyNotificationPrefs) => {
+    if (!companySettings?.company_id) return;
+
+    const newValue = !companyNotificationPrefs[key];
+    setCompanyNotificationPrefs({ ...companyNotificationPrefs, [key]: newValue });
+
+    try {
+      const { error } = await supabase
+        .from('company_settings')
+        .update({ [key]: newValue })
+        .eq('company_id', companySettings.company_id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Failed to update notification preference:', error);
+      setCompanyNotificationPrefs({ ...companyNotificationPrefs, [key]: !newValue });
+      Alert.alert('Error', 'Failed to update notification preference');
+    }
+  };
+
   const handleSignOut = () => {
     setShowSignOutModal(true);
   };
@@ -608,6 +638,67 @@ export default function ProfileScreen() {
                 Configure Webhook
               </Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {profile?.user_type === 'company' && companySettings && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Bell size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>New Leads</Text>
+                <Text style={styles.infoSubtext}>
+                  Get notified when an affiliate sends a new lead
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleToggleCompanyNotification('notify_on_new_leads')}
+                style={[styles.toggle, companyNotificationPrefs.notify_on_new_leads && styles.toggleActive]}
+              >
+                <View style={[styles.toggleThumb, companyNotificationPrefs.notify_on_new_leads && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Bell size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Lead Update Requests</Text>
+                <Text style={styles.infoSubtext}>
+                  Get notified when an affiliate requests an update on a lead
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleToggleCompanyNotification('notify_on_lead_updates')}
+                style={[styles.toggle, companyNotificationPrefs.notify_on_lead_updates && styles.toggleActive]}
+              >
+                <View style={[styles.toggleThumb, companyNotificationPrefs.notify_on_lead_updates && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+              <View style={styles.infoIcon}>
+                <Bell size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>New Affiliate Requests</Text>
+                <Text style={styles.infoSubtext}>
+                  Get notified when you receive a new affiliate partnership request
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleToggleCompanyNotification('notify_on_new_partnerships')}
+                style={[styles.toggle, companyNotificationPrefs.notify_on_new_partnerships && styles.toggleActive]}
+              >
+                <View style={[styles.toggleThumb, companyNotificationPrefs.notify_on_new_partnerships && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
