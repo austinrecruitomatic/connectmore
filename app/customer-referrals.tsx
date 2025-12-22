@@ -168,6 +168,26 @@ export default function CustomerReferrals() {
         </View>
       </View>
 
+      {/* Earnings Card */}
+      <TouchableOpacity
+        style={styles.earningsCard}
+        onPress={() => router.push('/customer-earnings')}
+      >
+        <View style={styles.earningsHeader}>
+          <View style={styles.earningsIcon}>
+            <DollarSign size={28} color="#34C759" />
+          </View>
+          <View style={styles.earningsContent}>
+            <Text style={styles.earningsLabel}>Your Earnings</Text>
+            <Text style={styles.earningsValue}>
+              ${customerData.pending_balance ? customerData.pending_balance.toFixed(2) : '0.00'}
+            </Text>
+            <Text style={styles.earningsSubtext}>Available to withdraw</Text>
+          </View>
+        </View>
+        <Text style={styles.viewDetailsText}>View Details →</Text>
+      </TouchableOpacity>
+
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
@@ -380,5 +400,57 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
+  },
+  earningsCard: {
+    backgroundColor: '#FFF',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: '#34C759',
+  },
+  earningsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  earningsIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F0FFF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  earningsContent: {
+    flex: 1,
+  },
+  earningsLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  earningsValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#34C759',
+    marginBottom: 2,
+  },
+  earningsSubtext: {
+    fontSize: 12,
+    color: '#999',
+  },
+  viewDetailsText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+    textAlign: 'right',
   },
 });

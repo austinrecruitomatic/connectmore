@@ -89,6 +89,10 @@ export default function ProfileScreen() {
     payout_frequency_days: '30',
     auto_approve_commissions: false,
     recruiter_commission_split_percentage: '0.00',
+    customer_referral_commission_rate: '5.00',
+    rep_override_commission_rate: '3.00',
+    customer_payout_minimum: '50.00',
+    enable_customer_referrals: true,
   });
   const [recruiterInfo, setRecruiterInfo] = useState<{
     recruiter: { full_name: string; email: string } | null;
@@ -170,6 +174,10 @@ export default function ProfileScreen() {
         payout_frequency_days: settingsData.payout_frequency_days.toString(),
         auto_approve_commissions: settingsData.auto_approve_commissions,
         recruiter_commission_split_percentage: (settingsData.recruiter_commission_split_percentage || 0).toString(),
+        customer_referral_commission_rate: (settingsData.customer_referral_commission_rate || 5).toString(),
+        rep_override_commission_rate: (settingsData.rep_override_commission_rate || 3).toString(),
+        customer_payout_minimum: (settingsData.customer_payout_minimum || 50).toString(),
+        enable_customer_referrals: settingsData.enable_customer_referrals ?? true,
       });
     }
   };
@@ -316,6 +324,10 @@ export default function ProfileScreen() {
         payout_frequency_days: parseInt(settingsForm.payout_frequency_days),
         auto_approve_commissions: settingsForm.auto_approve_commissions,
         recruiter_commission_split_percentage: parseFloat(settingsForm.recruiter_commission_split_percentage || '0'),
+        customer_referral_commission_rate: parseFloat(settingsForm.customer_referral_commission_rate || '5'),
+        rep_override_commission_rate: parseFloat(settingsForm.rep_override_commission_rate || '3'),
+        customer_payout_minimum: parseFloat(settingsForm.customer_payout_minimum || '50'),
+        enable_customer_referrals: settingsForm.enable_customer_referrals,
       };
 
       if (profile?.is_super_admin) {
@@ -919,6 +931,72 @@ export default function ProfileScreen() {
                 Example: If set to 3%, a recruited affiliate gets 12% and their recruiter gets 3% on a 15% commission
               </Text>
 
+              <View style={styles.divider} />
+
+              <Text style={styles.sectionTitle}>Customer Referral Settings</Text>
+
+              <Text style={styles.label}>Enable Customer Referrals</Text>
+              <Text style={styles.helpText}>
+                Allow customers to refer friends and earn commissions
+              </Text>
+              <TouchableOpacity
+                style={styles.toggleRow}
+                onPress={() => setSettingsForm({ ...settingsForm, enable_customer_referrals: !settingsForm.enable_customer_referrals })}
+              >
+                <Text style={styles.toggleLabel}>Enable customer referral program</Text>
+                <View style={[styles.toggle, settingsForm.enable_customer_referrals && styles.toggleActive]}>
+                  <View style={[styles.toggleThumb, settingsForm.enable_customer_referrals && styles.toggleThumbActive]} />
+                </View>
+              </TouchableOpacity>
+
+              {settingsForm.enable_customer_referrals && (
+                <>
+                  <Text style={styles.label}>Customer Referral Commission Rate (%)</Text>
+                  <Text style={styles.helpText}>
+                    Commission paid to a customer when their referred friend makes a purchase
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={settingsForm.customer_referral_commission_rate}
+                    onChangeText={(text) => setSettingsForm({ ...settingsForm, customer_referral_commission_rate: text })}
+                    placeholder="5.00"
+                    placeholderTextColor="#64748B"
+                    keyboardType="decimal-pad"
+                  />
+
+                  <Text style={styles.label}>Sales Rep Override Commission Rate (%)</Text>
+                  <Text style={styles.helpText}>
+                    Additional commission paid to the original sales rep when their customers refer friends
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={settingsForm.rep_override_commission_rate}
+                    onChangeText={(text) => setSettingsForm({ ...settingsForm, rep_override_commission_rate: text })}
+                    placeholder="3.00"
+                    placeholderTextColor="#64748B"
+                    keyboardType="decimal-pad"
+                  />
+                  <Text style={styles.helpText}>
+                    Example: Customer A refers Customer B for a $1000 sale. With 5% customer rate and 3% rep rate, Customer A gets $50 and the original rep gets $30
+                  </Text>
+
+                  <Text style={styles.label}>Customer Payout Minimum ($)</Text>
+                  <Text style={styles.helpText}>
+                    Minimum balance required before customers can request a payout
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={settingsForm.customer_payout_minimum}
+                    onChangeText={(text) => setSettingsForm({ ...settingsForm, customer_payout_minimum: text })}
+                    placeholder="50.00"
+                    placeholderTextColor="#64748B"
+                    keyboardType="decimal-pad"
+                  />
+                </>
+              )}
+
+              <View style={styles.divider} />
+
               <Text style={styles.label}>Payout Frequency (days)</Text>
               <TextInput
                 style={styles.input}
@@ -1480,5 +1558,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#334155',
+    marginVertical: 24,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  toggleLabel: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  toggle: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#334155',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleActive: {
+    backgroundColor: '#3B82F6',
+  },
+  toggleThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFFFFF',
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 20 }],
   },
 });
