@@ -127,11 +127,22 @@ export default function CustomerPortalGenerator() {
     alert(`Share Link\n\n${message}`);
   };
 
-  const copyLink = (partnership: Partnership) => {
+  const copyLink = async (partnership: Partnership) => {
     console.log('copyLink called');
     const link = getCustomerPortalLink(partnership);
     console.log('Link:', link);
-    alert(`Customer Portal Link\n\n${link}`);
+
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(link);
+        alert('Link copied to clipboard!');
+      } else {
+        alert(`Customer Portal Link\n\n${link}`);
+      }
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      alert(`Customer Portal Link\n\n${link}`);
+    }
   };
 
 
