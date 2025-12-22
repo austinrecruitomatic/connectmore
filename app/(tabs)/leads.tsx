@@ -26,6 +26,7 @@ import {
   DollarSign,
   TrendingUp,
   Users as UsersIcon,
+  Bell,
 } from 'lucide-react-native';
 
 type ContactSubmission = {
@@ -73,6 +74,7 @@ export default function LeadsScreen() {
   const [contractType, setContractType] = useState<'monthly' | 'total'>('total');
   const [contractLength, setContractLength] = useState('');
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [requestingUpdate, setRequestingUpdate] = useState(false);
 
   useEffect(() => {
     loadLeads();
@@ -412,6 +414,43 @@ export default function LeadsScreen() {
     }
   };
 
+  const handleRequestUpdate = async () => {
+    if (!selectedLead || !profile?.id) return;
+
+    setRequestingUpdate(true);
+
+    try {
+      const { data: companyData } = await supabase
+        .from('affiliate_partnerships')
+        .select('company_id')
+        .eq('id', selectedLead.partnership_id)
+        .maybeSingle();
+
+      if (!companyData) {
+        throw new Error('Partnership not found');
+      }
+
+      const { error } = await supabase
+        .from('lead_update_requests')
+        .insert({
+          contact_submission_id: selectedLead.id,
+          affiliate_id: profile.id,
+          company_id: companyData.company_id,
+        });
+
+      if (error) throw error;
+
+      setSaveMessage({ type: 'success', text: 'Update request sent to company' });
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      console.error('Error requesting update:', error);
+      setSaveMessage({ type: 'error', text: 'Failed to send update request' });
+      setTimeout(() => setSaveMessage(null), 3000);
+    } finally {
+      setRequestingUpdate(false);
+    }
+  };
+
   const handleEmailClick = (email: string) => {
     Linking.openURL(`mailto:${email}`);
   };
@@ -717,12 +756,24 @@ export default function LeadsScreen() {
                       ))}
                     </View>
                   ) : (
-                    <View
-                      style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedLead.status) + '20' }]}
-                    >
-                      <Text style={[styles.statusText, { color: getStatusColor(selectedLead.status) }]}>
-                        {selectedLead.status.replace('_', ' ')}
-                      </Text>
+                    <View>
+                      <View
+                        style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedLead.status) + '20' }]}
+                      >
+                        <Text style={[styles.statusText, { color: getStatusColor(selectedLead.status) }]}>
+                          {selectedLead.status.replace('_', ' ')}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.requestUpdateButton, requestingUpdate && styles.requestUpdateButtonDisabled]}
+                        onPress={handleRequestUpdate}
+                        disabled={requestingUpdate}
+                      >
+                        <Bell size={18} color="#60A5FA" />
+                        <Text style={styles.requestUpdateButtonText}>
+                          {requestingUpdate ? 'Sending...' : 'Request Status Update'}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -1475,5 +1526,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  requestUpdateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#60A5FA',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 12,
+  },
+  requestUpdateButtonDisabled: {
+    opacity: 0.6,
+  },
+  requestUpdateButtonText: {
+    color: '#60A5FA',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
