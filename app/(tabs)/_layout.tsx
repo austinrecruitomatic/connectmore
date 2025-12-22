@@ -1,9 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Home, TrendingUp, User, Store, Users, DollarSign, Shield, Gift, Bell } from 'lucide-react-native';
+import { Home, TrendingUp, User, Store, Users, DollarSign, Shield, Gift } from 'lucide-react-native';
 import { useAuth } from '@/lib/AuthContext';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { View, Text, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
 
 export default function TabLayout() {
   const { profile, user, loading } = useAuth();
@@ -11,7 +9,6 @@ export default function TabLayout() {
   const isCompany = profile?.user_type === 'company';
   const isAffiliate = profile?.user_type === 'affiliate';
   const isSuperAdmin = profile?.is_super_admin === true;
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -19,47 +16,6 @@ export default function TabLayout() {
       router.replace('/auth/login');
     }
   }, [user, loading]);
-
-  useEffect(() => {
-    if (!profile?.id || !isCompany) return;
-
-    const fetchUnreadCount = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('id', { count: 'exact', head: true })
-          .eq('read', false);
-
-        if (!error) {
-          setUnreadCount(data?.length || 0);
-        }
-      } catch (error) {
-        console.error('Error fetching unread count:', error);
-      }
-    };
-
-    fetchUnreadCount();
-
-    const subscription = supabase
-      .channel('notifications_count')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${profile?.id}`,
-        },
-        () => {
-          fetchUnreadCount();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [profile?.id, isCompany]);
 
   return (
     <Tabs
@@ -130,26 +86,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="notifications"
-        options={{
-          title: 'Notifications',
-          headerShown: false,
-          tabBarIcon: ({ size, color }) => (
-            <View>
-              <Bell size={size} color={color} />
-              {unreadCount > 0 && (
-                <View style={notificationStyles.badge}>
-                  <Text style={notificationStyles.badgeText}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ),
-          href: isCompany ? undefined : null,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -188,23 +124,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
-const notificationStyles = StyleSheet.create({
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -10,
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-});
