@@ -101,10 +101,10 @@ export default function CustomerReferrals() {
 
   const shareReferralLink = async () => {
     if (customerData?.referral_code) {
-      const referralLink = `https://yourapp.com/ref/${customerData.referral_code}`;
+      const referralLink = `https://yourapp.com/customer-portal?ref=${customerData.referral_code}`;
       try {
         await Share.share({
-          message: `Join using my referral link: ${referralLink}`,
+          message: `Join our referral program and start earning! Use my referral code: ${customerData.referral_code}\n\nSign up here: ${referralLink}`,
         });
       } catch (error) {
         Alert.alert('Error', 'Failed to share referral link');

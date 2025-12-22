@@ -514,9 +514,19 @@ export default function LeadsScreen() {
           <Text style={styles.title}>{isAffiliate ? 'My Leads' : 'Leads'}</Text>
           <Text style={styles.subtitle}>{leads.length} total {isAffiliate ? 'leads submitted' : 'contact submissions'}</Text>
         </View>
-        <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilterModal(true)}>
-          <Filter size={20} color="#60A5FA" />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          {isAffiliate && (
+            <TouchableOpacity
+              style={styles.networkButton}
+              onPress={() => router.push('/my-network')}
+            >
+              <UsersIcon size={20} color="#60A5FA" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilterModal(true)}>
+            <Filter size={20} color="#60A5FA" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isAffiliate && leads.length > 0 && (
@@ -1049,6 +1059,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#94A3B8',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  networkButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1E293B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   filterButton: {
     width: 40,
