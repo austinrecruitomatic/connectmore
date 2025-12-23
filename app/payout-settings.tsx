@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal, Pressable, Platform } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Settings, DollarSign, Calendar, Bell, X, ChevronDown, CreditCard } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -26,11 +26,7 @@ export default function PayoutSettingsScreen() {
   const [showFrequencyModal, setShowFrequencyModal] = useState(false);
   const [showMethodModal, setShowMethodModal] = useState(false);
   const [showThresholdModal, setShowThresholdModal] = useState(false);
-  const [showCardModal, setShowCardModal] = useState(false);
   const [cardLoading, setCardLoading] = useState(false);
-  const [stripe, setStripe] = useState<any>(null);
-  const [cardElement, setCardElement] = useState<any>(null);
-  const cardContainerRef = useRef<any>(null);
 
   const [formData, setFormData] = useState({
     payout_frequency: 'monthly',
@@ -50,171 +46,9 @@ export default function PayoutSettingsScreen() {
       loadPreferences();
     } else if (profile?.user_type === 'company') {
       setLoading(false);
-
-      if (typeof window !== 'undefined' && !document.getElementById('stripe-js')) {
-        const script = document.createElement('script');
-        script.id = 'stripe-js';
-        script.src = 'https://js.stripe.com/v3/';
-        script.async = true;
-        script.onload = () => {
-          console.log('Stripe.js loaded successfully');
-        };
-        document.head.appendChild(script);
-      }
     }
   }, [profile]);
 
-  useEffect(() => {
-    if (showCardModal && profile?.user_type === 'company' && typeof window !== 'undefined') {
-      initializeStripe();
-    }
-  }, [showCardModal]);
-
-  const initializeStripe = async () => {
-    if (stripe && cardElement) {
-      console.log('Stripe already initialized, skipping');
-      setCardLoading(false);
-      return;
-    }
-
-    console.log('Starting Stripe initialization...');
-    setCardLoading(true);
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      console.log('Checking for Stripe.js...');
-      if (!(window as any).Stripe) {
-        console.error('Stripe.js not loaded on window object');
-        Alert.alert('Error', 'Stripe.js is not loaded. Please refresh the page and try again.');
-        setShowCardModal(false);
-        setCardLoading(false);
-        return;
-      }
-
-      const publishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-      console.log('Publishable key:', publishableKey?.substring(0, 15) + '...');
-
-      if (!publishableKey || publishableKey === 'pk_test_your_key_here') {
-        console.error('Invalid Stripe publishable key');
-        Alert.alert('Configuration Error', 'Stripe keys are not configured. Please update your .env file with valid Stripe keys.');
-        setShowCardModal(false);
-        setCardLoading(false);
-        return;
-      }
-
-      console.log('Initializing Stripe with key...');
-      const loadedStripe = await (window as any).Stripe(publishableKey);
-      console.log('Stripe object created:', !!loadedStripe);
-      setStripe(loadedStripe);
-
-      console.log('Creating card element...');
-      const elements = loadedStripe.elements();
-      const card = elements.create('card', {
-        hidePostalCode: false,
-        style: {
-          base: {
-            color: '#FFFFFF',
-            fontSize: '16px',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            fontWeight: '400',
-            '::placeholder': {
-              color: '#94A3B8',
-            },
-            iconColor: '#94A3B8',
-          },
-          invalid: {
-            color: '#EF4444',
-            iconColor: '#EF4444',
-          },
-        },
-      });
-      console.log('Card element created');
-
-      let retries = 0;
-      const maxRetries = 10;
-      let cardContainer = null;
-
-      while (retries < maxRetries && !cardContainer) {
-        console.log(`Looking for card container... (attempt ${retries + 1}/${maxRetries})`);
-        cardContainer = document.getElementById('card-element');
-        if (!cardContainer) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-          retries++;
-        }
-      }
-
-      console.log('Card container found:', !!cardContainer);
-
-      if (cardContainer) {
-        console.log('Mounting card element...');
-
-        let readyFired = false;
-        card.on('ready', () => {
-          console.log('Card element is ready and rendered!');
-          readyFired = true;
-          setCardLoading(false);
-        });
-
-        card.on('change', (event: any) => {
-          console.log('Card element changed:', event.complete ? 'complete' : 'incomplete');
-          if (event.error) {
-            console.error('Card element error:', event.error.message);
-          }
-        });
-
-        card.on('focus', () => {
-          console.log('Card element focused');
-        });
-
-        card.on('blur', () => {
-          console.log('Card element blurred');
-        });
-
-        card.on('loaderror', (event: any) => {
-          console.error('Card element failed to load:', event);
-          setCardLoading(false);
-        });
-
-        try {
-          card.mount('#card-element');
-          console.log('Card element mount initiated');
-          setCardElement(card);
-
-          // Give Stripe a moment to render, then check
-          setTimeout(() => {
-            const iframe = cardContainer.querySelector('iframe');
-            console.log('Iframe exists after mount:', !!iframe);
-            if (iframe) {
-              console.log('Iframe dimensions:', iframe.offsetWidth, 'x', iframe.offsetHeight);
-              console.log('Container dimensions:', cardContainer.offsetWidth, 'x', cardContainer.offsetHeight);
-
-              // Fallback: If iframe exists but ready event hasn't fired, set loading to false
-              setTimeout(() => {
-                if (!readyFired) {
-                  console.log('Fallback timeout: Ready event did not fire, forcing cardLoading to false');
-                  setCardLoading(false);
-                } else {
-                  console.log('Ready event already fired, no fallback needed');
-                }
-              }, 1000);
-            }
-          }, 500);
-        } catch (err) {
-          console.error('Error mounting card element:', err);
-          setCardLoading(false);
-        }
-      } else {
-        console.error('Card container element not found in DOM after retries');
-        Alert.alert('Error', 'Card form container not found. Please try closing and reopening the modal.');
-        setCardLoading(false);
-      }
-    } catch (error) {
-      console.error('Error initializing Stripe:', error);
-      Alert.alert('Error', `Failed to load payment form: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setCardLoading(false);
-    }
-  };
 
   const loadPreferences = async () => {
     try {
@@ -299,17 +133,9 @@ export default function PayoutSettingsScreen() {
     return method?.label || 'Bank Transfer';
   };
 
-  const handleAddCard = () => {
-    if (typeof window === 'undefined') {
-      Alert.alert('Error', 'Card setup is only available on web');
-      return;
-    }
-    setShowCardModal(true);
-  };
-
-  const handleSubmitCard = async () => {
-    if (!stripe || !cardElement) {
-      Alert.alert('Error', 'Payment form not ready');
+  const handleAddCard = async () => {
+    if (Platform.OS !== 'web') {
+      Alert.alert('Web Only', 'Card setup is currently only available on web');
       return;
     }
 
@@ -334,56 +160,15 @@ export default function PayoutSettingsScreen() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
 
-      const { error: confirmError, setupIntent } = await stripe.confirmCardSetup(
-        data.clientSecret,
-        {
-          payment_method: {
-            card: cardElement,
-          },
-        }
-      );
-
-      if (confirmError) {
-        throw new Error(confirmError.message);
-      }
-
-      const confirmResponse = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/company-setup-payment-method`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'confirm_payment_method',
-            setupIntentId: setupIntent.id,
-          }),
-        }
-      );
-
-      const confirmData = await confirmResponse.json();
-      if (!confirmResponse.ok) throw new Error(confirmData.error);
-
-      if (typeof window !== 'undefined' && window.alert) {
-        window.alert('Card added successfully!');
-      } else {
-        Alert.alert('Success', 'Card added successfully!');
-      }
-
-      setShowCardModal(false);
-      router.back();
+      router.push(`/stripe-card-setup?clientSecret=${data.clientSecret}`);
     } catch (error: any) {
-      console.error('Error adding card:', error);
-      if (typeof window !== 'undefined' && window.alert) {
-        window.alert(`Error: ${error.message || 'Failed to add card'}`);
-      } else {
-        Alert.alert('Error', error.message || 'Failed to add card');
-      }
+      console.error('Error creating setup intent:', error);
+      Alert.alert('Error', error.message || 'Failed to initialize card setup');
     } finally {
       setCardLoading(false);
     }
   };
+
 
   const handleRemoveCard = () => {
     Alert.alert(
@@ -460,13 +245,19 @@ export default function PayoutSettingsScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.addCardButton,
-              pressed && styles.addCardButtonPressed
+              pressed && styles.addCardButtonPressed,
+              cardLoading && { opacity: 0.6 }
             ]}
             onPress={handleAddCard}
+            disabled={cardLoading}
           >
-            <CreditCard size={20} color="#fff" />
+            {cardLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <CreditCard size={20} color="#fff" />
+            )}
             <Text style={styles.addCardButtonText}>
-              {profile.stripe_payment_method_id ? 'Update Card' : 'Add Credit/Debit Card'}
+              {cardLoading ? 'Loading...' : profile.stripe_payment_method_id ? 'Update Card' : 'Add Credit/Debit Card'}
             </Text>
           </Pressable>
 
@@ -500,100 +291,6 @@ export default function PayoutSettingsScreen() {
         <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
           <Text style={styles.cancelButtonText}>Done</Text>
         </TouchableOpacity>
-
-        <Modal visible={showCardModal} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add Payment Card</Text>
-                <TouchableOpacity onPress={() => {
-                  if (cardElement) {
-                    try {
-                      cardElement.unmount();
-                    } catch (e) {
-                      console.log('Error unmounting card element:', e);
-                    }
-                  }
-                  setShowCardModal(false);
-                }}>
-                  <X size={24} color="#94A3B8" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.cardModalBody}>
-                {typeof window !== 'undefined' && (
-                  <style dangerouslySetInnerHTML={{__html: `
-                    #card-element iframe {
-                      height: 100% !important;
-                      min-height: 40px !important;
-                    }
-                    #card-element .__PrivateStripeElement {
-                      height: 100% !important;
-                    }
-                  `}} />
-                )}
-
-                <Text style={styles.cardModalDescription}>
-                  Enter your card details to securely store your payment method with Stripe.
-                </Text>
-
-                <Text style={styles.debugText}>
-                  Status: {cardLoading ? 'Loading...' : stripe && cardElement ? 'Ready to use' : 'Initializing...'}
-                </Text>
-
-                {typeof window !== 'undefined' ? (
-                  <View style={styles.cardElementContainer}>
-                    <div
-                      id="card-element"
-                      style={{
-                        padding: '20px',
-                        backgroundColor: '#1E293B',
-                        borderRadius: '8px',
-                        border: '1px solid #334155',
-                        height: '50px',
-                        width: '100%',
-                        boxSizing: 'border-box' as const,
-                        opacity: cardLoading ? 0 : 1,
-                        pointerEvents: cardLoading ? 'none' : 'auto',
-                        transition: 'opacity 0.2s',
-                      }}
-                    />
-                    {cardLoading && (
-                      <View style={styles.cardLoadingOverlay}>
-                        <ActivityIndicator size="large" color="#3B82F6" />
-                        <Text style={styles.cardLoadingText}>Loading payment form...</Text>
-                      </View>
-                    )}
-                  </View>
-                ) : (
-                  <View style={styles.cardElementContainer}>
-                    <Text style={styles.errorText}>Card setup only available on web</Text>
-                  </View>
-                )}
-
-                <View style={styles.securityNotice}>
-                  <Text style={styles.securityText}>
-                    🔒 Your payment information is securely processed by Stripe. We never store your card details.
-                  </Text>
-                </View>
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.submitCardButton,
-                    pressed && styles.submitCardButtonPressed,
-                    (!stripe || !cardElement || cardLoading) && { opacity: 0.5 }
-                  ]}
-                  onPress={handleSubmitCard}
-                  disabled={!stripe || !cardElement || cardLoading}
-                >
-                  <Text style={styles.submitCardButtonText}>
-                    {cardLoading ? 'Loading...' : 'Add Card'}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </ScrollView>
     );
   }
