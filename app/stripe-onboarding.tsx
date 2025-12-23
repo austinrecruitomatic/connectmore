@@ -24,6 +24,7 @@ export default function StripeOnboardingScreen() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.user_type === 'company') {
@@ -86,6 +87,10 @@ export default function StripeOnboardingScreen() {
         const createData = await createResponse.json();
 
         if (!createResponse.ok) {
+          if (createData.error && createData.error.includes('signed up for Connect')) {
+            setConnectError(createData.error);
+            throw new Error('Stripe Connect not enabled. Please follow the setup instructions below.');
+          }
           throw new Error(createData.error || 'Failed to create Stripe account');
         }
 
@@ -181,6 +186,47 @@ export default function StripeOnboardingScreen() {
         </Text>
       </View>
 
+      {connectError && (
+        <View style={styles.setupCard}>
+          <View style={styles.setupHeader}>
+            <AlertTriangle size={24} color="#F59E0B" />
+            <Text style={styles.setupTitle}>Setup Required</Text>
+          </View>
+          <Text style={styles.setupDescription}>
+            Stripe Connect needs to be enabled on your account before you can proceed.
+          </Text>
+          <View style={styles.setupSteps}>
+            <Text style={styles.setupStepTitle}>Follow these steps:</Text>
+            <Text style={styles.setupStep}>1. Go to your Stripe Dashboard</Text>
+            <Text style={styles.setupStep}>2. Navigate to Settings</Text>
+            <Text style={styles.setupStep}>3. Click on "Connect" in the left sidebar</Text>
+            <Text style={styles.setupStep}>4. Click "Get Started" to enable Connect</Text>
+            <Text style={styles.setupStep}>5. Complete the platform information form</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.stripeLinkButton}
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                window.open('https://dashboard.stripe.com/settings/connect', '_blank');
+              } else {
+                Linking.openURL('https://dashboard.stripe.com/settings/connect');
+              }
+            }}
+          >
+            <Text style={styles.stripeLinkText}>Open Stripe Dashboard</Text>
+            <ArrowRight size={16} color="#60A5FA" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              setConnectError(null);
+            }}
+          >
+            <Text style={styles.retryButtonText}>I've Enabled Connect - Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {accountStatus && (
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
@@ -264,9 +310,12 @@ export default function StripeOnboardingScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.onboardingButton, processing && styles.onboardingButtonDisabled]}
+        style={[
+          styles.onboardingButton,
+          (processing || connectError) && styles.onboardingButtonDisabled
+        ]}
         onPress={startOnboarding}
-        disabled={processing || accountStatus?.status === 'verified'}
+        disabled={processing || accountStatus?.status === 'verified' || !!connectError}
       >
         {processing ? (
           <>
@@ -507,6 +556,77 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: '#EF4444',
+    textAlign: 'center',
+  },
+  setupCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+  },
+  setupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  setupTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#F59E0B',
+  },
+  setupDescription: {
+    fontSize: 16,
+    color: '#94A3B8',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  setupSteps: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  setupStepTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  setupStep: {
+    fontSize: 15,
+    color: '#94A3B8',
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  stripeLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1E3A8A',
+    padding: 14,
+    borderRadius: 10,
+    gap: 8,
+  },
+  stripeLinkText: {
+    color: '#60A5FA',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  retryButton: {
+    backgroundColor: '#0F172A',
+    padding: 14,
+    borderRadius: 10,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  retryButtonText: {
+    color: '#94A3B8',
+    fontSize: 15,
+    fontWeight: '600',
     textAlign: 'center',
   },
 });
