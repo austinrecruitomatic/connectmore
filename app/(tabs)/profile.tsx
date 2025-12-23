@@ -572,49 +572,72 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {profile?.user_type === 'company' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Settings</Text>
-          <View style={styles.infoCard}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Payment Settings</Text>
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <View style={styles.infoIcon}>
+              <Wallet size={20} color="#64748B" />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Stripe Connect Status</Text>
+              <Text style={styles.infoValue}>
+                {profile?.stripe_onboarding_completed
+                  ? profile.stripe_account_status === 'verified'
+                    ? 'Active'
+                    : 'Pending Verification'
+                  : 'Not Setup'}
+              </Text>
+              <Text style={styles.infoSubtext}>
+                {profile?.user_type === 'company'
+                  ? 'Required to receive customer payments'
+                  : 'Required to receive commission payouts'}
+              </Text>
+            </View>
+          </View>
+          {!profile?.stripe_onboarding_completed ? (
+            <TouchableOpacity
+              style={styles.configureButton}
+              onPress={() => router.push('/stripe-onboarding')}
+            >
+              <DollarSign size={16} color="#60A5FA" />
+              <Text style={styles.configureButtonText}>
+                Setup Payment Processing
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.configureButton}
+              onPress={() => router.push('/payout-settings')}
+            >
+              <DollarSign size={16} color="#60A5FA" />
+              <Text style={styles.configureButtonText}>
+                Manage Payment Settings
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {profile?.user_type === 'affiliate' && (
+          <View style={[styles.infoCard, { marginTop: 12 }]}>
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
-                <Wallet size={20} color="#64748B" />
+                <DollarSign size={20} color="#64748B" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Stripe Connect Status</Text>
-                <Text style={styles.infoValue}>
-                  {profile.stripe_onboarding_completed
-                    ? profile.stripe_account_status === 'verified'
-                      ? 'Active'
-                      : 'Pending Verification'
-                    : 'Not Setup'}
+                <Text style={styles.infoLabel}>Why Connect Your Account?</Text>
+                <Text style={styles.infoSubtext} style={{ marginTop: 4, lineHeight: 18 }}>
+                  Connect your bank account or debit card to receive:
+                  {'\n'}• Commission payouts from your referrals
+                  {'\n'}• Customer referral earnings
+                  {'\n'}• Recruitment bonuses
+                  {'\n\n'}Secure, fast, and automatic payments via Stripe Connect.
                 </Text>
               </View>
             </View>
-            {!profile.stripe_onboarding_completed ? (
-              <TouchableOpacity
-                style={styles.configureButton}
-                onPress={() => router.push('/stripe-onboarding')}
-              >
-                <DollarSign size={16} color="#60A5FA" />
-                <Text style={styles.configureButtonText}>
-                  Setup Payment Processing
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.configureButton}
-                onPress={() => router.push('/payout-settings')}
-              >
-                <DollarSign size={16} color="#60A5FA" />
-                <Text style={styles.configureButtonText}>
-                  Manage Payment Settings
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
-        </View>
-      )}
+        )}
+      </View>
 
       {profile?.user_type === 'company' && (
         <View style={styles.section}>
