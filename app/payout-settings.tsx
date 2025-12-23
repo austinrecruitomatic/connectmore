@@ -26,6 +26,10 @@ export default function PayoutSettingsScreen() {
   const [showFrequencyModal, setShowFrequencyModal] = useState(false);
   const [showMethodModal, setShowMethodModal] = useState(false);
   const [showThresholdModal, setShowThresholdModal] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [stripe, setStripe] = useState<any>(null);
+  const [cardElement, setCardElement] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     payout_frequency: 'monthly',
@@ -45,6 +49,14 @@ export default function PayoutSettingsScreen() {
       loadPreferences();
     } else if (profile?.user_type === 'company') {
       setLoading(false);
+
+      if (typeof window !== 'undefined' && !document.getElementById('stripe-js')) {
+        const script = document.createElement('script');
+        script.id = 'stripe-js';
+        script.src = 'https://js.stripe.com/v3/';
+        script.async = true;
+        document.head.appendChild(script);
+      }
     }
   }, [profile]);
 
@@ -132,7 +144,126 @@ export default function PayoutSettingsScreen() {
   };
 
   const handleAddCard = async () => {
-    Alert.alert('Coming Soon', 'Credit card payment integration will be available soon. For now, use Stripe Connect for payouts.');
+    setShowCardModal(true);
+    setCardLoading(true);
+
+    try {
+      if (typeof window === 'undefined') {
+        Alert.alert('Error', 'Card setup is only available on web');
+        setShowCardModal(false);
+        return;
+      }
+
+      if (!stripe) {
+        const loadedStripe = await (window as any).Stripe(process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+        setStripe(loadedStripe);
+
+        const elements = loadedStripe.elements();
+        const card = elements.create('card', {
+          style: {
+            base: {
+              color: '#FFFFFF',
+              fontSize: '16px',
+              '::placeholder': {
+                color: '#94A3B8',
+              },
+            },
+          },
+        });
+
+        setTimeout(() => {
+          const cardContainer = document.getElementById('card-element');
+          if (cardContainer) {
+            card.mount('#card-element');
+            setCardElement(card);
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error loading Stripe:', error);
+      Alert.alert('Error', 'Failed to load payment form. Please try again.');
+      setShowCardModal(false);
+    } finally {
+      setCardLoading(false);
+    }
+  };
+
+  const handleSubmitCard = async () => {
+    if (!stripe || !cardElement) {
+      Alert.alert('Error', 'Payment form not ready');
+      return;
+    }
+
+    setCardLoading(true);
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) throw new Error('No session');
+
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/company-setup-payment-method`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action: 'create_setup_intent' }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      const { error: confirmError, setupIntent } = await stripe.confirmCardSetup(
+        data.clientSecret,
+        {
+          payment_method: {
+            card: cardElement,
+          },
+        }
+      );
+
+      if (confirmError) {
+        throw new Error(confirmError.message);
+      }
+
+      const confirmResponse = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/company-setup-payment-method`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'confirm_payment_method',
+            setupIntentId: setupIntent.id,
+          }),
+        }
+      );
+
+      const confirmData = await confirmResponse.json();
+      if (!confirmResponse.ok) throw new Error(confirmData.error);
+
+      if (typeof window !== 'undefined' && window.alert) {
+        window.alert('Card added successfully!');
+      } else {
+        Alert.alert('Success', 'Card added successfully!');
+      }
+
+      setShowCardModal(false);
+      router.back();
+    } catch (error: any) {
+      console.error('Error adding card:', error);
+      if (typeof window !== 'undefined' && window.alert) {
+        window.alert(`Error: ${error.message || 'Failed to add card'}`);
+      } else {
+        Alert.alert('Error', error.message || 'Failed to add card');
+      }
+    } finally {
+      setCardLoading(false);
+    }
   };
 
   const handleRemoveCard = () => {
@@ -212,18 +343,7 @@ export default function PayoutSettingsScreen() {
               styles.addCardButton,
               pressed && styles.addCardButtonPressed
             ]}
-            onPress={() => {
-              console.log('Add Card Button Pressed!');
-              try {
-                if (typeof window !== 'undefined' && window.alert) {
-                  window.alert('Coming Soon: Credit card payment integration will be available soon. For now, use Stripe Connect for payouts.');
-                } else {
-                  Alert.alert('Coming Soon', 'Credit card payment integration will be available soon. For now, use Stripe Connect for payouts.');
-                }
-              } catch (error) {
-                console.error('Error showing alert:', error);
-              }
-            }}
+            onPress={handleAddCard}
           >
             <CreditCard size={20} color="#fff" />
             <Text style={styles.addCardButtonText}>
@@ -261,6 +381,54 @@ export default function PayoutSettingsScreen() {
         <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
           <Text style={styles.cancelButtonText}>Done</Text>
         </TouchableOpacity>
+
+        <Modal visible={showCardModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Payment Card</Text>
+                <TouchableOpacity onPress={() => setShowCardModal(false)}>
+                  <X size={24} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.cardModalBody}>
+                <Text style={styles.cardModalDescription}>
+                  Enter your card details to securely store your payment method with Stripe.
+                </Text>
+
+                {cardLoading ? (
+                  <View style={styles.cardLoadingContainer}>
+                    <ActivityIndicator size="large" color="#3B82F6" />
+                    <Text style={styles.cardLoadingText}>Loading payment form...</Text>
+                  </View>
+                ) : (
+                  <>
+                    <View style={styles.cardElementContainer}>
+                      <div id="card-element" style={{ padding: '16px', backgroundColor: '#1E293B', borderRadius: '8px', border: '1px solid #334155' }}></div>
+                    </View>
+
+                    <View style={styles.securityNotice}>
+                      <Text style={styles.securityText}>
+                        🔒 Your payment information is securely processed by Stripe. We never store your card details.
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.submitCardButton,
+                        pressed && styles.submitCardButtonPressed
+                      ]}
+                      onPress={handleSubmitCard}
+                    >
+                      <Text style={styles.submitCardButtonText}>Add Card</Text>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     );
   }
@@ -882,5 +1050,55 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 14,
     fontWeight: '600',
+  },
+  cardModalBody: {
+    padding: 20,
+  },
+  cardModalDescription: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  cardElementContainer: {
+    marginBottom: 20,
+  },
+  cardLoadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardLoadingText: {
+    color: '#94A3B8',
+    fontSize: 14,
+    marginTop: 12,
+  },
+  securityNotice: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  securityText: {
+    fontSize: 13,
+    color: '#60A5FA',
+    lineHeight: 18,
+  },
+  submitCardButton: {
+    backgroundColor: '#3B82F6',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  submitCardButtonPressed: {
+    backgroundColor: '#2563EB',
+    opacity: 0.8,
+  },
+  submitCardButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
