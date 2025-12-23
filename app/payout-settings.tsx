@@ -181,6 +181,12 @@ export default function PayoutSettingsScreen() {
             if (iframe) {
               console.log('Iframe dimensions:', iframe.offsetWidth, 'x', iframe.offsetHeight);
               console.log('Container dimensions:', cardContainer.offsetWidth, 'x', cardContainer.offsetHeight);
+
+              // Fallback: If iframe exists but ready event hasn't fired, set loading to false
+              setTimeout(() => {
+                console.log('Fallback timeout: Setting cardLoading to false');
+                setCardLoading(false);
+              }, 1000);
             }
           }, 500);
         } catch (err) {
