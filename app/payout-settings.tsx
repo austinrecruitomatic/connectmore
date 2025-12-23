@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal, Platform } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -21,7 +21,7 @@ type PayoutPreferences = {
 export default function PayoutSettingsScreen() {
   const { profile } = useAuth();
   const router = useRouter();
-  const { confirmSetupIntent } = useStripe();
+  const stripe = Platform.OS !== 'web' ? useStripe() : null;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState<PayoutPreferences | null>(null);
@@ -137,8 +137,18 @@ export default function PayoutSettingsScreen() {
   };
 
   const handleAddCard = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Not Available', 'Card management is only available on native platforms. Please use the mobile app.');
+      return;
+    }
+
     if (!cardComplete) {
       Alert.alert('Error', 'Please complete card details');
+      return;
+    }
+
+    if (!stripe?.confirmSetupIntent) {
+      Alert.alert('Error', 'Stripe not initialized');
       return;
     }
 
@@ -163,7 +173,7 @@ export default function PayoutSettingsScreen() {
       const setupData = await setupResponse.json();
       if (!setupResponse.ok) throw new Error(setupData.error);
 
-      const { error: confirmError, setupIntent } = await confirmSetupIntent(
+      const { error: confirmError, setupIntent } = await stripe.confirmSetupIntent(
         setupData.clientSecret,
         {
           paymentMethodType: 'Card',
@@ -276,7 +286,13 @@ export default function PayoutSettingsScreen() {
 
           <TouchableOpacity
             style={styles.addCardButton}
-            onPress={() => setShowCardModal(true)}
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                Alert.alert('Not Available', 'Card management is only available on native platforms. Please use the mobile app.');
+              } else {
+                setShowCardModal(true);
+              }
+            }}
           >
             <CreditCard size={20} color="#fff" />
             <Text style={styles.addCardButtonText}>
@@ -328,24 +344,32 @@ export default function PayoutSettingsScreen() {
                 <Text style={styles.cardModalDescription}>
                   Enter your card details to pay affiliate commissions
                 </Text>
-                <CardField
-                  postalCodeEnabled={true}
-                  placeholder={{
-                    number: '4242 4242 4242 4242',
-                  }}
-                  cardStyle={{
-                    backgroundColor: '#0F172A',
-                    textColor: '#FFFFFF',
-                    placeholderColor: '#64748B',
-                    borderWidth: 1,
-                    borderColor: '#334155',
-                    borderRadius: 8,
-                  }}
-                  style={styles.cardField}
-                  onCardChange={(cardDetails) => {
-                    setCardComplete(cardDetails.complete);
-                  }}
-                />
+                {Platform.OS !== 'web' ? (
+                  <CardField
+                    postalCodeEnabled={true}
+                    placeholder={{
+                      number: '4242 4242 4242 4242',
+                    }}
+                    cardStyle={{
+                      backgroundColor: '#0F172A',
+                      textColor: '#FFFFFF',
+                      placeholderColor: '#64748B',
+                      borderWidth: 1,
+                      borderColor: '#334155',
+                      borderRadius: 8,
+                    }}
+                    style={styles.cardField}
+                    onCardChange={(cardDetails) => {
+                      setCardComplete(cardDetails.complete);
+                    }}
+                  />
+                ) : (
+                  <View style={styles.webNotice}>
+                    <Text style={styles.webNoticeText}>
+                      Card input is only available on mobile platforms
+                    </Text>
+                  </View>
+                )}
                 <TouchableOpacity
                   style={[
                     styles.addCardModalButton,
@@ -1015,5 +1039,18 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 16,
+  },
+  webNotice: {
+    backgroundColor: '#1E293B',
+    padding: 20,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  webNoticeText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
 });
