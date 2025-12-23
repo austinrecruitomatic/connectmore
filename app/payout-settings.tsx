@@ -1,11 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Settings, DollarSign, Calendar, Bell, X, ChevronDown, CreditCard } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { PAYOUT_FREQUENCIES, PAYOUT_METHODS, MINIMUM_PAYOUT_THRESHOLDS, formatCurrency, calculateStripeFee } from '@/lib/stripeConfig';
-import { CardField, useStripe } from '@stripe/stripe-react-native';
 
 type PayoutPreferences = {
   id: string;
@@ -21,16 +20,12 @@ type PayoutPreferences = {
 export default function PayoutSettingsScreen() {
   const { profile } = useAuth();
   const router = useRouter();
-  const stripe = Platform.OS !== 'web' ? useStripe() : null;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState<PayoutPreferences | null>(null);
   const [showFrequencyModal, setShowFrequencyModal] = useState(false);
   const [showMethodModal, setShowMethodModal] = useState(false);
   const [showThresholdModal, setShowThresholdModal] = useState(false);
-  const [showCardModal, setShowCardModal] = useState(false);
-  const [cardComplete, setCardComplete] = useState(false);
-  const [addingCard, setAddingCard] = useState(false);
 
   const [formData, setFormData] = useState({
     payout_frequency: 'monthly',
@@ -137,80 +132,7 @@ export default function PayoutSettingsScreen() {
   };
 
   const handleAddCard = async () => {
-    if (Platform.OS === 'web') {
-      Alert.alert('Not Available', 'Card management is only available on native platforms. Please use the mobile app.');
-      return;
-    }
-
-    if (!cardComplete) {
-      Alert.alert('Error', 'Please complete card details');
-      return;
-    }
-
-    if (!stripe?.confirmSetupIntent) {
-      Alert.alert('Error', 'Stripe not initialized');
-      return;
-    }
-
-    setAddingCard(true);
-
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) throw new Error('No session');
-
-      const setupResponse = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/company-setup-payment-method`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action: 'create_setup_intent' }),
-        }
-      );
-
-      const setupData = await setupResponse.json();
-      if (!setupResponse.ok) throw new Error(setupData.error);
-
-      const { error: confirmError, setupIntent } = await stripe.confirmSetupIntent(
-        setupData.clientSecret,
-        {
-          paymentMethodType: 'Card',
-        }
-      );
-
-      if (confirmError) {
-        throw new Error(confirmError.message);
-      }
-
-      const confirmResponse = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/company-setup-payment-method`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'confirm_payment_method',
-            setupIntentId: setupIntent.id,
-          }),
-        }
-      );
-
-      const confirmData = await confirmResponse.json();
-      if (!confirmResponse.ok) throw new Error(confirmData.error);
-
-      Alert.alert('Success', 'Card added successfully!');
-      setShowCardModal(false);
-      router.back();
-    } catch (error) {
-      console.error('Error adding card:', error);
-      Alert.alert('Error', error.message || 'Failed to add card');
-    } finally {
-      setAddingCard(false);
-    }
+    Alert.alert('Coming Soon', 'Credit card payment integration will be available soon. For now, use Stripe Connect for payouts.');
   };
 
   const handleRemoveCard = () => {
@@ -287,11 +209,7 @@ export default function PayoutSettingsScreen() {
           <TouchableOpacity
             style={styles.addCardButton}
             onPress={() => {
-              if (Platform.OS === 'web') {
-                Alert.alert('Not Available', 'Card management is only available on native platforms. Please use the mobile app.');
-              } else {
-                setShowCardModal(true);
-              }
+              Alert.alert('Coming Soon', 'Credit card payment integration will be available soon. For now, use Stripe Connect for payouts.');
             }}
           >
             <CreditCard size={20} color="#fff" />
@@ -330,65 +248,6 @@ export default function PayoutSettingsScreen() {
         <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
           <Text style={styles.cancelButtonText}>Done</Text>
         </TouchableOpacity>
-
-        <Modal visible={showCardModal} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add Payment Card</Text>
-                <TouchableOpacity onPress={() => setShowCardModal(false)}>
-                  <X size={24} color="#94A3B8" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.cardModalBody}>
-                <Text style={styles.cardModalDescription}>
-                  Enter your card details to pay affiliate commissions
-                </Text>
-                {Platform.OS !== 'web' ? (
-                  <CardField
-                    postalCodeEnabled={true}
-                    placeholder={{
-                      number: '4242 4242 4242 4242',
-                    }}
-                    cardStyle={{
-                      backgroundColor: '#0F172A',
-                      textColor: '#FFFFFF',
-                      placeholderColor: '#64748B',
-                      borderWidth: 1,
-                      borderColor: '#334155',
-                      borderRadius: 8,
-                    }}
-                    style={styles.cardField}
-                    onCardChange={(cardDetails) => {
-                      setCardComplete(cardDetails.complete);
-                    }}
-                  />
-                ) : (
-                  <View style={styles.webNotice}>
-                    <Text style={styles.webNoticeText}>
-                      Card input is only available on mobile platforms
-                    </Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={[
-                    styles.addCardModalButton,
-                    (!cardComplete || addingCard) && styles.addCardModalButtonDisabled,
-                  ]}
-                  onPress={handleAddCard}
-                  disabled={!cardComplete || addingCard}
-                >
-                  <Text style={styles.addCardModalButtonText}>
-                    {addingCard ? 'Adding Card...' : 'Add Card'}
-                  </Text>
-                </TouchableOpacity>
-                <Text style={styles.securityNote}>
-                  Secured by Stripe. Your card details are encrypted and never stored on our servers.
-                </Text>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </ScrollView>
     );
   }
@@ -1004,53 +863,5 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 14,
     fontWeight: '600',
-  },
-  cardModalBody: {
-    padding: 20,
-  },
-  cardModalDescription: {
-    fontSize: 14,
-    color: '#94A3B8',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  cardField: {
-    width: '100%',
-    height: 50,
-    marginBottom: 20,
-  },
-  addCardModalButton: {
-    backgroundColor: '#3B82F6',
-    padding: 18,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  addCardModalButtonDisabled: {
-    opacity: 0.6,
-  },
-  addCardModalButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  securityNote: {
-    fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  webNotice: {
-    backgroundColor: '#1E293B',
-    padding: 20,
-    borderRadius: 8,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  webNoticeText: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
   },
 });
