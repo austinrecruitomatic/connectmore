@@ -154,8 +154,18 @@ export default function PayoutSettingsScreen() {
         return;
       }
 
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!(window as any).Stripe) {
+        console.error('Stripe.js not loaded');
+        Alert.alert('Error', 'Stripe is not loaded. Please refresh and try again.');
+        setShowCardModal(false);
+        return;
+      }
+
       if (!stripe) {
         const loadedStripe = await (window as any).Stripe(process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+        console.log('Stripe loaded:', loadedStripe);
         setStripe(loadedStripe);
 
         const elements = loadedStripe.elements();
@@ -164,26 +174,38 @@ export default function PayoutSettingsScreen() {
             base: {
               color: '#FFFFFF',
               fontSize: '16px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               '::placeholder': {
                 color: '#94A3B8',
               },
             },
+            invalid: {
+              color: '#EF4444',
+            },
           },
         });
 
+        setCardElement(card);
+
         setTimeout(() => {
           const cardContainer = document.getElementById('card-element');
+          console.log('Card container:', cardContainer);
           if (cardContainer) {
             card.mount('#card-element');
-            setCardElement(card);
+            console.log('Card mounted');
+            setCardLoading(false);
+          } else {
+            console.error('Card container not found');
+            setCardLoading(false);
           }
-        }, 100);
+        }, 200);
+      } else {
+        setCardLoading(false);
       }
     } catch (error) {
       console.error('Error loading Stripe:', error);
       Alert.alert('Error', 'Failed to load payment form. Please try again.');
       setShowCardModal(false);
-    } finally {
       setCardLoading(false);
     }
   };
@@ -387,7 +409,13 @@ export default function PayoutSettingsScreen() {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Add Payment Card</Text>
-                <TouchableOpacity onPress={() => setShowCardModal(false)}>
+                <TouchableOpacity onPress={() => {
+                  if (cardElement) {
+                    cardElement.unmount();
+                  }
+                  setShowCardModal(false);
+                  setCardElement(null);
+                }}>
                   <X size={24} color="#94A3B8" />
                 </TouchableOpacity>
               </View>
