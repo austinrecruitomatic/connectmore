@@ -148,20 +148,45 @@ export default function PayoutSettingsScreen() {
 
       if (cardContainer) {
         console.log('Mounting card element...');
-        card.mount('#card-element');
-        console.log('Card element mounted successfully');
 
         card.on('ready', () => {
           console.log('Card element is ready and rendered!');
+          setCardLoading(false);
         });
 
         card.on('change', (event: any) => {
           console.log('Card element changed:', event.complete ? 'complete' : 'incomplete');
+          if (event.error) {
+            console.error('Card element error:', event.error.message);
+          }
         });
 
-        setCardElement(card);
-        setCardLoading(false);
-        console.log('Card loading set to false - form should now be visible');
+        card.on('focus', () => {
+          console.log('Card element focused');
+        });
+
+        card.on('blur', () => {
+          console.log('Card element blurred');
+        });
+
+        try {
+          card.mount('#card-element');
+          console.log('Card element mount initiated');
+          setCardElement(card);
+
+          // Give Stripe a moment to render, then check
+          setTimeout(() => {
+            const iframe = cardContainer.querySelector('iframe');
+            console.log('Iframe exists after mount:', !!iframe);
+            if (iframe) {
+              console.log('Iframe dimensions:', iframe.offsetWidth, 'x', iframe.offsetHeight);
+              console.log('Container dimensions:', cardContainer.offsetWidth, 'x', cardContainer.offsetHeight);
+            }
+          }, 500);
+        } catch (err) {
+          console.error('Error mounting card element:', err);
+          setCardLoading(false);
+        }
       } else {
         console.error('Card container element not found in DOM after retries');
         Alert.alert('Error', 'Card form container not found. Please try closing and reopening the modal.');
@@ -479,6 +504,18 @@ export default function PayoutSettingsScreen() {
               </View>
 
               <View style={styles.cardModalBody}>
+                {typeof window !== 'undefined' && (
+                  <style dangerouslySetInnerHTML={{__html: `
+                    #card-element iframe {
+                      height: 100% !important;
+                      min-height: 40px !important;
+                    }
+                    #card-element .__PrivateStripeElement {
+                      height: 100% !important;
+                    }
+                  `}} />
+                )}
+
                 <Text style={styles.cardModalDescription}>
                   Enter your card details to securely store your payment method with Stripe.
                 </Text>
@@ -495,19 +532,20 @@ export default function PayoutSettingsScreen() {
                         <Text style={styles.cardLoadingText}>Loading payment form...</Text>
                       </View>
                     )}
-                    <div
-                      id="card-element"
-                      style={{
-                        padding: '18px',
-                        backgroundColor: '#1E293B',
-                        borderRadius: '8px',
-                        border: '1px solid #334155',
-                        minHeight: '44px',
-                        display: cardLoading ? 'none' : 'block',
-                        width: '100%',
-                        position: 'relative' as const,
-                      }}
-                    />
+                    {!cardLoading && (
+                      <div
+                        id="card-element"
+                        style={{
+                          padding: '20px',
+                          backgroundColor: '#1E293B',
+                          borderRadius: '8px',
+                          border: '1px solid #334155',
+                          height: '50px',
+                          width: '100%',
+                          boxSizing: 'border-box' as const,
+                        }}
+                      />
+                    )}
                   </View>
                 ) : (
                   <View style={styles.cardElementContainer}>
