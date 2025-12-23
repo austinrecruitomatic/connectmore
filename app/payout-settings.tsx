@@ -147,12 +147,13 @@ export default function PayoutSettingsScreen() {
         card.mount('#card-element');
         console.log('Card element mounted successfully');
         setCardElement(card);
+        setCardLoading(false);
+        console.log('Card loading set to false - form should now be visible');
       } else {
         console.error('Card container element not found in DOM after retries');
         Alert.alert('Error', 'Card form container not found. Please try closing and reopening the modal.');
+        setCardLoading(false);
       }
-
-      setCardLoading(false);
     } catch (error) {
       console.error('Error initializing Stripe:', error);
       Alert.alert('Error', `Failed to load payment form: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -469,24 +470,36 @@ export default function PayoutSettingsScreen() {
                   Enter your card details to securely store your payment method with Stripe.
                 </Text>
 
+                <Text style={styles.debugText}>
+                  Status: {cardLoading ? 'Loading...' : stripe && cardElement ? 'Ready to use' : 'Initializing...'}
+                </Text>
+
                 <View style={styles.cardElementContainer}>
-                  {typeof window !== 'undefined' && (
-                    <div
-                      id="card-element"
-                      style={{
-                        padding: '16px',
-                        backgroundColor: '#1E293B',
-                        borderRadius: '8px',
-                        border: '1px solid #334155',
-                        minHeight: '40px'
-                      }}
-                    />
-                  )}
-                  {cardLoading && (
-                    <View style={styles.cardLoadingOverlay}>
-                      <ActivityIndicator size="large" color="#3B82F6" />
-                      <Text style={styles.cardLoadingText}>Loading payment form...</Text>
-                    </View>
+                  {typeof window !== 'undefined' ? (
+                    <>
+                      <div
+                        id="card-element"
+                        style={{
+                          padding: '16px',
+                          backgroundColor: '#1E293B',
+                          borderRadius: '8px',
+                          border: '1px solid #334155',
+                          minHeight: '60px',
+                          display: 'block',
+                          width: '100%',
+                          zIndex: 1,
+                          visibility: cardLoading ? 'hidden' : 'visible'
+                        }}
+                      />
+                      {cardLoading && (
+                        <View style={styles.cardLoadingOverlay}>
+                          <ActivityIndicator size="large" color="#3B82F6" />
+                          <Text style={styles.cardLoadingText}>Loading payment form...</Text>
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <Text style={styles.errorText}>Card setup only available on web</Text>
                   )}
                 </View>
 
@@ -1192,5 +1205,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#10B981',
+    marginBottom: 12,
+    fontWeight: '600',
   },
 });
