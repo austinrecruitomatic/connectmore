@@ -81,7 +81,7 @@ export default function PayoutSettingsScreen() {
     setCardLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       console.log('Checking for Stripe.js...');
       if (!(window as any).Stripe) {
@@ -469,49 +469,46 @@ export default function PayoutSettingsScreen() {
                   Enter your card details to securely store your payment method with Stripe.
                 </Text>
 
-                {cardLoading ? (
-                  <View style={styles.cardLoadingContainer}>
-                    <ActivityIndicator size="large" color="#3B82F6" />
-                    <Text style={styles.cardLoadingText}>Loading payment form...</Text>
-                  </View>
-                ) : (
-                  <>
-                    <View style={styles.cardElementContainer}>
-                      {typeof window !== 'undefined' && (
-                        <div
-                          id="card-element"
-                          style={{
-                            padding: '16px',
-                            backgroundColor: '#1E293B',
-                            borderRadius: '8px',
-                            border: '1px solid #334155',
-                            minHeight: '40px'
-                          }}
-                        />
-                      )}
+                <View style={styles.cardElementContainer}>
+                  {typeof window !== 'undefined' && (
+                    <div
+                      id="card-element"
+                      style={{
+                        padding: '16px',
+                        backgroundColor: '#1E293B',
+                        borderRadius: '8px',
+                        border: '1px solid #334155',
+                        minHeight: '40px'
+                      }}
+                    />
+                  )}
+                  {cardLoading && (
+                    <View style={styles.cardLoadingOverlay}>
+                      <ActivityIndicator size="large" color="#3B82F6" />
+                      <Text style={styles.cardLoadingText}>Loading payment form...</Text>
                     </View>
+                  )}
+                </View>
 
-                    <View style={styles.securityNotice}>
-                      <Text style={styles.securityText}>
-                        🔒 Your payment information is securely processed by Stripe. We never store your card details.
-                      </Text>
-                    </View>
+                <View style={styles.securityNotice}>
+                  <Text style={styles.securityText}>
+                    🔒 Your payment information is securely processed by Stripe. We never store your card details.
+                  </Text>
+                </View>
 
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.submitCardButton,
-                        pressed && styles.submitCardButtonPressed,
-                        (!stripe || !cardElement) && { opacity: 0.5 }
-                      ]}
-                      onPress={handleSubmitCard}
-                      disabled={!stripe || !cardElement}
-                    >
-                      <Text style={styles.submitCardButtonText}>
-                        {!stripe || !cardElement ? 'Loading...' : 'Add Card'}
-                      </Text>
-                    </Pressable>
-                  </>
-                )}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.submitCardButton,
+                    pressed && styles.submitCardButtonPressed,
+                    (!stripe || !cardElement || cardLoading) && { opacity: 0.5 }
+                  ]}
+                  onPress={handleSubmitCard}
+                  disabled={!stripe || !cardElement || cardLoading}
+                >
+                  <Text style={styles.submitCardButtonText}>
+                    {cardLoading ? 'Loading...' : 'Add Card'}
+                  </Text>
+                </Pressable>
               </View>
             </View>
           </View>
@@ -1149,11 +1146,19 @@ const styles = StyleSheet.create({
   },
   cardElementContainer: {
     marginBottom: 20,
+    position: 'relative',
+    minHeight: 72,
   },
-  cardLoadingContainer: {
-    padding: 40,
+  cardLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 8,
   },
   cardLoadingText: {
     color: '#94A3B8',
