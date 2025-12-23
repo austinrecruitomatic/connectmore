@@ -149,8 +149,10 @@ export default function PayoutSettingsScreen() {
       if (cardContainer) {
         console.log('Mounting card element...');
 
+        let readyFired = false;
         card.on('ready', () => {
           console.log('Card element is ready and rendered!');
+          readyFired = true;
           setCardLoading(false);
         });
 
@@ -169,6 +171,11 @@ export default function PayoutSettingsScreen() {
           console.log('Card element blurred');
         });
 
+        card.on('loaderror', (event: any) => {
+          console.error('Card element failed to load:', event);
+          setCardLoading(false);
+        });
+
         try {
           card.mount('#card-element');
           console.log('Card element mount initiated');
@@ -184,8 +191,12 @@ export default function PayoutSettingsScreen() {
 
               // Fallback: If iframe exists but ready event hasn't fired, set loading to false
               setTimeout(() => {
-                console.log('Fallback timeout: Setting cardLoading to false');
-                setCardLoading(false);
+                if (!readyFired) {
+                  console.log('Fallback timeout: Ready event did not fire, forcing cardLoading to false');
+                  setCardLoading(false);
+                } else {
+                  console.log('Ready event already fired, no fallback needed');
+                }
               }, 1000);
             }
           }, 500);
