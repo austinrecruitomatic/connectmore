@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal, Pressable } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -185,6 +185,7 @@ export default function PayoutSettingsScreen() {
   }
 
   if (profile?.user_type === 'company') {
+    console.log('Rendering company payment method screen');
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.header}>
@@ -206,17 +207,29 @@ export default function PayoutSettingsScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.addCardButton}
+          <Pressable
+            style={({ pressed }) => [
+              styles.addCardButton,
+              pressed && styles.addCardButtonPressed
+            ]}
             onPress={() => {
-              Alert.alert('Coming Soon', 'Credit card payment integration will be available soon. For now, use Stripe Connect for payouts.');
+              console.log('Add Card Button Pressed!');
+              try {
+                if (typeof window !== 'undefined' && window.alert) {
+                  window.alert('Coming Soon: Credit card payment integration will be available soon. For now, use Stripe Connect for payouts.');
+                } else {
+                  Alert.alert('Coming Soon', 'Credit card payment integration will be available soon. For now, use Stripe Connect for payouts.');
+                }
+              } catch (error) {
+                console.error('Error showing alert:', error);
+              }
             }}
           >
             <CreditCard size={20} color="#fff" />
             <Text style={styles.addCardButtonText}>
               {profile.stripe_payment_method_id ? 'Update Card' : 'Add Credit/Debit Card'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
 
           {profile.stripe_payment_method_id && (
             <View style={styles.currentCardCard}>
@@ -823,6 +836,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
     marginBottom: 16,
+    cursor: 'pointer',
+    zIndex: 10,
+  },
+  addCardButtonPressed: {
+    backgroundColor: '#2563EB',
+    opacity: 0.8,
   },
   addCardButtonText: {
     color: '#fff',
