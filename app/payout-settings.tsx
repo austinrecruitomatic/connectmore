@@ -526,25 +526,26 @@ export default function PayoutSettingsScreen() {
 
                 {typeof window !== 'undefined' ? (
                   <View style={styles.cardElementContainer}>
+                    <div
+                      id="card-element"
+                      style={{
+                        padding: '20px',
+                        backgroundColor: '#1E293B',
+                        borderRadius: '8px',
+                        border: '1px solid #334155',
+                        height: '50px',
+                        width: '100%',
+                        boxSizing: 'border-box' as const,
+                        opacity: cardLoading ? 0 : 1,
+                        pointerEvents: cardLoading ? 'none' : 'auto',
+                        transition: 'opacity 0.2s',
+                      }}
+                    />
                     {cardLoading && (
                       <View style={styles.cardLoadingOverlay}>
                         <ActivityIndicator size="large" color="#3B82F6" />
                         <Text style={styles.cardLoadingText}>Loading payment form...</Text>
                       </View>
-                    )}
-                    {!cardLoading && (
-                      <div
-                        id="card-element"
-                        style={{
-                          padding: '20px',
-                          backgroundColor: '#1E293B',
-                          borderRadius: '8px',
-                          border: '1px solid #334155',
-                          height: '50px',
-                          width: '100%',
-                          boxSizing: 'border-box' as const,
-                        }}
-                      />
                     )}
                   </View>
                 ) : (
@@ -1214,13 +1215,18 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   cardLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: '#1E293B',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#334155',
+    zIndex: 10,
   },
   cardLoadingText: {
     color: '#94A3B8',
