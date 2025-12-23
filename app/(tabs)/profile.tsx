@@ -572,53 +572,82 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payment Settings</Text>
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Wallet size={20} color="#64748B" />
+      {profile?.user_type === 'company' ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Settings</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Wallet size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Payment Method</Text>
+                <Text style={styles.infoValue}>
+                  {profile.stripe_customer_id && profile.stripe_payment_method_id
+                    ? `Card ending in ****`
+                    : 'No card added'}
+                </Text>
+                <Text style={styles.infoSubtext}>
+                  Card used to pay affiliate commissions
+                </Text>
+              </View>
             </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Stripe Connect Status</Text>
-              <Text style={styles.infoValue}>
-                {profile?.stripe_onboarding_completed
-                  ? profile.stripe_account_status === 'verified'
-                    ? 'Active'
-                    : 'Pending Verification'
-                  : 'Not Setup'}
-              </Text>
-              <Text style={styles.infoSubtext}>
-                {profile?.user_type === 'company'
-                  ? 'Required to receive customer payments'
-                  : 'Required to receive commission payouts'}
-              </Text>
-            </View>
-          </View>
-          {!profile?.stripe_onboarding_completed ? (
-            <TouchableOpacity
-              style={styles.configureButton}
-              onPress={() => router.push('/stripe-onboarding')}
-            >
-              <DollarSign size={16} color="#60A5FA" />
-              <Text style={styles.configureButtonText}>
-                Setup Payment Processing
-              </Text>
-            </TouchableOpacity>
-          ) : (
             <TouchableOpacity
               style={styles.configureButton}
               onPress={() => router.push('/payout-settings')}
             >
               <DollarSign size={16} color="#60A5FA" />
               <Text style={styles.configureButtonText}>
-                Manage Payment Settings
+                {profile.stripe_payment_method_id ? 'Update Card' : 'Add Credit/Debit Card'}
               </Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
+      ) : (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Settings</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Wallet size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Stripe Connect Status</Text>
+                <Text style={styles.infoValue}>
+                  {profile?.stripe_onboarding_completed
+                    ? profile.stripe_account_status === 'verified'
+                      ? 'Active'
+                      : 'Pending Verification'
+                    : 'Not Setup'}
+                </Text>
+                <Text style={styles.infoSubtext}>
+                  Required to receive commission payouts
+                </Text>
+              </View>
+            </View>
+            {!profile?.stripe_onboarding_completed ? (
+              <TouchableOpacity
+                style={styles.configureButton}
+                onPress={() => router.push('/stripe-onboarding')}
+              >
+                <DollarSign size={16} color="#60A5FA" />
+                <Text style={styles.configureButtonText}>
+                  Setup Payment Processing
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.configureButton}
+                onPress={() => router.push('/payout-settings')}
+              >
+                <DollarSign size={16} color="#60A5FA" />
+                <Text style={styles.configureButtonText}>
+                  Manage Payment Settings
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-        {profile?.user_type === 'affiliate' && (
           <View style={[styles.infoCard, { marginTop: 12 }]}>
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
@@ -636,8 +665,8 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
-        )}
-      </View>
+        </View>
+      )}
 
       {profile?.user_type === 'company' && (
         <View style={styles.section}>

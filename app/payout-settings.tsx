@@ -43,6 +43,8 @@ export default function PayoutSettingsScreen() {
   useEffect(() => {
     if (profile?.user_type === 'affiliate') {
       loadPreferences();
+    } else if (profile?.user_type === 'company') {
+      setLoading(false);
     }
   }, [profile]);
 
@@ -129,19 +131,92 @@ export default function PayoutSettingsScreen() {
     return method?.label || 'Bank Transfer';
   };
 
-  if (profile?.user_type !== 'affiliate') {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>This page is only for affiliates</Text>
-      </View>
-    );
-  }
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3B82F6" />
       </View>
+    );
+  }
+
+  if (profile?.user_type === 'company') {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.iconContainer}>
+            <CreditCard size={32} color="#60A5FA" />
+          </View>
+          <Text style={styles.title}>Payment Method</Text>
+          <Text style={styles.subtitle}>
+            Add a credit or debit card to pay affiliate commissions
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Card Information</Text>
+
+          <View style={styles.infoCard}>
+            <Text style={styles.infoText}>
+              Your payment card will be securely stored and used to automatically pay affiliate commissions when you approve them.
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.addCardButton}
+            onPress={() => {
+              Alert.alert(
+                'Add Card',
+                'Card integration will open Stripe payment form to securely add your card.',
+                [{ text: 'OK' }]
+              );
+            }}
+          >
+            <CreditCard size={20} color="#fff" />
+            <Text style={styles.addCardButtonText}>
+              {profile.stripe_payment_method_id ? 'Update Card' : 'Add Credit/Debit Card'}
+            </Text>
+          </TouchableOpacity>
+
+          {profile.stripe_payment_method_id && (
+            <View style={styles.currentCardCard}>
+              <Text style={styles.currentCardTitle}>Current Card</Text>
+              <View style={styles.currentCardRow}>
+                <CreditCard size={20} color="#60A5FA" />
+                <Text style={styles.currentCardText}>Card ending in ****</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.removeCardButton}
+                onPress={() => {
+                  Alert.alert(
+                    'Remove Card',
+                    'Are you sure you want to remove this payment method?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Remove', style: 'destructive' },
+                    ]
+                  );
+                }}
+              >
+                <Text style={styles.removeCardText}>Remove Card</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>How It Works</Text>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoListItem}>1. Add your credit or debit card securely via Stripe</Text>
+            <Text style={styles.infoListItem}>2. When you approve commissions, your card is charged</Text>
+            <Text style={styles.infoListItem}>3. Funds are transferred directly to affiliate accounts</Text>
+            <Text style={styles.infoListItem}>4. Platform fee is automatically calculated</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
+          <Text style={styles.cancelButtonText}>Done</Text>
+        </TouchableOpacity>
+      </ScrollView>
     );
   }
 
@@ -687,5 +762,74 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#EF4444',
     textAlign: 'center',
+  },
+  infoCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 20,
+  },
+  infoListItem: {
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  addCardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    padding: 18,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 16,
+  },
+  addCardButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  currentCardCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  currentCardTitle: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 12,
+  },
+  currentCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  currentCardText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  removeCardButton: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    alignItems: 'center',
+  },
+  removeCardText: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
