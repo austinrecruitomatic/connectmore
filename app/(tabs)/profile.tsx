@@ -583,8 +583,8 @@ export default function ProfileScreen() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Payment Method</Text>
                 <Text style={styles.infoValue}>
-                  {profile.stripe_customer_id && profile.stripe_payment_method_id
-                    ? `Card ending in ****`
+                  {profile.stripe_payment_method_id
+                    ? `Card on file`
                     : 'No card added'}
                 </Text>
                 <Text style={styles.infoSubtext}>
