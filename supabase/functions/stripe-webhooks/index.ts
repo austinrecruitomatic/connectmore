@@ -17,6 +17,149 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
+async function processImmediatePayouts(commissionIds: string[], companyCommissionPaymentId: string) {
+  try {
+    // Get commissions with affiliate details
+    const { data: commissions, error: commissionsError } = await supabase
+      .from('commissions')
+      .select(`
+        id,
+        affiliate_id,
+        affiliate_payout_amount,
+        commission_amount,
+        platform_fee_amount,
+        deal_id,
+        profiles!commissions_affiliate_id_fkey (
+          id,
+          stripe_connect_account_id,
+          stripe_account_status,
+          full_name,
+          email
+        )
+      `)
+      .in('id', commissionIds)
+      .eq('company_payment_status', 'paid');
+
+    if (commissionsError || !commissions || commissions.length === 0) {
+      console.error('Failed to fetch commissions for payout:', commissionsError);
+      return;
+    }
+
+    // Group commissions by affiliate
+    const affiliateCommissions = new Map<string, typeof commissions>();
+    for (const commission of commissions) {
+      const affiliateId = commission.affiliate_id;
+      if (!affiliateCommissions.has(affiliateId)) {
+        affiliateCommissions.set(affiliateId, []);
+      }
+      affiliateCommissions.get(affiliateId)!.push(commission);
+    }
+
+    // Process payout for each affiliate
+    for (const [affiliateId, affiliateComms] of affiliateCommissions.entries()) {
+      try {
+        const affiliate = affiliateComms[0].profiles;
+
+        // Check if affiliate has valid Stripe Connect account
+        if (!affiliate.stripe_connect_account_id || affiliate.stripe_account_status !== 'verified') {
+          console.log(`Skipping payout for affiliate ${affiliateId} - Stripe not connected or verified`);
+          continue;
+        }
+
+        // Calculate total payout amount for this affiliate
+        const totalPayoutAmount = affiliateComms.reduce(
+          (sum, c) => sum + parseFloat(c.affiliate_payout_amount),
+          0
+        );
+
+        // Create Stripe transfer
+        const transfer = await stripe.transfers.create({
+          amount: Math.round(totalPayoutAmount * 100), // Convert to cents
+          currency: 'usd',
+          destination: affiliate.stripe_connect_account_id,
+          description: `Commission payout for ${affiliateComms.length} commission(s)`,
+          metadata: {
+            affiliate_id: affiliateId,
+            commission_ids: affiliateComms.map(c => c.id).join(','),
+            company_commission_payment_id: companyCommissionPaymentId,
+          },
+        });
+
+        // Create payout record
+        const { data: payout, error: payoutError } = await supabase
+          .from('payouts')
+          .insert({
+            affiliate_id: affiliateId,
+            amount: totalPayoutAmount,
+            status: 'processing',
+            commission_ids: affiliateComms.map(c => c.id),
+            stripe_transfer_id: transfer.id,
+            payout_method: 'ach_standard',
+          })
+          .select()
+          .single();
+
+        if (payoutError) {
+          console.error('Failed to create payout record:', payoutError);
+          continue;
+        }
+
+        // Update commissions to mark as processing payout
+        await supabase
+          .from('commissions')
+          .update({
+            status: 'pending_payout',
+            affiliate_payout_id: payout.id,
+          })
+          .in('id', affiliateComms.map(c => c.id));
+
+        // Update payment reconciliation
+        for (const comm of affiliateComms) {
+          await supabase
+            .from('payment_reconciliation')
+            .update({
+              affiliate_payout_id: payout.id,
+              affiliate_payout_initiated: true,
+              affiliate_payout_initiated_at: new Date().toISOString(),
+            })
+            .eq('commission_id', comm.id);
+        }
+
+        // Create payout audit log
+        await supabase.from('payout_audit_log').insert({
+          payout_id: payout.id,
+          event_type: 'created',
+          event_data: {
+            transfer_id: transfer.id,
+            amount: totalPayoutAmount,
+            commission_count: affiliateComms.length,
+          },
+        });
+
+        // Record in platform treasury
+        await supabase.from('platform_treasury').insert({
+          transaction_type: 'affiliate_payout',
+          amount: -totalPayoutAmount, // Negative because money is leaving platform
+          payout_id: payout.id,
+          description: `Payout to ${affiliate.full_name || affiliate.email}`,
+          metadata: {
+            affiliate_id: affiliateId,
+            commission_ids: affiliateComms.map(c => c.id),
+            transfer_id: transfer.id,
+          },
+        });
+
+        console.log(`Created transfer ${transfer.id} for affiliate ${affiliateId}: $${totalPayoutAmount}`);
+      } catch (affiliateError) {
+        console.error(`Failed to process payout for affiliate ${affiliateId}:`, affiliateError);
+        // Continue with other affiliates even if one fails
+      }
+    }
+  } catch (error) {
+    console.error('Error in processImmediatePayouts:', error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -242,6 +385,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         amount: payment.total_amount,
         stripe_event_id: session.id,
       });
+
+      // Process immediate payouts to affiliates
+      await processImmediatePayouts(payment.commission_ids, payment.id);
     }
   }
 }
@@ -399,6 +545,7 @@ async function handleTransferPaid(transfer: Stripe.Transfer) {
     .maybeSingle();
 
   if (payout) {
+    // Update payout status to completed
     await supabase
       .from('payouts')
       .update({
@@ -407,35 +554,49 @@ async function handleTransferPaid(transfer: Stripe.Transfer) {
       })
       .eq('id', payout.id);
 
+    // Update commissions to mark as paid
     await supabase
       .from('commissions')
-      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .update({
+        status: 'paid',
+        paid_at: new Date().toISOString()
+      })
       .in('id', payout.commission_ids);
 
+    // Update payment reconciliation
+    await supabase
+      .from('payment_reconciliation')
+      .update({
+        affiliate_paid: true,
+        affiliate_paid_at: new Date().toISOString(),
+        fully_settled: true,
+      })
+      .in('commission_id', payout.commission_ids);
+
+    // Create payout audit log
     await supabase.from('payout_audit_log').insert({
       payout_id: payout.id,
       event_type: 'completed',
-      event_data: { transfer_id: transfer.id, amount: transfer.amount },
+      event_data: {
+        transfer_id: transfer.id,
+        amount: transfer.amount / 100, // Convert from cents
+        destination: transfer.destination,
+      },
       stripe_event_id: transfer.id,
     });
 
-    const { data: preferences } = await supabase
-      .from('payout_preferences')
-      .select('*')
-      .eq('affiliate_id', payout.affiliate_id)
-      .maybeSingle();
+    // Create payment audit log for each commission
+    await supabase.from('payment_audit_log').insert({
+      event_type: 'affiliate_payout_completed',
+      event_source: 'stripe_webhook',
+      entity_type: 'payout',
+      entity_id: payout.id,
+      new_status: 'completed',
+      amount: payout.amount,
+      stripe_event_id: transfer.id,
+    });
 
-    if (preferences) {
-      const nextDate = calculateNextPayoutDate(
-        preferences.payout_frequency,
-        preferences.payout_frequency_days
-      );
-
-      await supabase
-        .from('payout_preferences')
-        .update({ next_scheduled_payout_date: nextDate })
-        .eq('affiliate_id', payout.affiliate_id);
-    }
+    console.log(`Transfer ${transfer.id} completed for payout ${payout.id}`);
   }
 }
 
@@ -447,6 +608,7 @@ async function handleTransferFailed(transfer: Stripe.Transfer) {
     .maybeSingle();
 
   if (payout) {
+    // Update payout status to failed
     await supabase
       .from('payouts')
       .update({
@@ -456,11 +618,26 @@ async function handleTransferFailed(transfer: Stripe.Transfer) {
       })
       .eq('id', payout.id);
 
+    // Revert commission status back to approved so they can be retried
     await supabase
       .from('commissions')
-      .update({ status: 'approved' })
+      .update({
+        status: 'approved',
+        affiliate_payout_id: null,
+      })
       .in('id', payout.commission_ids);
 
+    // Update payment reconciliation
+    await supabase
+      .from('payment_reconciliation')
+      .update({
+        affiliate_payout_id: null,
+        affiliate_payout_initiated: false,
+        affiliate_payout_initiated_at: null,
+      })
+      .in('commission_id', payout.commission_ids);
+
+    // Create payout audit log
     await supabase.from('payout_audit_log').insert({
       payout_id: payout.id,
       event_type: 'failed',
@@ -471,6 +648,22 @@ async function handleTransferFailed(transfer: Stripe.Transfer) {
       },
       stripe_event_id: transfer.id,
     });
+
+    // Create payment audit log
+    await supabase.from('payment_audit_log').insert({
+      event_type: 'affiliate_payout_failed',
+      event_source: 'stripe_webhook',
+      entity_type: 'payout',
+      entity_id: payout.id,
+      new_status: 'failed',
+      stripe_event_id: transfer.id,
+      event_data: {
+        failure_code: transfer.failure_code,
+        failure_message: transfer.failure_message,
+      },
+    });
+
+    console.error(`Transfer ${transfer.id} failed for payout ${payout.id}: ${transfer.failure_message}`);
   }
 }
 

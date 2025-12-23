@@ -27,7 +27,7 @@ export default function StripeOnboardingScreen() {
   const [connectError, setConnectError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (profile?.user_type === 'company') {
+    if (profile?.user_type === 'affiliate') {
       checkAccountStatus();
     }
   }, [profile]);
@@ -87,9 +87,9 @@ export default function StripeOnboardingScreen() {
         const createData = await createResponse.json();
 
         if (!createResponse.ok) {
-          if (createData.error && createData.error.includes('signed up for Connect')) {
+          if (createData.error && createData.error.includes('not signed up for Connect')) {
             setConnectError(createData.error);
-            throw new Error('Stripe Connect not enabled. Please follow the setup instructions below.');
+            throw new Error('Stripe Connect not enabled. Please contact support for assistance.');
           }
           throw new Error(createData.error || 'Failed to create Stripe account');
         }
@@ -155,10 +155,10 @@ export default function StripeOnboardingScreen() {
     }
   };
 
-  if (profile?.user_type !== 'company') {
+  if (profile?.user_type !== 'affiliate') {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>This page is only for companies</Text>
+        <Text style={styles.errorText}>This page is only for affiliates</Text>
       </View>
     );
   }
@@ -182,7 +182,7 @@ export default function StripeOnboardingScreen() {
         </View>
         <Text style={styles.title}>Stripe Connect Setup</Text>
         <Text style={styles.subtitle}>
-          Connect your Stripe account to accept payments and process payouts
+          Connect your bank account or debit card to receive commission payouts instantly
         </Text>
       </View>
 

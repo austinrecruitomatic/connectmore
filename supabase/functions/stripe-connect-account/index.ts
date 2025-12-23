@@ -45,9 +45,9 @@ Deno.serve(async (req: Request) => {
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.user_type !== 'company') {
+    if (!profile || profile.user_type !== 'affiliate') {
       return new Response(
-        JSON.stringify({ error: 'Only companies can create Connect accounts' }),
+        JSON.stringify({ error: 'Only affiliates can create Connect accounts' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -98,8 +98,8 @@ Deno.serve(async (req: Request) => {
 
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: `${Deno.env.get('APP_URL')}/profile?stripe_onboarding=refresh`,
-        return_url: `${Deno.env.get('APP_URL')}/profile?stripe_onboarding=success`,
+        refresh_url: `${Deno.env.get('APP_URL')}/stripe-onboarding?stripe_onboarding=refresh`,
+        return_url: `${Deno.env.get('APP_URL')}/stripe-onboarding?stripe_onboarding=success`,
         type: 'account_onboarding',
       });
 
