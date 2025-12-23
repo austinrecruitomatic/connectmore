@@ -111,17 +111,21 @@ export default function PayoutSettingsScreen() {
       console.log('Creating card element...');
       const elements = loadedStripe.elements();
       const card = elements.create('card', {
+        hidePostalCode: false,
         style: {
           base: {
             color: '#FFFFFF',
             fontSize: '16px',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontWeight: '400',
             '::placeholder': {
               color: '#94A3B8',
             },
+            iconColor: '#94A3B8',
           },
           invalid: {
             color: '#EF4444',
+            iconColor: '#EF4444',
           },
         },
       });
@@ -146,6 +150,15 @@ export default function PayoutSettingsScreen() {
         console.log('Mounting card element...');
         card.mount('#card-element');
         console.log('Card element mounted successfully');
+
+        card.on('ready', () => {
+          console.log('Card element is ready and rendered!');
+        });
+
+        card.on('change', (event: any) => {
+          console.log('Card element changed:', event.complete ? 'complete' : 'incomplete');
+        });
+
         setCardElement(card);
         setCardLoading(false);
         console.log('Card loading set to false - form should now be visible');
@@ -474,34 +487,33 @@ export default function PayoutSettingsScreen() {
                   Status: {cardLoading ? 'Loading...' : stripe && cardElement ? 'Ready to use' : 'Initializing...'}
                 </Text>
 
-                <View style={styles.cardElementContainer}>
-                  {typeof window !== 'undefined' ? (
-                    <>
-                      <div
-                        id="card-element"
-                        style={{
-                          padding: '16px',
-                          backgroundColor: '#1E293B',
-                          borderRadius: '8px',
-                          border: '1px solid #334155',
-                          minHeight: '60px',
-                          display: 'block',
-                          width: '100%',
-                          zIndex: 1,
-                          visibility: cardLoading ? 'hidden' : 'visible'
-                        }}
-                      />
-                      {cardLoading && (
-                        <View style={styles.cardLoadingOverlay}>
-                          <ActivityIndicator size="large" color="#3B82F6" />
-                          <Text style={styles.cardLoadingText}>Loading payment form...</Text>
-                        </View>
-                      )}
-                    </>
-                  ) : (
+                {typeof window !== 'undefined' ? (
+                  <View style={styles.cardElementContainer}>
+                    {cardLoading && (
+                      <View style={styles.cardLoadingOverlay}>
+                        <ActivityIndicator size="large" color="#3B82F6" />
+                        <Text style={styles.cardLoadingText}>Loading payment form...</Text>
+                      </View>
+                    )}
+                    <div
+                      id="card-element"
+                      style={{
+                        padding: '18px',
+                        backgroundColor: '#1E293B',
+                        borderRadius: '8px',
+                        border: '1px solid #334155',
+                        minHeight: '44px',
+                        display: cardLoading ? 'none' : 'block',
+                        width: '100%',
+                        position: 'relative' as const,
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.cardElementContainer}>
                     <Text style={styles.errorText}>Card setup only available on web</Text>
-                  )}
-                </View>
+                  </View>
+                )}
 
                 <View style={styles.securityNotice}>
                   <Text style={styles.securityText}>
@@ -1160,18 +1172,17 @@ const styles = StyleSheet.create({
   cardElementContainer: {
     marginBottom: 20,
     position: 'relative',
-    minHeight: 72,
+    minHeight: 60,
+    width: '100%',
   },
   cardLoadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    backgroundColor: '#1E293B',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 32,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   cardLoadingText: {
     color: '#94A3B8',
