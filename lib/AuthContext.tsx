@@ -158,15 +158,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('AuthContext: signOut error:', error);
-        throw error;
       }
       console.log('AuthContext: signOut successful');
+    } catch (error) {
+      console.error('AuthContext: signOut exception:', error);
+    } finally {
       setProfile(null);
       setSession(null);
       setUser(null);
-    } catch (error) {
-      console.error('AuthContext: signOut exception:', error);
-      throw error;
     }
   };
 
