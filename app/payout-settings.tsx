@@ -81,7 +81,7 @@ export default function PayoutSettingsScreen() {
     setCardLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       console.log('Checking for Stripe.js...');
       if (!(window as any).Stripe) {
@@ -127,10 +127,19 @@ export default function PayoutSettingsScreen() {
       });
       console.log('Card element created');
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      let retries = 0;
+      const maxRetries = 10;
+      let cardContainer = null;
 
-      console.log('Looking for card container...');
-      const cardContainer = document.getElementById('card-element');
+      while (retries < maxRetries && !cardContainer) {
+        console.log(`Looking for card container... (attempt ${retries + 1}/${maxRetries})`);
+        cardContainer = document.getElementById('card-element');
+        if (!cardContainer) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+          retries++;
+        }
+      }
+
       console.log('Card container found:', !!cardContainer);
 
       if (cardContainer) {
@@ -139,7 +148,7 @@ export default function PayoutSettingsScreen() {
         console.log('Card element mounted successfully');
         setCardElement(card);
       } else {
-        console.error('Card container element not found in DOM');
+        console.error('Card container element not found in DOM after retries');
         Alert.alert('Error', 'Card form container not found. Please try closing and reopening the modal.');
       }
 
