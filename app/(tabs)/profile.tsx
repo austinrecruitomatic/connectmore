@@ -110,6 +110,7 @@ export default function ProfileScreen() {
     notification_lead_dispositioned: true,
     notification_lead_closed: true,
     notification_customer_submission: true,
+    notification_lead_update_response: true,
   });
   const [companyNotificationPrefs, setCompanyNotificationPrefs] = useState({
     notify_on_new_leads: true,
@@ -135,6 +136,7 @@ export default function ProfileScreen() {
           notification_lead_dispositioned: profile.notification_lead_dispositioned ?? true,
           notification_lead_closed: profile.notification_lead_closed ?? true,
           notification_customer_submission: profile.notification_customer_submission ?? true,
+          notification_lead_update_response: profile.notification_lead_update_response ?? true,
         });
       }
     }
@@ -800,7 +802,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+            <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
                 <Bell size={20} color="#64748B" />
               </View>
@@ -815,6 +817,24 @@ export default function ProfileScreen() {
                 style={[styles.toggle, notificationPrefs.notification_customer_submission && styles.toggleActive]}
               >
                 <View style={[styles.toggleThumb, notificationPrefs.notification_customer_submission && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+              <View style={styles.infoIcon}>
+                <Bell size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Lead Update Responses</Text>
+                <Text style={styles.infoSubtext}>
+                  Get notified when a company responds to your update request
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleToggleNotification('notification_lead_update_response')}
+                style={[styles.toggle, notificationPrefs.notification_lead_update_response && styles.toggleActive]}
+              >
+                <View style={[styles.toggleThumb, notificationPrefs.notification_lead_update_response && styles.toggleThumbActive]} />
               </TouchableOpacity>
             </View>
           </View>
