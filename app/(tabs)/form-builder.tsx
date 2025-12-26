@@ -45,6 +45,8 @@ export default function FormBuilderScreen() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFieldModal, setShowFieldModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{type: 'field' | 'form', id: string} | null>(null);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
@@ -131,34 +133,8 @@ export default function FormBuilderScreen() {
   };
 
   const deleteForm = async (formId: string) => {
-    Alert.alert(
-      'Delete Form',
-      'Are you sure? This will delete all fields and cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('custom_forms')
-                .delete()
-                .eq('id', formId);
-
-              if (error) throw error;
-              setForms(forms.filter(f => f.id !== formId));
-              if (selectedForm?.id === formId) {
-                setSelectedForm(null);
-              }
-              Alert.alert('Success', 'Form deleted');
-            } catch (error: any) {
-              Alert.alert('Error', error.message);
-            }
-          },
-        },
-      ]
-    );
+    setDeleteTarget({ type: 'form', id: formId });
+    setShowDeleteConfirm(true);
   };
 
   const openFieldModal = (field?: FormField) => {
@@ -235,27 +211,41 @@ export default function FormBuilderScreen() {
   };
 
   const deleteField = async (fieldId: string) => {
-    Alert.alert('Delete Field', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const { error } = await supabase
-              .from('custom_form_fields')
-              .delete()
-              .eq('id', fieldId);
+    setDeleteTarget({ type: 'field', id: fieldId });
+    setShowDeleteConfirm(true);
+  };
 
-            if (error) throw error;
-            setFields(fields.filter(f => f.id !== fieldId));
-            Alert.alert('Success', 'Field deleted');
-          } catch (error: any) {
-            Alert.alert('Error', error.message);
-          }
-        },
-      },
-    ]);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      if (deleteTarget.type === 'field') {
+        const { error } = await supabase
+          .from('custom_form_fields')
+          .delete()
+          .eq('id', deleteTarget.id);
+
+        if (error) throw error;
+        setFields(fields.filter(f => f.id !== deleteTarget.id));
+      } else if (deleteTarget.type === 'form') {
+        const { error } = await supabase
+          .from('custom_forms')
+          .delete()
+          .eq('id', deleteTarget.id);
+
+        if (error) throw error;
+        setForms(forms.filter(f => f.id !== deleteTarget.id));
+        if (selectedForm?.id === deleteTarget.id) {
+          setSelectedForm(null);
+        }
+      }
+      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
+    }
   };
 
   const moveField = async (fieldId: string, direction: 'up' | 'down') => {
@@ -615,6 +605,47 @@ export default function FormBuilderScreen() {
                 </Text>
               </TouchableOpacity>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showDeleteConfirm} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxWidth: 400 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {deleteTarget?.type === 'form' ? 'Delete Form?' : 'Delete Field?'}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setShowDeleteConfirm(false);
+                setDeleteTarget(null);
+              }}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.deleteConfirmText}>
+              {deleteTarget?.type === 'form'
+                ? 'This will delete the form and all its custom fields. This action cannot be undone.'
+                : 'Are you sure you want to delete this field? This action cannot be undone.'}
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteTarget(null);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteConfirmButton}
+                onPress={confirmDelete}
+              >
+                <Trash2 size={18} color="#fff" />
+                <Text style={styles.deleteConfirmButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1158,6 +1189,50 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  deleteConfirmText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#F1F5F9',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  deleteConfirmButton: {
+    flex: 1,
+    flexDirection: 'row',
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  deleteConfirmButtonText: {
+    color: '#fff',
+    fontSize: 15,
     fontWeight: '700',
   },
 });
