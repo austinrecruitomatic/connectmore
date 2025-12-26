@@ -134,37 +134,75 @@ export default function PayoutSettingsScreen() {
   };
 
   const handleAddCard = async () => {
+    console.log('=== handleAddCard called ===');
+    console.log('Platform:', Platform.OS);
+
     if (Platform.OS !== 'web') {
       Alert.alert('Web Only', 'Card setup is currently only available on web');
       return;
     }
 
     setCardLoading(true);
+    console.log('Card loading set to true');
 
     try {
+      console.log('Getting session...');
       const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) throw new Error('No session');
+      console.log('Session:', session?.session?.user?.email);
 
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/company-setup-payment-method`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action: 'create_setup_intent' }),
-        }
-      );
+      if (!session?.session) {
+        console.error('No session found');
+        throw new Error('No session');
+      }
+
+      const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/company-setup-payment-method`;
+      console.log('Fetching from:', url);
+      console.log('Request body:', JSON.stringify({ action: 'create_setup_intent' }));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'create_setup_intent' }),
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      console.log('Response data:', JSON.stringify(data, null, 2));
 
-      router.push(`/stripe-card-setup?clientSecret=${data.clientSecret}`);
+      if (!response.ok) {
+        console.error('Response not OK:', data.error);
+        throw new Error(data.error);
+      }
+
+      if (!data.clientSecret) {
+        console.error('No clientSecret in response');
+        throw new Error('No client secret returned');
+      }
+
+      const navigationUrl = `/stripe-card-setup?clientSecret=${data.clientSecret}`;
+      console.log('Navigating to:', navigationUrl);
+      router.push(navigationUrl);
+      console.log('Navigation complete');
     } catch (error: any) {
-      console.error('Error creating setup intent:', error);
-      Alert.alert('Error', error.message || 'Failed to initialize card setup');
+      console.error('=== Error in handleAddCard ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      Alert.alert(
+        'Card Setup Error',
+        `${error.message}\n\nCheck the browser console for details.`,
+        [
+          { text: 'Open Console', onPress: () => console.log('=== Check console for errors ===') },
+          { text: 'OK' }
+        ]
+      );
     } finally {
+      console.log('Setting card loading to false');
       setCardLoading(false);
     }
   };
