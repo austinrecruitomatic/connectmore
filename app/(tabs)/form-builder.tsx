@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Plus, Edit2, Trash2, GripVertical, Eye, X, ArrowUp, ArrowDown, Save, Lock, User, Phone, Mail, FileText } from 'lucide-react-native';
+import { Plus, Edit2, Trash2, GripVertical, Eye, X, ArrowUp, ArrowDown, Save, Lock, User, Phone, Mail, FileText, ArrowLeft } from 'lucide-react-native';
 
 interface CustomForm {
   id: string;
@@ -303,39 +303,20 @@ export default function FormBuilderScreen() {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.formsPanel}>
-          <Text style={styles.panelTitle}>Your Forms</Text>
-          <ScrollView>
-            {forms.map((form) => (
-              <TouchableOpacity
-                key={form.id}
-                style={[styles.formItem, selectedForm?.id === form.id && styles.formItemSelected]}
-                onPress={() => setSelectedForm(form)}
-              >
-                <View style={styles.formItemContent}>
-                  <Text style={styles.formItemName}>{form.name}</Text>
-                  {form.description ? (
-                    <Text style={styles.formItemDesc} numberOfLines={1}>{form.description}</Text>
-                  ) : null}
-                </View>
-                <TouchableOpacity
-                  onPress={() => deleteForm(form.id)}
-                  style={styles.deleteButton}
-                >
-                  <Trash2 size={18} color="#EF4444" />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
-            {forms.length === 0 && (
-              <Text style={styles.emptyText}>No forms yet. Create one to get started!</Text>
-            )}
-          </ScrollView>
-        </View>
-
-        {selectedForm && (
+        {selectedForm ? (
           <View style={styles.builderPanel}>
             <View style={styles.builderHeader}>
-              <Text style={styles.builderTitle}>{selectedForm.name}</Text>
+              <View style={styles.headerLeft}>
+                {forms.length > 1 && (
+                  <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => setSelectedForm(null)}
+                  >
+                    <ArrowLeft size={20} color="#94A3B8" />
+                  </TouchableOpacity>
+                )}
+                <Text style={styles.builderTitle}>{selectedForm.name}</Text>
+              </View>
               <TouchableOpacity
                 style={styles.addFieldButton}
                 onPress={() => openFieldModal()}
@@ -472,15 +453,32 @@ export default function FormBuilderScreen() {
         )}
 
         {!selectedForm && forms.length > 0 && (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyStateIcon}>
-              <FileText size={48} color="#475569" />
-            </View>
-            <Text style={styles.emptyStateTitle}>Select a Form</Text>
-            <Text style={styles.emptyStateText}>Choose a form from the sidebar to view and edit its fields</Text>
+          <View style={styles.formSelector}>
+            <Text style={styles.selectorTitle}>Select a Form to Edit</Text>
+            <ScrollView contentContainerStyle={styles.formGrid}>
+              {forms.map((form) => (
+                <TouchableOpacity
+                  key={form.id}
+                  style={styles.formCard}
+                  onPress={() => setSelectedForm(form)}
+                >
+                  <View style={styles.formCardHeader}>
+                    <Text style={styles.formCardName}>{form.name}</Text>
+                    <TouchableOpacity
+                      onPress={() => deleteForm(form.id)}
+                      style={styles.deleteButton}
+                    >
+                      <Trash2 size={18} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                  {form.description ? (
+                    <Text style={styles.formCardDesc} numberOfLines={2}>{form.description}</Text>
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         )}
-
         {!selectedForm && forms.length === 0 && (
           <View style={styles.emptyState}>
             <View style={styles.emptyStateIcon}>
@@ -665,6 +663,49 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
   },
+  formSelector: {
+    flex: 1,
+    padding: 40,
+    alignItems: 'center',
+  },
+  selectorTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: 32,
+  },
+  formGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'center',
+    paddingBottom: 20,
+  },
+  formCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 20,
+    width: 280,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  formCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  formCardName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    flex: 1,
+  },
+  formCardDesc: {
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 20,
+  },
   formsPanel: {
     width: 240,
     borderRightWidth: 1,
@@ -713,9 +754,8 @@ const styles = StyleSheet.create({
   },
   builderPanel: {
     flex: 1,
-    padding: 20,
-    paddingHorizontal: 24,
-    minWidth: 0,
+    alignItems: 'center',
+    paddingVertical: 20,
   },
   builderHeader: {
     flexDirection: 'row',
@@ -725,9 +765,23 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
+    width: '100%',
+    maxWidth: 900,
+    paddingHorizontal: 20,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#1E293B',
   },
   builderTitle: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '700',
     color: '#F1F5F9',
   },
@@ -752,10 +806,12 @@ const styles = StyleSheet.create({
   },
   fieldsContainer: {
     flex: 1,
-    minWidth: 0,
+    width: '100%',
+    maxWidth: 900,
   },
   fieldsContent: {
     paddingBottom: 20,
+    paddingHorizontal: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
