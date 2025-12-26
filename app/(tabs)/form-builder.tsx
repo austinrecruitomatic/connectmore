@@ -664,10 +664,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     flexDirection: 'row',
-    overflow: 'hidden',
   },
   formsPanel: {
-    width: 280,
+    width: 240,
     borderRightWidth: 1,
     borderRightColor: '#1E293B',
     padding: 16,
@@ -715,7 +714,8 @@ const styles = StyleSheet.create({
   builderPanel: {
     flex: 1,
     padding: 20,
-    alignItems: 'center',
+    paddingHorizontal: 24,
+    minWidth: 0,
   },
   builderHeader: {
     flexDirection: 'row',
@@ -725,8 +725,6 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
-    width: '100%',
-    maxWidth: 800,
   },
   builderTitle: {
     fontSize: 22,
@@ -754,22 +752,21 @@ const styles = StyleSheet.create({
   },
   fieldsContainer: {
     flex: 1,
-    width: '100%',
+    minWidth: 0,
   },
   fieldsContent: {
     paddingBottom: 20,
-    maxWidth: 800,
-    width: '100%',
-    alignSelf: 'center',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    width: '100%',
   },
   sectionHeaderText: {
     flex: 1,
+    minWidth: 0,
   },
   sectionLabel: {
     fontSize: 14,
@@ -778,13 +775,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    flexShrink: 0,
   },
   sectionDescription: {
     fontSize: 12,
     color: '#64748B',
     lineHeight: 16,
-    flexWrap: 'wrap',
   },
   lockBadge: {
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -805,6 +800,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    width: '100%',
   },
   defaultFieldIcon: {
     width: 40,
@@ -835,13 +831,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#334155',
+    width: '100%',
   },
   fieldCardContent: {
     flexDirection: 'row',
     gap: 12,
+    width: '100%',
   },
   fieldCardBody: {
     flex: 1,
+    minWidth: 0,
   },
   fieldCardHeader: {
     flexDirection: 'row',
@@ -850,18 +849,19 @@ const styles = StyleSheet.create({
   },
   fieldInfo: {
     flex: 1,
+    minWidth: 0,
   },
   fieldLabel: {
     fontSize: 15,
     fontWeight: '600',
     color: '#F1F5F9',
     marginBottom: 4,
-    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   fieldType: {
     fontSize: 12,
     color: '#94A3B8',
-    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   requiredBadge: {
     color: '#F87171',
@@ -906,6 +906,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#1E293B',
     borderStyle: 'dashed',
+    width: '100%',
   },
   emptyFieldsIcon: {
     width: 64,
