@@ -358,10 +358,61 @@ export default function CustomFormRenderer({
     );
   }
 
+  const defaultFields: FormField[] = [
+    {
+      id: 'default_first_name',
+      field_type: 'text',
+      label: 'First Name',
+      placeholder: 'Enter your first name',
+      help_text: '',
+      required: true,
+      options: [],
+      field_order: -4,
+    },
+    {
+      id: 'default_last_name',
+      field_type: 'text',
+      label: 'Last Name',
+      placeholder: 'Enter your last name',
+      help_text: '',
+      required: true,
+      options: [],
+      field_order: -3,
+    },
+    {
+      id: 'default_phone',
+      field_type: 'phone',
+      label: 'Phone Number',
+      placeholder: 'Enter your phone number',
+      help_text: '',
+      required: true,
+      options: [],
+      field_order: -2,
+    },
+    {
+      id: 'default_email',
+      field_type: 'email',
+      label: 'Email Address',
+      placeholder: 'Enter your email address',
+      help_text: '',
+      required: true,
+      options: [],
+      field_order: -1,
+    },
+  ];
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {fields.map(renderField)}
+        <Text style={styles.sectionTitle}>Contact Information</Text>
+        {defaultFields.map(renderField)}
+
+        {fields.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Additional Information</Text>
+            {fields.map(renderField)}
+          </>
+        )}
       </ScrollView>
 
       {!readonly && (
@@ -379,6 +430,14 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   fieldContainer: {
     marginBottom: 20,

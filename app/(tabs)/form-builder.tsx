@@ -346,6 +346,40 @@ export default function FormBuilderScreen() {
             </View>
 
             <ScrollView style={styles.fieldsContainer}>
+              <Text style={styles.sectionLabel}>Default Fields</Text>
+              <Text style={styles.sectionDescription}>These fields are always included in every form and cannot be removed</Text>
+
+              <View style={styles.defaultFieldCard}>
+                <View style={styles.fieldInfo}>
+                  <Text style={styles.fieldLabel}>First Name</Text>
+                  <Text style={styles.fieldType}>Short Text<Text style={styles.requiredBadge}> * Required</Text></Text>
+                </View>
+              </View>
+
+              <View style={styles.defaultFieldCard}>
+                <View style={styles.fieldInfo}>
+                  <Text style={styles.fieldLabel}>Last Name</Text>
+                  <Text style={styles.fieldType}>Short Text<Text style={styles.requiredBadge}> * Required</Text></Text>
+                </View>
+              </View>
+
+              <View style={styles.defaultFieldCard}>
+                <View style={styles.fieldInfo}>
+                  <Text style={styles.fieldLabel}>Phone Number</Text>
+                  <Text style={styles.fieldType}>Phone<Text style={styles.requiredBadge}> * Required</Text></Text>
+                </View>
+              </View>
+
+              <View style={styles.defaultFieldCard}>
+                <View style={styles.fieldInfo}>
+                  <Text style={styles.fieldLabel}>Email Address</Text>
+                  <Text style={styles.fieldType}>Email<Text style={styles.requiredBadge}> * Required</Text></Text>
+                </View>
+              </View>
+
+              <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Custom Fields</Text>
+              <Text style={styles.sectionDescription}>Add additional fields to capture more information from your leads</Text>
+
               {fields.map((field, index) => (
                 <View key={field.id} style={styles.fieldCard}>
                   <View style={styles.fieldCardHeader}>
@@ -392,7 +426,7 @@ export default function FormBuilderScreen() {
               ))}
               {fields.length === 0 && (
                 <View style={styles.emptyFields}>
-                  <Text style={styles.emptyFieldsText}>No fields yet. Add your first field to start building the form.</Text>
+                  <Text style={styles.emptyFieldsText}>No custom fields yet. Click "Add Field" to create your first custom field.</Text>
                 </View>
               )}
             </ScrollView>
@@ -649,6 +683,29 @@ const styles = StyleSheet.create({
   },
   fieldsContainer: {
     flex: 1,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionDescription: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  defaultFieldCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+    opacity: 0.7,
   },
   fieldCard: {
     backgroundColor: '#1E293B',
