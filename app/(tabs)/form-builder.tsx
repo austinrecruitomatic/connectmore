@@ -303,7 +303,7 @@ export default function FormBuilderScreen() {
       </View>
 
       <View style={styles.content}>
-        {selectedForm ? (
+        {selectedForm && (
           <View style={styles.builderPanel}>
             <View style={styles.builderHeader}>
               <View style={styles.headerLeft}>
