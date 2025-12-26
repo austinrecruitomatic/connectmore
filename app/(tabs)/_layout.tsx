@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Home, TrendingUp, User, Store, Users, DollarSign, Shield, Gift } from 'lucide-react-native';
+import { Home, TrendingUp, User, Store, Users, DollarSign, Shield, Gift, FileText } from 'lucide-react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useEffect } from 'react';
 
@@ -74,6 +74,16 @@ export default function TabLayout() {
           title: 'Sales',
           headerTitle: 'Sales Pipeline',
           tabBarIcon: ({ size, color }) => <TrendingUp size={size} color={color} />,
+          href: isCompany ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
+        name="form-builder"
+        options={{
+          title: 'Forms',
+          headerTitle: 'Form Builder',
+          headerShown: false,
+          tabBarIcon: ({ size, color }) => <FileText size={size} color={color} />,
           href: isCompany ? undefined : null,
         }}
       />

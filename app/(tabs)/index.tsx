@@ -89,10 +89,12 @@ export default function HomeScreen() {
     inventory_quantity: '',
     external_checkout_url: '',
     access_type: 'public' as 'public' | 'restricted',
+    form_id: '',
   });
 
   const [affiliates, setAffiliates] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
   const [selectedAffiliates, setSelectedAffiliates] = useState<Set<string>>(new Set());
+  const [customForms, setCustomForms] = useState<Array<{ id: string; name: string }>>([]);
 
   const [affiliateStats, setAffiliateStats] = useState({
     totalLeads: 0,
@@ -108,11 +110,27 @@ export default function HomeScreen() {
       if (isCompany) {
         loadCompanyId();
         loadAffiliates();
+        loadCustomForms();
       } else {
         loadAffiliateStats();
       }
     }
   }, [profile, isCompany]);
+
+  const loadCustomForms = async () => {
+    if (!profile?.id) return;
+
+    const { data } = await supabase
+      .from('custom_forms')
+      .select('id, name')
+      .eq('company_id', profile.id)
+      .eq('is_active', true)
+      .order('name');
+
+    if (data) {
+      setCustomForms(data);
+    }
+  };
 
   const loadAffiliateStats = async () => {
     if (!profile?.id) return;
@@ -249,6 +267,7 @@ export default function HomeScreen() {
       inventory_quantity: '',
       external_checkout_url: '',
       access_type: 'public',
+      form_id: '',
     });
     setSelectedAffiliates(new Set());
     setEditingProductId(null);
@@ -277,6 +296,7 @@ export default function HomeScreen() {
       inventory_quantity: product.inventory_quantity?.toString() || '',
       external_checkout_url: product.external_checkout_url || '',
       access_type: (product as any).access_type || 'public',
+      form_id: (product as any).form_id || '',
     });
 
     const { data: accessData } = await supabase
@@ -334,6 +354,7 @@ export default function HomeScreen() {
           : null,
         external_checkout_url: newProduct.external_checkout_url || null,
         access_type: newProduct.access_type,
+        form_id: newProduct.form_id || null,
       };
 
       let error;
@@ -714,6 +735,55 @@ export default function HomeScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                <Text style={styles.sectionHeader}>Custom Form (Optional)</Text>
+                <Text style={styles.helperText}>
+                  Attach a custom form to capture additional information from leads or customers
+                </Text>
+
+                <Text style={styles.label}>Select Form</Text>
+                <View style={styles.typeSelector}>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      !newProduct.form_id && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setNewProduct({ ...newProduct, form_id: '' })}
+                  >
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        !newProduct.form_id && styles.typeButtonTextActive,
+                      ]}
+                    >
+                      No Form
+                    </Text>
+                  </TouchableOpacity>
+                  {customForms.map((form) => (
+                    <TouchableOpacity
+                      key={form.id}
+                      style={[
+                        styles.typeButton,
+                        newProduct.form_id === form.id && styles.typeButtonActive,
+                      ]}
+                      onPress={() => setNewProduct({ ...newProduct, form_id: form.id })}
+                    >
+                      <Text
+                        style={[
+                          styles.typeButtonText,
+                          newProduct.form_id === form.id && styles.typeButtonTextActive,
+                        ]}
+                      >
+                        {form.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {customForms.length === 0 && (
+                  <Text style={styles.helperText}>
+                    No forms available. Create a form in the Forms tab first.
+                  </Text>
+                )}
 
                 <Text style={styles.sectionHeader}>Sale Type & Pricing</Text>
                 <Text style={styles.helperText}>
