@@ -196,8 +196,19 @@ export default function StripeCardSetupScreen() {
     return null;
   }
 
+  console.log('=== RENDERING STRIPE CARD SETUP PAGE ===');
+  console.log('Client Secret:', clientSecret ? 'Present' : 'Missing');
+  console.log('Loading:', loading);
+  console.log('Stripe:', !!stripe);
+  console.log('Card Element:', !!cardElement);
+
   return (
     <View style={styles.container}>
+      <View style={{backgroundColor: '#10B981', padding: 20}}>
+        <Text style={{color: '#fff', fontSize: 20, fontWeight: 'bold', textAlign: 'center'}}>
+          CARD SETUP PAGE IS RENDERING
+        </Text>
+      </View>
       <View style={styles.header}>
         <Text style={styles.title}>Add Payment Card</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
