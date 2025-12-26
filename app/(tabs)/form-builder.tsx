@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
   builderPanel: {
     flex: 1,
     padding: 20,
-    minWidth: 600,
+    alignItems: 'center',
   },
   builderHeader: {
     flexDirection: 'row',
@@ -725,6 +725,8 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
+    width: '100%',
+    maxWidth: 800,
   },
   builderTitle: {
     fontSize: 22,
@@ -752,21 +754,22 @@ const styles = StyleSheet.create({
   },
   fieldsContainer: {
     flex: 1,
+    width: '100%',
   },
   fieldsContent: {
     paddingBottom: 20,
-    minWidth: 400,
+    maxWidth: 800,
+    width: '100%',
+    alignSelf: 'center',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    minWidth: 400,
   },
   sectionHeaderText: {
     flex: 1,
-    minWidth: 200,
   },
   sectionLabel: {
     fontSize: 14,
@@ -802,7 +805,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    minWidth: 400,
   },
   defaultFieldIcon: {
     width: 40,
@@ -833,7 +835,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#334155',
-    minWidth: 400,
   },
   fieldCardContent: {
     flexDirection: 'row',
@@ -849,7 +850,6 @@ const styles = StyleSheet.create({
   },
   fieldInfo: {
     flex: 1,
-    minWidth: 200,
   },
   fieldLabel: {
     fontSize: 15,
@@ -906,7 +906,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#1E293B',
     borderStyle: 'dashed',
-    minWidth: 400,
   },
   emptyFieldsIcon: {
     width: 64,
