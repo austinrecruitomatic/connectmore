@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Plus, Edit2, Trash2, GripVertical, Eye, X, ArrowUp, ArrowDown, Save } from 'lucide-react-native';
+import { Plus, Edit2, Trash2, GripVertical, Eye, X, ArrowUp, ArrowDown, Save, Lock, User, Phone, Mail, FileText } from 'lucide-react-native';
 
 interface CustomForm {
   id: string;
@@ -346,96 +346,144 @@ export default function FormBuilderScreen() {
             </View>
 
             <ScrollView style={styles.fieldsContainer}>
-              <Text style={styles.sectionLabel}>Default Fields</Text>
-              <Text style={styles.sectionDescription}>These fields are always included in every form and cannot be removed</Text>
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={styles.sectionLabel}>Default Fields</Text>
+                  <Text style={styles.sectionDescription}>Always included • Cannot be removed</Text>
+                </View>
+                <View style={styles.lockBadge}>
+                  <Lock size={14} color="#60A5FA" />
+                </View>
+              </View>
 
               <View style={styles.defaultFieldCard}>
+                <View style={styles.defaultFieldIcon}>
+                  <User size={18} color="#60A5FA" />
+                </View>
                 <View style={styles.fieldInfo}>
                   <Text style={styles.fieldLabel}>First Name</Text>
-                  <Text style={styles.fieldType}>Short Text<Text style={styles.requiredBadge}> * Required</Text></Text>
+                  <Text style={styles.fieldType}>Short Text<Text style={styles.requiredBadge}> • Required</Text></Text>
                 </View>
               </View>
 
               <View style={styles.defaultFieldCard}>
+                <View style={styles.defaultFieldIcon}>
+                  <User size={18} color="#60A5FA" />
+                </View>
                 <View style={styles.fieldInfo}>
                   <Text style={styles.fieldLabel}>Last Name</Text>
-                  <Text style={styles.fieldType}>Short Text<Text style={styles.requiredBadge}> * Required</Text></Text>
+                  <Text style={styles.fieldType}>Short Text<Text style={styles.requiredBadge}> • Required</Text></Text>
                 </View>
               </View>
 
               <View style={styles.defaultFieldCard}>
+                <View style={styles.defaultFieldIcon}>
+                  <Phone size={18} color="#60A5FA" />
+                </View>
                 <View style={styles.fieldInfo}>
                   <Text style={styles.fieldLabel}>Phone Number</Text>
-                  <Text style={styles.fieldType}>Phone<Text style={styles.requiredBadge}> * Required</Text></Text>
+                  <Text style={styles.fieldType}>Phone<Text style={styles.requiredBadge}> • Required</Text></Text>
                 </View>
               </View>
 
               <View style={styles.defaultFieldCard}>
+                <View style={styles.defaultFieldIcon}>
+                  <Mail size={18} color="#60A5FA" />
+                </View>
                 <View style={styles.fieldInfo}>
                   <Text style={styles.fieldLabel}>Email Address</Text>
-                  <Text style={styles.fieldType}>Email<Text style={styles.requiredBadge}> * Required</Text></Text>
+                  <Text style={styles.fieldType}>Email<Text style={styles.requiredBadge}> • Required</Text></Text>
                 </View>
               </View>
 
-              <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Custom Fields</Text>
-              <Text style={styles.sectionDescription}>Add additional fields to capture more information from your leads</Text>
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Custom Fields</Text>
+                  <Text style={styles.sectionDescription}>Capture additional information from leads</Text>
+                </View>
+              </View>
 
               {fields.map((field, index) => (
                 <View key={field.id} style={styles.fieldCard}>
-                  <View style={styles.fieldCardHeader}>
-                    <View style={styles.fieldInfo}>
-                      <Text style={styles.fieldLabel}>{field.label}</Text>
-                      <Text style={styles.fieldType}>
-                        {FIELD_TYPES.find(t => t.value === field.field_type)?.label}
-                        {field.required && <Text style={styles.requiredBadge}> * Required</Text>}
-                      </Text>
+                  <View style={styles.fieldCardContent}>
+                    <View style={styles.customFieldIcon}>
+                      <FileText size={18} color="#10B981" />
                     </View>
-                    <View style={styles.fieldActions}>
-                      <TouchableOpacity
-                        onPress={() => moveField(field.id, 'up')}
-                        disabled={index === 0}
-                        style={[styles.iconButton, index === 0 && styles.iconButtonDisabled]}
-                      >
-                        <ArrowUp size={16} color={index === 0 ? '#64748B' : '#94A3B8'} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => moveField(field.id, 'down')}
-                        disabled={index === fields.length - 1}
-                        style={[styles.iconButton, index === fields.length - 1 && styles.iconButtonDisabled]}
-                      >
-                        <ArrowDown size={16} color={index === fields.length - 1 ? '#64748B' : '#94A3B8'} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => openFieldModal(field)}
-                        style={styles.iconButton}
-                      >
-                        <Edit2 size={16} color="#3B82F6" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => deleteField(field.id)}
-                        style={styles.iconButton}
-                      >
-                        <Trash2 size={16} color="#EF4444" />
-                      </TouchableOpacity>
+                    <View style={styles.fieldCardBody}>
+                      <View style={styles.fieldCardHeader}>
+                        <View style={styles.fieldInfo}>
+                          <Text style={styles.fieldLabel}>{field.label}</Text>
+                          <Text style={styles.fieldType}>
+                            {FIELD_TYPES.find(t => t.value === field.field_type)?.label}
+                            {field.required && <Text style={styles.requiredBadge}> • Required</Text>}
+                          </Text>
+                        </View>
+                        <View style={styles.fieldActions}>
+                          <TouchableOpacity
+                            onPress={() => moveField(field.id, 'up')}
+                            disabled={index === 0}
+                            style={[styles.iconButton, index === 0 && styles.iconButtonDisabled]}
+                          >
+                            <ArrowUp size={16} color={index === 0 ? '#475569' : '#94A3B8'} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => moveField(field.id, 'down')}
+                            disabled={index === fields.length - 1}
+                            style={[styles.iconButton, index === fields.length - 1 && styles.iconButtonDisabled]}
+                          >
+                            <ArrowDown size={16} color={index === fields.length - 1 ? '#475569' : '#94A3B8'} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => openFieldModal(field)}
+                            style={[styles.iconButton, styles.iconButtonEdit]}
+                          >
+                            <Edit2 size={16} color="#3B82F6" />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => deleteField(field.id)}
+                            style={[styles.iconButton, styles.iconButtonDelete]}
+                          >
+                            <Trash2 size={16} color="#EF4444" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      {field.help_text ? (
+                        <Text style={styles.fieldHelpText}>{field.help_text}</Text>
+                      ) : null}
                     </View>
                   </View>
-                  {field.help_text ? (
-                    <Text style={styles.fieldHelpText}>{field.help_text}</Text>
-                  ) : null}
                 </View>
               ))}
               {fields.length === 0 && (
                 <View style={styles.emptyFields}>
-                  <Text style={styles.emptyFieldsText}>No custom fields yet. Click "Add Field" to create your first custom field.</Text>
+                  <View style={styles.emptyFieldsIcon}>
+                    <Plus size={32} color="#475569" />
+                  </View>
+                  <Text style={styles.emptyFieldsTitle}>No Custom Fields</Text>
+                  <Text style={styles.emptyFieldsText}>Click "Add Field" above to create your first custom field and start capturing additional lead information.</Text>
                 </View>
               )}
             </ScrollView>
           </View>
         )}
 
-        {!selectedForm && (
+        {!selectedForm && forms.length > 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>Select a form to start building</Text>
+            <View style={styles.emptyStateIcon}>
+              <FileText size={48} color="#475569" />
+            </View>
+            <Text style={styles.emptyStateTitle}>Select a Form</Text>
+            <Text style={styles.emptyStateText}>Choose a form from the sidebar to view and edit its fields</Text>
+          </View>
+        )}
+
+        {!selectedForm && forms.length === 0 && (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyStateIcon}>
+              <Plus size={48} color="#475569" />
+            </View>
+            <Text style={styles.emptyStateTitle}>No Forms Yet</Text>
+            <Text style={styles.emptyStateText}>Create your first form by clicking "New Form" above to start capturing lead information</Text>
           </View>
         )}
       </View>
@@ -594,15 +642,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#3B82F6',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
     gap: 8,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   createButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   content: {
     flex: 1,
@@ -615,24 +668,26 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   panelTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#94A3B8',
-    marginBottom: 12,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 16,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
   formItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
+    padding: 14,
     backgroundColor: '#1E293B',
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   formItemSelected: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     borderWidth: 2,
     borderColor: '#3B82F6',
   },
@@ -660,52 +715,95 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E293B',
   },
   builderTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     color: '#F1F5F9',
   },
   addFieldButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#10B981',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     gap: 6,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   addFieldText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   fieldsContainer: {
     flex: 1,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#F1F5F9',
-    marginBottom: 6,
+    marginBottom: 4,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   sectionDescription: {
-    fontSize: 13,
-    color: '#94A3B8',
-    marginBottom: 16,
-    lineHeight: 18,
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  lockBadge: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 20,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
   },
   defaultFieldCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderStyle: 'dashed',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  defaultFieldIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#3B82F6',
-    opacity: 0.7,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  customFieldIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
   },
   fieldCard: {
     backgroundColor: '#1E293B',
@@ -714,6 +812,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#334155',
+  },
+  fieldCardContent: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fieldCardBody: {
+    flex: 1,
   },
   fieldCardHeader: {
     flexDirection: 'row',
@@ -724,54 +829,109 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fieldLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#F1F5F9',
     marginBottom: 4,
   },
   fieldType: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#94A3B8',
   },
   requiredBadge: {
-    color: '#EF4444',
+    color: '#F87171',
     fontWeight: '600',
   },
   fieldHelpText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
-    marginTop: 8,
+    marginTop: 10,
     fontStyle: 'italic',
+    paddingLeft: 0,
   },
   fieldActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
+    marginLeft: 8,
   },
   iconButton: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: '#334155',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  iconButtonEdit: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  iconButtonDelete: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   iconButtonDisabled: {
     opacity: 0.3,
   },
   emptyFields: {
-    padding: 40,
+    padding: 48,
     alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#1E293B',
+    borderStyle: 'dashed',
+  },
+  emptyFieldsIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#1E293B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyFieldsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 8,
   },
   emptyFieldsText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748B',
     textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 300,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
+  },
+  emptyStateIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#1E293B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    borderWidth: 2,
+    borderColor: '#334155',
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#94A3B8',
+    marginBottom: 12,
   },
   emptyStateText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 400,
   },
   emptyText: {
     fontSize: 14,
@@ -894,16 +1054,21 @@ const styles = StyleSheet.create({
   primaryButton: {
     flexDirection: 'row',
     backgroundColor: '#3B82F6',
-    padding: 14,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
     gap: 8,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
