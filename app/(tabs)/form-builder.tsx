@@ -345,9 +345,13 @@ export default function FormBuilderScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.fieldsContainer}>
+            <ScrollView
+              style={styles.fieldsContainer}
+              contentContainerStyle={styles.fieldsContent}
+              showsVerticalScrollIndicator={true}
+            >
               <View style={styles.sectionHeader}>
-                <View>
+                <View style={styles.sectionHeaderText}>
                   <Text style={styles.sectionLabel}>Default Fields</Text>
                   <Text style={styles.sectionDescription}>Always included • Cannot be removed</Text>
                 </View>
@@ -397,7 +401,7 @@ export default function FormBuilderScreen() {
               </View>
 
               <View style={styles.sectionHeader}>
-                <View>
+                <View style={styles.sectionHeaderText}>
                   <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Custom Fields</Text>
                   <Text style={styles.sectionDescription}>Capture additional information from leads</Text>
                 </View>
@@ -660,6 +664,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     flexDirection: 'row',
+    overflow: 'hidden',
   },
   formsPanel: {
     width: 280,
@@ -710,6 +715,7 @@ const styles = StyleSheet.create({
   builderPanel: {
     flex: 1,
     padding: 20,
+    minWidth: 600,
   },
   builderHeader: {
     flexDirection: 'row',
@@ -747,11 +753,20 @@ const styles = StyleSheet.create({
   fieldsContainer: {
     flex: 1,
   },
+  fieldsContent: {
+    paddingBottom: 20,
+    minWidth: 400,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    minWidth: 400,
+  },
+  sectionHeaderText: {
+    flex: 1,
+    minWidth: 200,
   },
   sectionLabel: {
     fontSize: 14,
@@ -760,11 +775,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    flexShrink: 0,
   },
   sectionDescription: {
     fontSize: 12,
     color: '#64748B',
     lineHeight: 16,
+    flexWrap: 'wrap',
   },
   lockBadge: {
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -772,6 +789,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
+    flexShrink: 0,
   },
   defaultFieldCard: {
     backgroundColor: 'rgba(59, 130, 246, 0.05)',
@@ -784,6 +802,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    minWidth: 400,
   },
   defaultFieldIcon: {
     width: 40,
@@ -794,6 +813,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.2)',
+    flexShrink: 0,
   },
   customFieldIcon: {
     width: 40,
@@ -804,6 +824,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.2)',
+    flexShrink: 0,
   },
   fieldCard: {
     backgroundColor: '#1E293B',
@@ -812,6 +833,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#334155',
+    minWidth: 400,
   },
   fieldCardContent: {
     flexDirection: 'row',
@@ -827,16 +849,19 @@ const styles = StyleSheet.create({
   },
   fieldInfo: {
     flex: 1,
+    minWidth: 200,
   },
   fieldLabel: {
     fontSize: 15,
     fontWeight: '600',
     color: '#F1F5F9',
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   fieldType: {
     fontSize: 12,
     color: '#94A3B8',
+    flexWrap: 'wrap',
   },
   requiredBadge: {
     color: '#F87171',
@@ -853,6 +878,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
     marginLeft: 8,
+    flexShrink: 0,
   },
   iconButton: {
     padding: 8,
@@ -880,6 +906,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#1E293B',
     borderStyle: 'dashed',
+    minWidth: 400,
   },
   emptyFieldsIcon: {
     width: 64,
