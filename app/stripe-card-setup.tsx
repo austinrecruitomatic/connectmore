@@ -33,6 +33,8 @@ export default function StripeCardSetupScreen() {
     if (typeof window === 'undefined') return;
 
     try {
+      console.log('Starting Stripe loading process...');
+
       let attempts = 0;
       while (!(window as any).Stripe && attempts < 50) {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -40,17 +42,33 @@ export default function StripeCardSetupScreen() {
       }
 
       if (!(window as any).Stripe) {
-        throw new Error('Stripe.js failed to load');
+        throw new Error('Stripe.js failed to load. Please check your internet connection.');
       }
 
+      console.log('Stripe.js loaded successfully');
+
       const publishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+      console.log('Publishable key:', publishableKey ? `${publishableKey.substring(0, 20)}...` : 'MISSING');
+
       if (!publishableKey || publishableKey === 'pk_test_your_key_here') {
         throw new Error('Stripe publishable key not configured');
       }
 
-      const stripeInstance = (window as any).Stripe(publishableKey);
-      setStripe(stripeInstance);
+      if (!publishableKey.startsWith('pk_test_') && !publishableKey.startsWith('pk_live_')) {
+        throw new Error('Invalid Stripe publishable key format');
+      }
 
+      console.log('Creating Stripe instance...');
+      const stripeInstance = (window as any).Stripe(publishableKey);
+
+      if (!stripeInstance) {
+        throw new Error('Failed to initialize Stripe. Please check your Stripe key.');
+      }
+
+      setStripe(stripeInstance);
+      console.log('Stripe instance created');
+
+      console.log('Creating card elements...');
       const elements = stripeInstance.elements();
       const card = elements.create('card', {
         style: {
@@ -70,14 +88,20 @@ export default function StripeCardSetupScreen() {
         },
       });
 
+      console.log('Card element created');
+
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const container = document.getElementById('stripe-card-element');
+      console.log('Container found:', !!container);
+
       if (container) {
+        console.log('Mounting card element...');
         card.mount('#stripe-card-element');
         setCardElement(card);
 
         card.on('change', (event: any) => {
+          console.log('Card change event:', event);
           if (event.error) {
             setError(event.error.message);
           } else {
@@ -86,15 +110,30 @@ export default function StripeCardSetupScreen() {
         });
 
         card.on('ready', () => {
+          console.log('Card element ready!');
           setLoading(false);
         });
+
+        setTimeout(() => {
+          console.log('Timeout check - loading state:', loading);
+          if (loading) {
+            console.warn('Card element did not fire ready event after 10 seconds');
+            setLoading(false);
+          }
+        }, 10000);
       } else {
         throw new Error('Card container not found');
       }
     } catch (err: any) {
       console.error('Error loading Stripe:', err);
-      Alert.alert('Error', err.message || 'Failed to load payment form');
-      router.back();
+      Alert.alert(
+        'Stripe Configuration Error',
+        err.message || 'Failed to load payment form. Please verify your Stripe keys are correct in the dashboard.',
+        [
+          { text: 'Check Console', onPress: () => console.log('Open browser console for details') },
+          { text: 'Go Back', onPress: () => router.back() }
+        ]
+      );
     }
   };
 
