@@ -137,11 +137,6 @@ export default function PayoutSettingsScreen() {
     console.log('=== handleAddCard called ===');
     console.log('Platform:', Platform.OS);
 
-    if (Platform.OS !== 'web') {
-      Alert.alert('Web Only', 'Card setup is currently only available on web');
-      return;
-    }
-
     setCardLoading(true);
     console.log('Card loading set to true');
 

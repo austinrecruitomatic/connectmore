@@ -1,144 +1,26 @@
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, Platform } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react-native';
+import { CardField, useStripe, StripeProvider } from '@stripe/stripe-react-native';
 
-export default function StripeCardSetupScreen() {
+function CardSetupContent() {
   const router = useRouter();
   const { clientSecret } = useLocalSearchParams();
-  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [stripe, setStripe] = useState<any>(null);
-  const [cardElement, setCardElement] = useState<any>(null);
-
-  useEffect(() => {
-    if (!clientSecret) {
-      Alert.alert('Error', 'No client secret provided');
-      router.back();
-      return;
-    }
-
-    if (Platform.OS !== 'web') {
-      Alert.alert('Error', 'Card setup is only available on web');
-      router.back();
-      return;
-    }
-
-    loadStripe();
-  }, [clientSecret]);
-
-  const loadStripe = async () => {
-    if (typeof window === 'undefined') return;
-
-    try {
-      console.log('Starting Stripe loading process...');
-
-      let attempts = 0;
-      while (!(window as any).Stripe && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-
-      if (!(window as any).Stripe) {
-        throw new Error('Stripe.js failed to load. Please check your internet connection.');
-      }
-
-      console.log('Stripe.js loaded successfully');
-
-      const publishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-      console.log('Publishable key:', publishableKey ? `${publishableKey.substring(0, 20)}...` : 'MISSING');
-
-      if (!publishableKey || publishableKey === 'pk_test_your_key_here') {
-        throw new Error('Stripe publishable key not configured');
-      }
-
-      if (!publishableKey.startsWith('pk_test_') && !publishableKey.startsWith('pk_live_')) {
-        throw new Error('Invalid Stripe publishable key format');
-      }
-
-      console.log('Creating Stripe instance...');
-      const stripeInstance = (window as any).Stripe(publishableKey);
-
-      if (!stripeInstance) {
-        throw new Error('Failed to initialize Stripe. Please check your Stripe key.');
-      }
-
-      setStripe(stripeInstance);
-      console.log('Stripe instance created');
-
-      console.log('Creating card elements...');
-      const elements = stripeInstance.elements();
-      const card = elements.create('card', {
-        style: {
-          base: {
-            color: '#1E293B',
-            fontSize: '18px',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            fontWeight: '500',
-            '::placeholder': {
-              color: '#64748B',
-            },
-            iconColor: '#64748B',
-          },
-          invalid: {
-            color: '#EF4444',
-            iconColor: '#EF4444',
-          },
-        },
-      });
-
-      console.log('Card element created');
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const container = document.getElementById('stripe-card-element');
-      console.log('Container found:', !!container);
-
-      if (container) {
-        console.log('Mounting card element...');
-        card.mount('#stripe-card-element');
-        setCardElement(card);
-
-        card.on('change', (event: any) => {
-          console.log('Card change event:', event);
-          if (event.error) {
-            setError(event.error.message);
-          } else {
-            setError('');
-          }
-        });
-
-        card.on('ready', () => {
-          console.log('Card element ready event fired!');
-          setLoading(false);
-        });
-
-        // Force loading to false after 2 seconds if ready event doesn't fire
-        setTimeout(() => {
-          console.log('Forcing loading to false after timeout');
-          setLoading(false);
-        }, 2000);
-      } else {
-        throw new Error('Card container not found');
-      }
-    } catch (err: any) {
-      console.error('Error loading Stripe:', err);
-      Alert.alert(
-        'Stripe Configuration Error',
-        err.message || 'Failed to load payment form. Please verify your Stripe keys are correct in the dashboard.',
-        [
-          { text: 'Check Console', onPress: () => console.log('Open browser console for details') },
-          { text: 'Go Back', onPress: () => router.back() }
-        ]
-      );
-    }
-  };
+  const { confirmSetupIntent } = useStripe();
+  const [cardComplete, setCardComplete] = useState(false);
 
   const handleSubmit = async () => {
-    if (!stripe || !cardElement) {
-      setError('Payment form not ready');
+    if (!clientSecret || typeof clientSecret !== 'string') {
+      setError('Invalid setup intent');
+      return;
+    }
+
+    if (!cardComplete) {
+      setError('Please enter complete card details');
       return;
     }
 
@@ -146,14 +28,9 @@ export default function StripeCardSetupScreen() {
     setError('');
 
     try {
-      const { error: confirmError, setupIntent } = await stripe.confirmCardSetup(
-        clientSecret as string,
-        {
-          payment_method: {
-            card: cardElement,
-          },
-        }
-      );
+      const { error: confirmError, setupIntent } = await confirmSetupIntent(clientSecret, {
+        paymentMethodType: 'Card',
+      });
 
       if (confirmError) {
         throw new Error(confirmError.message);
@@ -193,23 +70,8 @@ export default function StripeCardSetupScreen() {
     }
   };
 
-  if (Platform.OS !== 'web') {
-    return null;
-  }
-
-  console.log('=== RENDERING STRIPE CARD SETUP PAGE ===');
-  console.log('Client Secret:', clientSecret ? 'Present' : 'Missing');
-  console.log('Loading:', loading);
-  console.log('Stripe:', !!stripe);
-  console.log('Card Element:', !!cardElement);
-
   return (
     <View style={styles.container}>
-      <View style={{backgroundColor: '#10B981', padding: 20}}>
-        <Text style={{color: '#fff', fontSize: 20, fontWeight: 'bold', textAlign: 'center'}}>
-          CARD SETUP PAGE IS RENDERING
-        </Text>
-      </View>
       <View style={styles.header}>
         <Text style={styles.title}>Add Payment Card</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
@@ -219,36 +81,30 @@ export default function StripeCardSetupScreen() {
 
       <View style={styles.content}>
         <Text style={styles.description}>
-          Enter your card details to securely store your payment method with Stripe.
+          Enter your card details to securely store your payment method for B2B commission payments.
         </Text>
 
         <View style={styles.cardContainer}>
-          <Text style={{fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#F1F5F9'}}>
-            Card Information
+          <Text style={styles.cardLabel}>Card Information</Text>
+          <CardField
+            postalCodeEnabled={true}
+            placeholders={{
+              number: '4242 4242 4242 4242',
+            }}
+            cardStyle={styles.cardField}
+            style={styles.cardFieldContainer}
+            onCardChange={(cardDetails) => {
+              setCardComplete(cardDetails.complete);
+              if (cardDetails.validNumber === 'Invalid') {
+                setError('Invalid card number');
+              } else {
+                setError('');
+              }
+            }}
+          />
+          <Text style={styles.cardHint}>
+            Enter your card number, expiration date, CVC, and postal code
           </Text>
-          {typeof window !== 'undefined' && (
-            <div
-              id="stripe-card-element"
-              style={{
-                padding: '18px',
-                backgroundColor: '#FFFFFF',
-                borderRadius: '12px',
-                border: '2px solid #3B82F6',
-                minHeight: '60px',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-              }}
-            />
-          )}
-          <Text style={{fontSize: 13, color: '#94A3B8', marginTop: 10, lineHeight: 18}}>
-            Enter your card number, expiration date (MM/YY), and security code (CVC)
-          </Text>
-
-          {loading && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="#3B82F6" />
-              <Text style={styles.loadingText}>Loading payment form...</Text>
-            </View>
-          )}
         </View>
 
         {error ? (
@@ -257,17 +113,17 @@ export default function StripeCardSetupScreen() {
 
         <View style={styles.securityNotice}>
           <Text style={styles.securityText}>
-            🔒 Your payment information is securely processed by Stripe. We never store your card details.
+            Your payment information is securely processed by Stripe. We never store your card details.
           </Text>
         </View>
 
         <TouchableOpacity
           style={[
             styles.submitButton,
-            (loading || processing || !stripe || !cardElement) && styles.submitButtonDisabled
+            (processing || !cardComplete) && styles.submitButtonDisabled
           ]}
           onPress={handleSubmit}
-          disabled={loading || processing || !stripe || !cardElement}
+          disabled={processing || !cardComplete}
         >
           {processing ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -277,6 +133,39 @@ export default function StripeCardSetupScreen() {
         </TouchableOpacity>
       </View>
     </View>
+  );
+}
+
+export default function StripeCardSetupScreen() {
+  const { clientSecret } = useLocalSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!clientSecret) {
+      Alert.alert('Error', 'No client secret provided');
+      router.back();
+      return;
+    }
+  }, [clientSecret]);
+
+  const publishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+  if (!publishableKey || publishableKey === 'pk_test_your_key_here') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.errorText}>
+            Stripe publishable key not configured. Please add your Stripe key to the environment variables.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <StripeProvider publishableKey={publishableKey}>
+      <CardSetupContent />
+    </StripeProvider>
   );
 }
 
@@ -313,26 +202,30 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     marginBottom: 20,
-    position: 'relative',
-    minHeight: 140,
   },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 40,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  cardLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#F1F5F9',
+  },
+  cardFieldContainer: {
+    height: 50,
+    marginBottom: 8,
+  },
+  cardField: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#3B82F6',
+    textColor: '#1E293B',
+    fontSize: 16,
+    placeholderColor: '#64748B',
   },
-  loadingText: {
+  cardHint: {
+    fontSize: 13,
     color: '#94A3B8',
-    marginTop: 12,
-    fontSize: 14,
+    lineHeight: 18,
   },
   errorText: {
     color: '#EF4444',
@@ -367,11 +260,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-if (typeof window !== 'undefined' && !document.getElementById('stripe-js')) {
-  const script = document.createElement('script');
-  script.id = 'stripe-js';
-  script.src = 'https://js.stripe.com/v3/';
-  script.async = true;
-  document.head.appendChild(script);
-}
