@@ -73,13 +73,14 @@ export default function StripeCardSetupScreen() {
       const card = elements.create('card', {
         style: {
           base: {
-            color: '#FFFFFF',
-            fontSize: '16px',
+            color: '#1E293B',
+            fontSize: '18px',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontWeight: '500',
             '::placeholder': {
-              color: '#94A3B8',
+              color: '#64748B',
             },
-            iconColor: '#94A3B8',
+            iconColor: '#64748B',
           },
           invalid: {
             color: '#EF4444',
@@ -222,18 +223,25 @@ export default function StripeCardSetupScreen() {
         </Text>
 
         <View style={styles.cardContainer}>
+          <Text style={{fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#F1F5F9'}}>
+            Card Information
+          </Text>
           {typeof window !== 'undefined' && (
             <div
               id="stripe-card-element"
               style={{
-                padding: '16px',
-                backgroundColor: '#1E293B',
-                borderRadius: '8px',
-                border: '1px solid #334155',
-                minHeight: '44px',
+                padding: '18px',
+                backgroundColor: '#FFFFFF',
+                borderRadius: '12px',
+                border: '2px solid #3B82F6',
+                minHeight: '60px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
               }}
             />
           )}
+          <Text style={{fontSize: 13, color: '#94A3B8', marginTop: 10, lineHeight: 18}}>
+            Enter your card number, expiration date (MM/YY), and security code (CVC)
+          </Text>
 
           {loading && (
             <View style={styles.loadingOverlay}>
@@ -306,20 +314,20 @@ const styles = StyleSheet.create({
   cardContainer: {
     marginBottom: 20,
     position: 'relative',
-    minHeight: 80,
+    minHeight: 140,
   },
   loadingOverlay: {
     position: 'absolute',
-    top: 0,
+    top: 40,
     left: 0,
     right: 0,
-    bottom: 0,
-    backgroundColor: '#1E293B',
+    height: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#334155',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
   },
   loadingText: {
     color: '#94A3B8',
