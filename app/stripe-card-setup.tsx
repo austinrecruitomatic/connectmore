@@ -110,17 +110,15 @@ export default function StripeCardSetupScreen() {
         });
 
         card.on('ready', () => {
-          console.log('Card element ready!');
+          console.log('Card element ready event fired!');
           setLoading(false);
         });
 
+        // Force loading to false after 2 seconds if ready event doesn't fire
         setTimeout(() => {
-          console.log('Timeout check - loading state:', loading);
-          if (loading) {
-            console.warn('Card element did not fire ready event after 10 seconds');
-            setLoading(false);
-          }
-        }, 10000);
+          console.log('Forcing loading to false after timeout');
+          setLoading(false);
+        }, 2000);
       } else {
         throw new Error('Card container not found');
       }
