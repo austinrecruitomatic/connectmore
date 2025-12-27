@@ -554,7 +554,9 @@ export default function CommissionsScreen() {
     .filter((c) => c.status === 'paid')
     .reduce((sum, c) => sum + c.affiliate_payout_amount, 0);
 
-  const platformFeeTotal = commissions.reduce((sum, c) => sum + c.platform_fee_amount, 0);
+  const platformFeeTotal = commissions
+    .filter((c) => c.status !== 'denied')
+    .reduce((sum, c) => sum + c.platform_fee_amount, 0);
 
   const isCompany = profile?.user_type === 'company';
   const isAffiliate = profile?.user_type === 'affiliate';
