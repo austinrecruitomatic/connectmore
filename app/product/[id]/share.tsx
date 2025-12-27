@@ -179,8 +179,22 @@ export default function ProductShare() {
           },
         });
 
-        Alert.alert('Checkout', 'Redirecting to checkout...');
+        if (Platform.OS === 'web') {
+          window.location.href = trackingUrl;
+        } else {
+          Alert.alert('External Checkout', 'Opening external checkout...');
+        }
       } else {
+        await supabase.from('leads').insert({
+          partnership_id: partnership.id,
+          lead_type: 'click',
+          lead_data: {
+            destination: 'internal_checkout',
+            type: 'checkout_page',
+            product_id: product.id,
+          },
+        });
+
         router.push(`/product/${product.id}/checkout?partnershipId=${partnership.id}`);
       }
     } else {
