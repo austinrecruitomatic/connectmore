@@ -25,6 +25,7 @@ import {
   MousePointer,
   Send,
   Ban,
+  Bell,
 } from 'lucide-react-native';
 
 type Commission = {
@@ -93,10 +94,16 @@ type LeadSubmission = {
   landing_page_slug: string | null;
   affiliate_partnerships: {
     affiliate_id: string;
+    company_id: string;
     companies: {
       company_name: string;
     };
   };
+  update_requests?: Array<{
+    id: string;
+    requested_at: string;
+    resolved_at: string | null;
+  }>;
 };
 
 export default function CommissionsScreen() {
@@ -346,7 +353,13 @@ export default function CommissionsScreen() {
             landing_page_slug,
             affiliate_partnerships!inner (
               affiliate_id,
+              company_id,
               companies (company_name)
+            ),
+            update_requests:lead_update_requests (
+              id,
+              requested_at,
+              resolved_at
             )
           `)
           .in('partnership_id', partnershipIds)
@@ -539,6 +552,47 @@ export default function CommissionsScreen() {
         return '#EF4444';
       default:
         return '#64748B';
+    }
+  };
+
+  const isLeadOver24Hours = (createdAt: string) => {
+    const now = new Date().getTime();
+    const leadTime = new Date(createdAt).getTime();
+    const hoursDiff = (now - leadTime) / (1000 * 60 * 60);
+    return hoursDiff > 24;
+  };
+
+  const hasUnresolvedRequest = (lead: LeadSubmission) => {
+    return lead.update_requests?.some(req => req.resolved_at === null) || false;
+  };
+
+  const shouldShowRequestButton = (lead: LeadSubmission) => {
+    return (
+      lead.status === 'new' &&
+      isLeadOver24Hours(lead.created_at) &&
+      !hasUnresolvedRequest(lead)
+    );
+  };
+
+  const handleRequestUpdate = async (lead: LeadSubmission) => {
+    if (!profile?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('lead_update_requests')
+        .insert({
+          contact_submission_id: lead.id,
+          affiliate_id: profile.id,
+          company_id: lead.affiliate_partnerships.company_id,
+        });
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Update request sent to the company');
+      loadTrackingStats();
+    } catch (error: any) {
+      console.error('Error requesting update:', error);
+      Alert.alert('Error', error.message || 'Failed to send update request');
     }
   };
 
@@ -984,6 +1038,27 @@ export default function CommissionsScreen() {
                       <Text style={styles.leadDate}>
                         Submitted {formatDate(lead.created_at)}
                       </Text>
+
+                      {shouldShowRequestButton(lead) && (
+                        <TouchableOpacity
+                          style={styles.requestUpdateButton}
+                          onPress={() => handleRequestUpdate(lead)}
+                        >
+                          <Bell size={16} color="#fff" />
+                          <Text style={styles.requestUpdateButtonText}>
+                            Request Status Update
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+
+                      {hasUnresolvedRequest(lead) && (
+                        <View style={styles.requestPendingBadge}>
+                          <AlertCircle size={16} color="#F59E0B" />
+                          <Text style={styles.requestPendingText}>
+                            Update request pending
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   ))
                 )}
@@ -1139,6 +1214,27 @@ export default function CommissionsScreen() {
                       <Text style={styles.leadDate}>
                         Submitted {formatDate(lead.created_at)}
                       </Text>
+
+                      {shouldShowRequestButton(lead) && (
+                        <TouchableOpacity
+                          style={styles.requestUpdateButton}
+                          onPress={() => handleRequestUpdate(lead)}
+                        >
+                          <Bell size={16} color="#fff" />
+                          <Text style={styles.requestUpdateButtonText}>
+                            Request Status Update
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+
+                      {hasUnresolvedRequest(lead) && (
+                        <View style={styles.requestPendingBadge}>
+                          <AlertCircle size={16} color="#F59E0B" />
+                          <Text style={styles.requestPendingText}>
+                            Update request pending
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   ))
                 )}
@@ -1867,6 +1963,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     flexWrap: 'wrap',
+  },
+  requestUpdateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  requestUpdateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  requestPendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F59E0B20',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  requestPendingText: {
+    color: '#F59E0B',
+    fontSize: 13,
+    fontWeight: '600',
   },
   emptyLeadsState: {
     alignItems: 'center',
