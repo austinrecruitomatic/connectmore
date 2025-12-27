@@ -10,10 +10,12 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Check } from 'lucide-react-native';
+import { ArrowLeft, Check, Upload, X } from 'lucide-react-native';
 
 const THEME_STYLES = [
   { value: 'modern', label: 'Modern', description: 'Clean with bold typography' },
@@ -40,12 +42,14 @@ export default function TemplateEditScreen() {
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const [name, setName] = useState('');
   const [headline, setHeadline] = useState('');
   const [description, setDescription] = useState('');
   const [ctaText, setCtaText] = useState('Get Started');
   const [heroImageUrl, setHeroImageUrl] = useState('');
+  const [heroImageFile, setHeroImageFile] = useState<string | null>(null);
   const [themeStyle, setThemeStyle] = useState<'modern' | 'minimal' | 'bold' | 'elegant'>(
     'modern'
   );
@@ -95,6 +99,67 @@ export default function TemplateEditScreen() {
     }
   };
 
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photo library');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images' as any,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setHeroImageFile(result.assets[0].uri);
+      setHeroImageUrl('');
+    }
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!heroImageFile) return heroImageUrl || null;
+
+    try {
+      setUploading(true);
+
+      const response = await fetch(heroImageFile);
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const fileExt = heroImageFile.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${productId}/${Date.now()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, arrayBuffer, {
+          contentType: `image/${fileExt}`,
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(data.path);
+
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload image');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = () => {
+    setHeroImageFile(null);
+    setHeroImageUrl('');
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert('Error', 'Please enter a template name');
@@ -109,6 +174,15 @@ export default function TemplateEditScreen() {
     setSaving(true);
 
     try {
+      let finalImageUrl = heroImageUrl;
+
+      if (heroImageFile) {
+        const uploadedUrl = await uploadImage();
+        if (uploadedUrl) {
+          finalImageUrl = uploadedUrl;
+        }
+      }
+
       const templateData = {
         product_id: productId,
         company_id: companyId,
@@ -116,7 +190,7 @@ export default function TemplateEditScreen() {
         headline,
         description,
         cta_text: ctaText,
-        hero_image_url: heroImageUrl || null,
+        hero_image_url: finalImageUrl || null,
         theme_style: themeStyle,
         primary_color: primaryColor,
         secondary_color: secondaryColor || null,
@@ -231,16 +305,33 @@ export default function TemplateEditScreen() {
             placeholderTextColor="#64748B"
           />
 
-          <Text style={styles.label}>Hero Image URL</Text>
-          <TextInput
-            style={styles.input}
-            value={heroImageUrl}
-            onChangeText={setHeroImageUrl}
-            placeholder="https://example.com/image.jpg (optional)"
-            placeholderTextColor="#64748B"
-            autoCapitalize="none"
-            keyboardType="url"
-          />
+          <Text style={styles.label}>Hero Image</Text>
+
+          {heroImageFile || heroImageUrl ? (
+            <View style={styles.imagePreviewContainer}>
+              <Image
+                source={{ uri: heroImageFile || heroImageUrl }}
+                style={styles.imagePreview}
+                resizeMode="cover"
+              />
+              <TouchableOpacity style={styles.removeImageButton} onPress={removeImage}>
+                <X size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={pickImage}
+            disabled={uploading}
+          >
+            <Upload size={20} color="#60A5FA" />
+            <Text style={styles.uploadButtonText}>
+              {heroImageFile || heroImageUrl ? 'Change Image' : 'Upload Image'}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.helperText}>Recommended: 16:9 ratio (e.g., 1200x675px)</Text>
         </View>
 
         <View style={styles.section}>
@@ -358,10 +449,12 @@ export default function TemplateEditScreen() {
         <View style={styles.preview}>
           <Text style={styles.previewTitle}>Preview</Text>
           <View style={[styles.previewCard, { borderColor: primaryColor }]}>
-            {heroImageUrl ? (
-              <View style={styles.previewImagePlaceholder}>
-                <Text style={styles.previewImageText}>Hero Image</Text>
-              </View>
+            {(heroImageFile || heroImageUrl) ? (
+              <Image
+                source={{ uri: heroImageFile || heroImageUrl }}
+                style={styles.previewImage}
+                resizeMode="cover"
+              />
             ) : null}
             <Text style={styles.previewHeadline}>{headline || 'Your headline here'}</Text>
             {description ? (
@@ -460,6 +553,54 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
     paddingTop: 12,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1E293B',
+    borderWidth: 2,
+    borderColor: '#60A5FA',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 8,
+  },
+  uploadButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#60A5FA',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontStyle: 'italic',
   },
   themeGrid: {
     gap: 12,
@@ -572,18 +713,11 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 3,
   },
-  previewImagePlaceholder: {
+  previewImage: {
+    width: '100%',
     height: 120,
-    backgroundColor: '#E5E7EB',
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: 20,
-  },
-  previewImageText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '600',
   },
   previewHeadline: {
     fontSize: 24,
