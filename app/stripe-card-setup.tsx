@@ -1,84 +1,11 @@
-import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, Platform } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { X } from 'lucide-react-native';
-import { CardField, useStripe, StripeProvider } from '@stripe/stripe-react-native';
+import { X, CreditCard } from 'lucide-react-native';
 
-const cardFieldStyle = {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 12,
-  borderWidth: 2,
-  borderColor: '#3B82F6',
-  textColor: '#1E293B',
-  fontSize: 16,
-  placeholderColor: '#64748B',
-};
-
-function CardSetupContent() {
-  const router = useRouter();
+export default function StripeCardSetupScreen() {
   const { clientSecret } = useLocalSearchParams();
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState('');
-  const { confirmSetupIntent } = useStripe();
-  const [cardComplete, setCardComplete] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!clientSecret || typeof clientSecret !== 'string') {
-      setError('Invalid setup intent');
-      return;
-    }
-
-    if (!cardComplete) {
-      setError('Please enter complete card details');
-      return;
-    }
-
-    setProcessing(true);
-    setError('');
-
-    try {
-      const { error: confirmError, setupIntent } = await confirmSetupIntent(clientSecret, {
-        paymentMethodType: 'Card',
-      });
-
-      if (confirmError) {
-        throw new Error(confirmError.message);
-      }
-
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) {
-        throw new Error('Session expired');
-      }
-
-      const confirmResponse = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/company-setup-payment-method`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'confirm_payment_method',
-            setupIntentId: setupIntent.id,
-          }),
-        }
-      );
-
-      const confirmData = await confirmResponse.json();
-      if (!confirmResponse.ok) throw new Error(confirmData.error);
-
-      Alert.alert('Success', 'Card added successfully!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } catch (err: any) {
-      console.error('Error submitting card:', err);
-      setError(err.message || 'Failed to add card');
-    } finally {
-      setProcessing(false);
-    }
-  };
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -90,92 +17,28 @@ function CardSetupContent() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.description}>
-          Enter your card details to securely store your payment method for B2B commission payments.
-        </Text>
-
-        <View style={styles.cardContainer}>
-          <Text style={styles.cardLabel}>Card Information</Text>
-          <CardField
-            postalCodeEnabled={true}
-            placeholders={{
-              number: '4242 4242 4242 4242',
-            }}
-            cardStyle={cardFieldStyle}
-            style={styles.cardFieldContainer}
-            onCardChange={(cardDetails) => {
-              setCardComplete(cardDetails.complete);
-              if (cardDetails.validNumber === 'Invalid') {
-                setError('Invalid card number');
-              } else {
-                setError('');
-              }
-            }}
-          />
-          <Text style={styles.cardHint}>
-            Enter your card number, expiration date, CVC, and postal code
-          </Text>
+        <View style={styles.iconContainer}>
+          <CreditCard size={64} color="#60A5FA" />
         </View>
 
-        {error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : null}
+        <Text style={styles.description}>
+          Credit card setup is currently only available on mobile apps.
+        </Text>
 
-        <View style={styles.securityNotice}>
-          <Text style={styles.securityText}>
-            Your payment information is securely processed by Stripe. We never store your card details.
+        <View style={styles.infoCard}>
+          <Text style={styles.infoText}>
+            To add a payment card, please use the mobile app or contact support for alternative payment setup methods.
           </Text>
         </View>
 
         <TouchableOpacity
-          style={[
-            styles.submitButton,
-            (processing || !cardComplete) && styles.submitButtonDisabled
-          ]}
-          onPress={handleSubmit}
-          disabled={processing || !cardComplete}
+          style={styles.backButton}
+          onPress={() => router.back()}
         >
-          {processing ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.submitButtonText}>Add Card</Text>
-          )}
+          <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     </View>
-  );
-}
-
-export default function StripeCardSetupScreen() {
-  const { clientSecret } = useLocalSearchParams();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!clientSecret) {
-      Alert.alert('Error', 'No client secret provided');
-      router.back();
-      return;
-    }
-  }, [clientSecret]);
-
-  const publishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
-  if (!publishableKey || publishableKey === 'pk_test_your_key_here') {
-    return (
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.errorText}>
-            Stripe publishable key not configured. Please add your Stripe key to the environment variables.
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <StripeProvider publishableKey={publishableKey}>
-      <CardSetupContent />
-    </StripeProvider>
   );
 }
 
@@ -203,59 +66,49 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   description: {
-    fontSize: 14,
-    color: '#94A3B8',
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  cardContainer: {
-    marginBottom: 20,
-  },
-  cardLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontSize: 18,
     color: '#F1F5F9',
-  },
-  cardFieldContainer: {
-    height: 50,
-    marginBottom: 8,
-  },
-  cardHint: {
-    fontSize: 13,
-    color: '#94A3B8',
-    lineHeight: 18,
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  securityNotice: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    padding: 12,
-    borderRadius: 8,
     marginBottom: 24,
+    lineHeight: 24,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  infoCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 32,
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
+    maxWidth: 400,
   },
-  securityText: {
-    fontSize: 13,
-    color: '#60A5FA',
-    lineHeight: 18,
+  infoText: {
+    fontSize: 14,
+    color: '#93C5FD',
+    lineHeight: 20,
+    textAlign: 'center',
   },
-  submitButton: {
+  backButton: {
     backgroundColor: '#3B82F6',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    minWidth: 200,
   },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
+  backButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
