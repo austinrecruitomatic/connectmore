@@ -170,11 +170,27 @@ export default function ProductShare() {
   const handleSubmitContact = async (customFormResponses: Record<string, any>) => {
     if (!product || !partnership) return;
 
-    const firstName = customFormResponses['First Name'] || '';
-    const lastName = customFormResponses['Last Name'] || '';
-    const email = customFormResponses['Email Address'] || '';
-    const phone = customFormResponses['Phone Number'] || '';
-    const fullName = `${firstName} ${lastName}`.trim();
+    let fullName = '';
+    let email = '';
+    let phone = '';
+    let companyName = null;
+    let message = null;
+    let customerReferralCode = null;
+
+    if (product.form_id) {
+      const firstName = customFormResponses['First Name'] || '';
+      const lastName = customFormResponses['Last Name'] || '';
+      email = customFormResponses['Email Address'] || '';
+      phone = customFormResponses['Phone Number'] || '';
+      fullName = `${firstName} ${lastName}`.trim();
+    } else {
+      fullName = customFormResponses.name || '';
+      email = customFormResponses.email || '';
+      phone = customFormResponses.phone || '';
+      companyName = customFormResponses.company_name || null;
+      message = customFormResponses.message || null;
+      customerReferralCode = customFormResponses.customer_referral_code || null;
+    }
 
     setSubmitting(true);
 
@@ -188,9 +204,9 @@ export default function ProductShare() {
           name: fullName,
           email: email,
           phone: phone || null,
-          company_name: null,
-          message: null,
-          customer_referral_code: null,
+          company_name: companyName,
+          message: message,
+          customer_referral_code: customerReferralCode,
         })
         .select()
         .single();
