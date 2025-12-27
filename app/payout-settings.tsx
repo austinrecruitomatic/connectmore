@@ -2,8 +2,16 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Activi
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { DollarSign, X, CreditCard } from 'lucide-react-native';
+import { DollarSign, CreditCard } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+
+const PAYMENT_METHODS = [
+  { value: 'venmo', label: 'Venmo', placeholder: 'Enter your Venmo username, phone, or email' },
+  { value: 'paypal', label: 'PayPal', placeholder: 'Enter your PayPal email' },
+  { value: 'bank_transfer', label: 'Bank Transfer', placeholder: 'Enter your account details' },
+  { value: 'wise', label: 'Wise', placeholder: 'Enter your Wise email' },
+  { value: 'other', label: 'Other', placeholder: 'Enter your payment details' },
+];
 
 export default function PayoutSettingsScreen() {
   const { profile } = useAuth();
@@ -262,14 +270,6 @@ export default function PayoutSettingsScreen() {
       </ScrollView>
     );
   }
-
-  const PAYMENT_METHODS = [
-    { value: 'venmo', label: 'Venmo', placeholder: 'Enter your Venmo username, phone, or email' },
-    { value: 'paypal', label: 'PayPal', placeholder: 'Enter your PayPal email' },
-    { value: 'bank_transfer', label: 'Bank Transfer', placeholder: 'Enter your account details' },
-    { value: 'wise', label: 'Wise', placeholder: 'Enter your Wise email' },
-    { value: 'other', label: 'Other', placeholder: 'Enter your payment details' },
-  ];
 
   const selectedMethod = PAYMENT_METHODS.find(m => m.value === paymentMethod);
 
