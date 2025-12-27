@@ -1375,8 +1375,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#334155',
-    width: 'calc(50% - 6px)',
-    minWidth: 150,
+    width: 'calc(33.33% - 8px)',
+    minWidth: 120,
   },
   earningsCard: {
     backgroundColor: '#1E293B',
@@ -1384,7 +1384,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#334155',
-    width: '100%',
+    width: 'calc(33.33% - 8px)',
+    minWidth: 120,
   },
   metricIcon: {
     marginBottom: 8,
