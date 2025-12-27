@@ -370,9 +370,12 @@ export default function ProfileScreen() {
         notify_on_new_partnerships: settingsForm.notify_on_new_partnerships,
       };
 
+      // All companies can control who pays the platform fee
+      updateData.platform_fee_paid_by = settingsForm.platform_fee_paid_by;
+
+      // Only super admins can change the platform fee rate
       if (profile?.is_super_admin) {
         updateData.platform_fee_rate = parseFloat(settingsForm.platform_fee_rate);
-        updateData.platform_fee_paid_by = settingsForm.platform_fee_paid_by;
       }
 
       const { error } = await supabase
@@ -578,15 +581,26 @@ export default function ProfileScreen() {
                 <Text style={styles.infoValue}>{companySettings.commission_rate}%</Text>
               </View>
             </View>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Wallet size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Platform Fee Payer</Text>
+                <Text style={styles.infoValue}>
+                  {companySettings.platform_fee_paid_by === 'company' ? 'Company pays fee' : 'Affiliate pays fee'}
+                </Text>
+              </View>
+            </View>
             {profile?.is_super_admin && (
               <View style={styles.infoRow}>
                 <View style={styles.infoIcon}>
                   <DollarSign size={20} color="#64748B" />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Platform Fee (Super Admin)</Text>
+                  <Text style={styles.infoLabel}>Platform Fee Rate (Super Admin)</Text>
                   <Text style={styles.infoValue}>
-                    {companySettings.platform_fee_rate}% (paid by {companySettings.platform_fee_paid_by})
+                    {companySettings.platform_fee_rate}%
                   </Text>
                 </View>
               </View>
@@ -1272,26 +1286,11 @@ export default function ProfileScreen() {
                 keyboardType="decimal-pad"
               />
 
-              {profile?.is_super_admin && (
-                <>
-                  <Text style={styles.label}>Platform Fee Rate (%)</Text>
-                  <Text style={styles.helpText}>
-                    Super Admin Only - Platform's commission on each transaction
-                  </Text>
-                  <TextInput
-                    style={styles.input}
-                    value={settingsForm.platform_fee_rate}
-                    onChangeText={(text) => setSettingsForm({ ...settingsForm, platform_fee_rate: text })}
-                    placeholder="20.00"
-                    placeholderTextColor="#64748B"
-                    keyboardType="decimal-pad"
-                  />
-
-                  <Text style={styles.label}>Who Pays Platform Fee?</Text>
-                  <Text style={styles.helpText}>
-                    Super Admin Only - Choose who covers the platform transaction fee
-                  </Text>
-                  <View style={styles.feePayerOptions}>
+              <Text style={styles.label}>Who Pays Platform Fee?</Text>
+              <Text style={styles.helpText}>
+                Choose who covers the platform transaction fee
+              </Text>
+              <View style={styles.feePayerOptions}>
                 <TouchableOpacity
                   style={[
                     styles.methodOption,
@@ -1342,6 +1341,21 @@ export default function ProfileScreen() {
                   </View>
                 </TouchableOpacity>
               </View>
+
+              {profile?.is_super_admin && (
+                <>
+                  <Text style={styles.label}>Platform Fee Rate (%)</Text>
+                  <Text style={styles.helpText}>
+                    Super Admin Only - Platform's commission on each transaction
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={settingsForm.platform_fee_rate}
+                    onChangeText={(text) => setSettingsForm({ ...settingsForm, platform_fee_rate: text })}
+                    placeholder="20.00"
+                    placeholderTextColor="#64748B"
+                    keyboardType="decimal-pad"
+                  />
                 </>
               )}
 
