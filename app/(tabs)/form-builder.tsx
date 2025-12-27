@@ -164,15 +164,25 @@ export default function FormBuilderScreen() {
       return;
     }
 
-    if (!selectedForm) return;
+    if (!selectedForm) {
+      console.error('No form selected');
+      Alert.alert('Error', 'No form selected');
+      return;
+    }
 
     try {
+      console.log('Saving field...', {
+        form_id: selectedForm.id,
+        label: fieldLabel,
+        type: fieldType
+      });
+
       const optionsArray = ['select', 'multi_select'].includes(fieldType)
         ? fieldOptions.split('\n').filter(o => o.trim())
         : [];
 
       if (editingField) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('custom_form_fields')
           .update({
             label: fieldLabel,
@@ -182,11 +192,16 @@ export default function FormBuilderScreen() {
             required: fieldRequired,
             options: optionsArray,
           })
-          .eq('id', editingField.id);
+          .eq('id', editingField.id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
+        console.log('Field updated successfully:', data);
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('custom_form_fields')
           .insert({
             form_id: selectedForm.id,
@@ -197,16 +212,22 @@ export default function FormBuilderScreen() {
             required: fieldRequired,
             options: optionsArray,
             field_order: fields.length,
-          });
+          })
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
+        console.log('Field inserted successfully:', data);
       }
 
-      loadFields(selectedForm.id);
+      await loadFields(selectedForm.id);
       setShowFieldModal(false);
       Alert.alert('Success', editingField ? 'Field updated' : 'Field added');
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      console.error('Save field error:', error);
+      Alert.alert('Error', error.message || 'Failed to save field');
     }
   };
 
