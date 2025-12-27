@@ -67,6 +67,7 @@ export default function ProductShare() {
   const loadProductData = async () => {
     try {
       setLoading(true);
+      console.log('Loading product data...', { id, affiliateRef });
 
       const { data: productData, error: productError } = await supabase
         .from('products')
@@ -76,9 +77,11 @@ export default function ProductShare() {
         .maybeSingle();
 
       if (productError || !productData) {
+        console.error('Product not found:', productError);
         throw new Error('Product not found');
       }
 
+      console.log('Product loaded:', productData.name);
       setProduct(productData);
 
       const { data: companyData } = await supabase
@@ -88,10 +91,12 @@ export default function ProductShare() {
         .maybeSingle();
 
       if (companyData) {
+        console.log('Company loaded:', companyData.company_name);
         setCompany(companyData);
       }
 
       if (affiliateRef) {
+        console.log('Looking up partnership with ref:', affiliateRef);
         // Check if affiliateRef is a valid UUID format
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const isUuid = uuidRegex.test(affiliateRef);
@@ -110,9 +115,14 @@ export default function ProductShare() {
           query = query.eq('affiliate_code', affiliateRef);
         }
 
-        const { data: partnershipData } = await query.maybeSingle();
+        const { data: partnershipData, error: partnershipError } = await query.maybeSingle();
+
+        if (partnershipError) {
+          console.error('Partnership query error:', partnershipError);
+        }
 
         if (partnershipData) {
+          console.log('Partnership found:', partnershipData.id);
           setPartnership(partnershipData);
 
           await supabase.from('leads').insert({
@@ -123,7 +133,11 @@ export default function ProductShare() {
               product_id: productData.id,
             },
           });
+        } else {
+          console.warn('No partnership found for affiliate ref:', affiliateRef);
         }
+      } else {
+        console.log('No affiliate ref provided');
       }
     } catch (error) {
       console.error('Error loading product:', error);
@@ -134,7 +148,19 @@ export default function ProductShare() {
   };
 
   const handleCTAClick = async () => {
-    if (!product || !partnership) return;
+    console.log('CTA clicked', { product: !!product, partnership: !!partnership });
+
+    if (!product) {
+      console.error('No product found');
+      Alert.alert('Error', 'Product information not available');
+      return;
+    }
+
+    if (!partnership) {
+      console.error('No partnership found');
+      Alert.alert('Invalid Link', 'This product link requires a valid affiliate referral code. Please contact the person who shared this link with you.');
+      return;
+    }
 
     if (product.sale_type === 'direct_sale') {
       if (product.external_checkout_url) {
