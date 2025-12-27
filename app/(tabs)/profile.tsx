@@ -615,7 +615,7 @@ export default function ProfileScreen() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Payment Method</Text>
                 <Text style={styles.infoValue}>
-                  {profile.stripe_payment_method_id
+                  {profile?.stripe_payment_method_id
                     ? `Card on file`
                     : 'No card added'}
                 </Text>
@@ -630,7 +630,7 @@ export default function ProfileScreen() {
             >
               <DollarSign size={16} color="#60A5FA" />
               <Text style={styles.configureButtonText}>
-                {profile.stripe_payment_method_id ? 'Update Card' : 'Add Credit/Debit Card'}
+                {profile?.stripe_payment_method_id ? 'Update Card' : 'Add Credit/Debit Card'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -647,7 +647,7 @@ export default function ProfileScreen() {
                 <Text style={styles.infoLabel}>Stripe Connect Status</Text>
                 <Text style={styles.infoValue}>
                   {profile?.stripe_onboarding_completed
-                    ? profile.stripe_account_status === 'verified'
+                    ? profile?.stripe_account_status === 'verified'
                       ? 'Active'
                       : 'Pending Verification'
                     : 'Not Setup'}
@@ -707,17 +707,17 @@ export default function ProfileScreen() {
                 <Text style={styles.infoLabel}>Alternative Payment Method</Text>
                 <Text style={styles.infoValue}>
                   {profile?.payment_method
-                    ? `${PAYMENT_METHODS.find(m => m.value === profile.payment_method)?.label || profile.payment_method}`
+                    ? `${PAYMENT_METHODS.find(m => m.value === profile?.payment_method)?.label || profile?.payment_method}`
                     : 'Not set'}
                 </Text>
                 {profile?.payment_method === 'venmo' && profile?.payment_details?.venmo_username && (
                   <Text style={styles.infoSubtext}>
-                    {profile.payment_details.venmo_username}
+                    {profile?.payment_details?.venmo_username}
                   </Text>
                 )}
                 {profile?.payment_method === 'bank_transfer' && profile?.payment_details?.account_holder_name && (
                   <Text style={styles.infoSubtext}>
-                    {profile.payment_details.account_holder_name} • ****{profile.payment_details.account_number?.slice(-4)}
+                    {profile?.payment_details?.account_holder_name} • ****{profile?.payment_details?.account_number?.slice(-4)}
                   </Text>
                 )}
                 <Text style={[styles.infoSubtext, { marginTop: 4 }]}>
@@ -731,7 +731,7 @@ export default function ProfileScreen() {
             >
               <Wallet size={16} color="#60A5FA" />
               <Text style={styles.configureButtonText}>
-                {profile.payment_method ? 'Update Payment Method' : 'Add Payment Method'}
+                {profile?.payment_method ? 'Update Payment Method' : 'Add Payment Method'}
               </Text>
             </TouchableOpacity>
           </View>
