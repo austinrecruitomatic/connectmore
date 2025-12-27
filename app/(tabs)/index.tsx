@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Plus, X, Trash2, Pencil, Layout, Star, TrendingUp, Users, DollarSign, Target } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Plus, X, Trash2, Pencil, Layout, Star, TrendingUp, Users, DollarSign, Target, Upload } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 type Product = {
@@ -63,9 +64,12 @@ export default function HomeScreen() {
   const [partnerships, setPartnerships] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [productImageFile, setProductImageFile] = useState<string | null>(null);
+  const [heroImageFile, setHeroImageFile] = useState<string | null>(null);
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -269,8 +273,132 @@ export default function HomeScreen() {
       access_type: 'public',
       form_id: '',
     });
+    setProductImageFile(null);
+    setHeroImageFile(null);
     setSelectedAffiliates(new Set());
     setEditingProductId(null);
+  };
+
+  const pickProductImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photo library');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images' as any,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setProductImageFile(result.assets[0].uri);
+      setNewProduct({ ...newProduct, image_url: '' });
+    }
+  };
+
+  const uploadProductImage = async (): Promise<string | null> => {
+    if (!productImageFile) return newProduct.image_url || null;
+
+    try {
+      setUploading(true);
+
+      const response = await fetch(productImageFile);
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const fileExt = productImageFile.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${companyId}/${Date.now()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, arrayBuffer, {
+          contentType: `image/${fileExt}`,
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(data.path);
+
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload image');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeProductImage = () => {
+    setProductImageFile(null);
+    setNewProduct({ ...newProduct, image_url: '' });
+  };
+
+  const pickHeroImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photo library');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images' as any,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setHeroImageFile(result.assets[0].uri);
+      setNewProduct({ ...newProduct, lp_hero_image: '' });
+    }
+  };
+
+  const uploadHeroImage = async (): Promise<string | null> => {
+    if (!heroImageFile) return newProduct.lp_hero_image || null;
+
+    try {
+      setUploading(true);
+
+      const response = await fetch(heroImageFile);
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const fileExt = heroImageFile.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${companyId}/hero/${Date.now()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, arrayBuffer, {
+          contentType: `image/${fileExt}`,
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(data.path);
+
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading hero image:', error);
+      Alert.alert('Error', 'Failed to upload hero image');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeHeroImage = () => {
+    setHeroImageFile(null);
+    setNewProduct({ ...newProduct, lp_hero_image: '' });
   };
 
   const handleEditProduct = async (product: Product) => {
@@ -308,6 +436,8 @@ export default function HomeScreen() {
       setSelectedAffiliates(new Set(accessData.map(a => a.affiliate_id)));
     }
 
+    setProductImageFile(null);
+    setHeroImageFile(null);
     setEditingProductId(product.id);
     setShowAddModal(true);
   };
@@ -326,11 +456,28 @@ export default function HomeScreen() {
     setSaving(true);
 
     try {
+      let finalImageUrl = newProduct.image_url;
+      let finalHeroImageUrl = newProduct.lp_hero_image;
+
+      if (productImageFile) {
+        const uploadedUrl = await uploadProductImage();
+        if (uploadedUrl) {
+          finalImageUrl = uploadedUrl;
+        }
+      }
+
+      if (heroImageFile) {
+        const uploadedHeroUrl = await uploadHeroImage();
+        if (uploadedHeroUrl) {
+          finalHeroImageUrl = uploadedHeroUrl;
+        }
+      }
+
       const productData = {
         company_id: companyId,
         name: newProduct.name,
         description: newProduct.description,
-        image_url: newProduct.image_url,
+        image_url: finalImageUrl,
         commission_rate: parseFloat(newProduct.commission_rate) || 0,
         commission_type: newProduct.commission_type,
         is_active: true,
@@ -339,7 +486,7 @@ export default function HomeScreen() {
         lp_description: newProduct.lp_description,
         lp_cta_text: newProduct.lp_cta_text,
         lp_cta_type: newProduct.lp_cta_type,
-        lp_hero_image: newProduct.lp_hero_image,
+        lp_hero_image: finalHeroImageUrl,
         affiliate_discount_enabled: newProduct.affiliate_discount_enabled,
         affiliate_discount_type: newProduct.affiliate_discount_enabled ? newProduct.affiliate_discount_type : null,
         affiliate_discount_value: newProduct.affiliate_discount_enabled && newProduct.affiliate_discount_value
@@ -702,13 +849,33 @@ export default function HomeScreen() {
                   placeholder="https://yoursite.com/product"
                 />
 
-                <Text style={styles.label}>Image URL</Text>
-                <TextInput
-                  style={styles.input}
-                  value={newProduct.image_url}
-                  onChangeText={(text) => setNewProduct({ ...newProduct, image_url: text })}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <Text style={styles.label}>Product Image</Text>
+
+                {productImageFile || newProduct.image_url ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image
+                      source={{ uri: productImageFile || newProduct.image_url }}
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity style={styles.removeImageButton} onPress={removeProductImage}>
+                      <X size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  style={styles.uploadButton}
+                  onPress={pickProductImage}
+                  disabled={uploading}
+                >
+                  <Upload size={20} color="#60A5FA" />
+                  <Text style={styles.uploadButtonText}>
+                    {productImageFile || newProduct.image_url ? 'Change Image' : 'Upload Image'}
+                  </Text>
+                </TouchableOpacity>
+
+                <Text style={styles.helperText}>Recommended: Square ratio (e.g., 800x800px)</Text>
 
                 <Text style={styles.label}>Commission Rate</Text>
                 <TextInput
@@ -998,13 +1165,33 @@ export default function HomeScreen() {
                   multiline
                 />
 
-                <Text style={styles.label}>Hero Image URL</Text>
-                <TextInput
-                  style={styles.input}
-                  value={newProduct.lp_hero_image}
-                  onChangeText={(text) => setNewProduct({ ...newProduct, lp_hero_image: text })}
-                  placeholder="https://example.com/hero-image.jpg"
-                />
+                <Text style={styles.label}>Hero Image</Text>
+
+                {heroImageFile || newProduct.lp_hero_image ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image
+                      source={{ uri: heroImageFile || newProduct.lp_hero_image }}
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity style={styles.removeImageButton} onPress={removeHeroImage}>
+                      <X size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  style={styles.uploadButton}
+                  onPress={pickHeroImage}
+                  disabled={uploading}
+                >
+                  <Upload size={20} color="#60A5FA" />
+                  <Text style={styles.uploadButtonText}>
+                    {heroImageFile || newProduct.lp_hero_image ? 'Change Image' : 'Upload Image'}
+                  </Text>
+                </TouchableOpacity>
+
+                <Text style={styles.helperText}>Recommended: 16:9 ratio (e.g., 1200x675px)</Text>
 
                 <Text style={styles.label}>CTA Button Text</Text>
                 <TextInput
@@ -1591,6 +1778,49 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginBottom: 16,
     lineHeight: 18,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1E293B',
+    borderWidth: 2,
+    borderColor: '#60A5FA',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 8,
+  },
+  uploadButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#60A5FA',
   },
   checkboxRow: {
     flexDirection: 'row',
