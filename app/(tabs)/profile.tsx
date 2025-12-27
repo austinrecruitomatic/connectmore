@@ -665,6 +665,39 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+
+          <View style={[styles.infoCard, { marginTop: 12 }]}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Wallet size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Alternative Payment Method</Text>
+                <Text style={styles.infoValue}>
+                  {profile.payment_method
+                    ? `${PAYMENT_METHODS.find(m => m.value === profile.payment_method)?.label || profile.payment_method}`
+                    : 'Not set'}
+                </Text>
+                {profile.payment_details?.details && (
+                  <Text style={styles.infoSubtext}>
+                    {profile.payment_details.details}
+                  </Text>
+                )}
+                <Text style={[styles.infoSubtext, { marginTop: 4 }]}>
+                  Add Venmo or other payment methods for manual payouts
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.configureButton}
+              onPress={() => setShowPaymentModal(true)}
+            >
+              <Wallet size={16} color="#60A5FA" />
+              <Text style={styles.configureButtonText}>
+                {profile.payment_method ? 'Update Payment Method' : 'Add Payment Method'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 

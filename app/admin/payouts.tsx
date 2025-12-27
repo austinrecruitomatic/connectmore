@@ -11,6 +11,7 @@ interface Payout {
   affiliate_name: string;
   affiliate_email: string;
   payment_method: string | null;
+  payment_details: { details?: string } | null;
   total_amount: number;
   platform_fee_total: number;
   commission_count: number;
@@ -189,9 +190,16 @@ export default function AdminPayouts() {
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Payment Method</Text>
-                <Text style={styles.detailValue}>
-                  {payout.payment_method || 'Not set'}
-                </Text>
+                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <Text style={styles.detailValue}>
+                    {payout.payment_method || 'Not set'}
+                  </Text>
+                  {payout.payment_details?.details && (
+                    <Text style={[styles.detailLabel, { fontSize: 12, marginTop: 2 }]}>
+                      {payout.payment_details.details}
+                    </Text>
+                  )}
+                </View>
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Scheduled</Text>
@@ -247,6 +255,11 @@ export default function AdminPayouts() {
                   <Text style={styles.modalValue}>
                     {selectedPayout.payment_method || 'Not configured'}
                   </Text>
+                  {selectedPayout.payment_details?.details && (
+                    <Text style={styles.modalSubvalue}>
+                      {selectedPayout.payment_details.details}
+                    </Text>
+                  )}
                 </View>
 
                 <TextInput
