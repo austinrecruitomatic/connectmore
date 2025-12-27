@@ -611,74 +611,82 @@ export default function CommissionsScreen() {
           />
         }
       >
-        {isCompany && (
-          <View style={styles.dashboardContainer}>
-            <Text style={styles.dashboardTitle}>Performance Dashboard</Text>
+        <View style={styles.metricsContainer}>
+          {isCompany && <Text style={styles.dashboardTitle}>Performance Dashboard</Text>}
 
-            <View style={styles.dashboardGrid}>
-              <View style={styles.dashboardCard}>
-                <View style={styles.dashboardCardHeader}>
-                  <Users size={20} color="#3B82F6" />
-                  <Text style={styles.dashboardCardLabel}>Pipeline</Text>
+          <View style={styles.metricsGrid}>
+            {isCompany && (
+              <>
+                <View style={styles.metricCard}>
+                  <View style={styles.metricIcon}>
+                    <Users size={20} color="#3B82F6" />
+                  </View>
+                  <Text style={styles.metricValue}>{pipelineMetrics.totalLeads}</Text>
+                  <Text style={styles.metricLabel}>Pipeline</Text>
+                  <Text style={styles.metricSubtext}>Total Leads</Text>
+                  <View style={styles.metricBreakdown}>
+                    <Text style={styles.breakdownText}>
+                      Qualified: {pipelineMetrics.qualifiedLeads}
+                    </Text>
+                    <Text style={styles.breakdownText}>Closed: {pipelineMetrics.closedDeals}</Text>
+                  </View>
                 </View>
-                <Text style={styles.dashboardCardValue}>{pipelineMetrics.totalLeads}</Text>
-                <Text style={styles.dashboardCardSubtext}>Total Leads</Text>
-                <View style={styles.dashboardCardBreakdown}>
-                  <Text style={styles.breakdownItem}>
-                    Qualified: {pipelineMetrics.qualifiedLeads}
+
+                <View style={styles.metricCard}>
+                  <View style={styles.metricIcon}>
+                    <Target size={20} color="#10B981" />
+                  </View>
+                  <Text style={styles.metricValue}>
+                    {pipelineMetrics.conversionRate.toFixed(1)}%
                   </Text>
-                  <Text style={styles.breakdownItem}>Closed: {pipelineMetrics.closedDeals}</Text>
+                  <Text style={styles.metricLabel}>Conversion</Text>
+                  <Text style={styles.metricSubtext}>Close Rate</Text>
+                  <View style={styles.conversionBar}>
+                    <View
+                      style={[
+                        styles.conversionBarFill,
+                        { width: `${Math.min(pipelineMetrics.conversionRate, 100)}%` },
+                      ]}
+                    />
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.dashboardCard}>
-                <View style={styles.dashboardCardHeader}>
-                  <Target size={20} color="#10B981" />
-                  <Text style={styles.dashboardCardLabel}>Conversion</Text>
+                <View style={styles.metricCard}>
+                  <View style={styles.metricIcon}>
+                    <BarChart3 size={20} color="#F59E0B" />
+                  </View>
+                  <Text style={styles.metricValue}>
+                    {formatCurrency(pipelineMetrics.totalRevenue)}
+                  </Text>
+                  <Text style={styles.metricLabel}>Revenue Generated</Text>
+                  <Text style={styles.metricSubtext}>Total Active Deal Value</Text>
                 </View>
-                <Text style={styles.dashboardCardValue}>
-                  {pipelineMetrics.conversionRate.toFixed(1)}%
-                </Text>
-                <Text style={styles.dashboardCardSubtext}>Close Rate</Text>
-                <View style={styles.conversionBar}>
-                  <View
-                    style={[
-                      styles.conversionBarFill,
-                      { width: `${Math.min(pipelineMetrics.conversionRate, 100)}%` },
-                    ]}
-                  />
-                </View>
-              </View>
+              </>
+            )}
 
-              <View style={[styles.dashboardCard, styles.dashboardCardWide]}>
-                <View style={styles.dashboardCardHeader}>
-                  <BarChart3 size={20} color="#F59E0B" />
-                  <Text style={styles.dashboardCardLabel}>Revenue Generated</Text>
-                </View>
-                <Text style={styles.dashboardCardValue}>
-                  {formatCurrency(pipelineMetrics.totalRevenue)}
-                </Text>
-                <Text style={styles.dashboardCardSubtext}>Total Active Deal Value</Text>
+            <View style={styles.metricCard}>
+              <View style={styles.metricIcon}>
+                <AlertCircle size={20} color="#3B82F6" />
               </View>
+              <Text style={styles.metricValue}>{formatCurrency(pendingTotal)}</Text>
+              <Text style={styles.metricLabel}>{isCompany ? 'To Approve' : 'Pending'}</Text>
             </View>
-          </View>
-        )}
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <AlertCircle size={20} color="#3B82F6" />
-            <Text style={styles.statValue}>{formatCurrency(pendingTotal)}</Text>
-            <Text style={styles.statLabel}>{isCompany ? 'To Approve' : 'Pending'}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Check size={20} color="#F59E0B" />
-            <Text style={styles.statValue}>{formatCurrency(approvedTotal)}</Text>
-            <Text style={styles.statLabel}>{isCompany ? 'Approved' : 'Approved'}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <DollarSign size={20} color="#10B981" />
-            <Text style={styles.statValue}>{formatCurrency(paidTotal)}</Text>
-            <Text style={styles.statLabel}>{isCompany ? 'Paid' : 'Received'}</Text>
+            <View style={styles.metricCard}>
+              <View style={styles.metricIcon}>
+                <Check size={20} color="#F59E0B" />
+              </View>
+              <Text style={styles.metricValue}>{formatCurrency(approvedTotal)}</Text>
+              <Text style={styles.metricLabel}>Approved</Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <View style={styles.metricIcon}>
+                <DollarSign size={20} color="#10B981" />
+              </View>
+              <Text style={styles.metricValue}>{formatCurrency(paidTotal)}</Text>
+              <Text style={styles.metricLabel}>{isCompany ? 'Paid' : 'Received'}</Text>
+            </View>
           </View>
         </View>
 
@@ -1250,7 +1258,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  dashboardContainer: {
+  metricsContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
   },
@@ -1260,47 +1268,46 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 16,
   },
-  dashboardGrid: {
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  dashboardCard: {
+  metricCard: {
     backgroundColor: '#1E293B',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#334155',
+    width: 'calc(50% - 6px)',
+    minWidth: 150,
   },
-  dashboardCardWide: {
-    width: '100%',
+  metricIcon: {
+    marginBottom: 8,
   },
-  dashboardCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  dashboardCardLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  dashboardCardValue: {
-    fontSize: 32,
+  metricValue: {
+    fontSize: 24,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  dashboardCardSubtext: {
+  metricLabel: {
     fontSize: 13,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  metricSubtext: {
+    fontSize: 11,
     color: '#64748B',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  dashboardCardBreakdown: {
-    flexDirection: 'row',
-    gap: 16,
+  metricBreakdown: {
+    gap: 6,
+    marginTop: 4,
   },
-  breakdownItem: {
-    fontSize: 12,
+  breakdownText: {
+    fontSize: 11,
     color: '#94A3B8',
   },
   conversionBar: {
@@ -1308,37 +1315,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#334155',
     borderRadius: 3,
     overflow: 'hidden',
+    marginTop: 8,
   },
   conversionBarFill: {
     height: '100%',
     backgroundColor: '#10B981',
     borderRadius: 3,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#94A3B8',
   },
   filterContainer: {
     flexDirection: 'row',
