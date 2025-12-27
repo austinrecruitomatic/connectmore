@@ -22,6 +22,7 @@ type CustomerData = {
   referral_code: string;
   total_referrals: number;
   total_purchases: number;
+  pending_balance?: number;
 };
 
 type ReferralStats = {

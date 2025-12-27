@@ -43,6 +43,7 @@ type ContactSubmission = {
   contract_type: 'monthly' | 'total';
   contract_length_months: number | null;
   product_id: string | null;
+  partnership_id: string | null;
   created_at: string;
   landing_page_slug: string;
   affiliate_partnerships: {

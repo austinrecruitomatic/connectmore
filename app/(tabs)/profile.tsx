@@ -655,7 +655,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Why Connect Your Account?</Text>
-                <Text style={styles.infoSubtext} style={{ marginTop: 4, lineHeight: 18 }}>
+                <Text style={[styles.infoSubtext, { marginTop: 4, lineHeight: 18 }]}>
                   Connect your bank account or debit card to receive:
                   {'\n'}• Commission payouts from your referrals
                   {'\n'}• Customer referral earnings

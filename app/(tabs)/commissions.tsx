@@ -91,8 +91,8 @@ type LeadSubmission = {
     affiliate_id: string;
     companies: {
       company_name: string;
-    };
-  };
+    }[];
+  }[];
 };
 
 export default function CommissionsScreen() {

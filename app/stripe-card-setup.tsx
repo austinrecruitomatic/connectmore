@@ -5,6 +5,16 @@ import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react-native';
 import { CardField, useStripe, StripeProvider } from '@stripe/stripe-react-native';
 
+const cardFieldStyle = {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 12,
+  borderWidth: 2,
+  borderColor: '#3B82F6',
+  textColor: '#1E293B',
+  fontSize: 16,
+  placeholderColor: '#64748B',
+};
+
 function CardSetupContent() {
   const router = useRouter();
   const { clientSecret } = useLocalSearchParams();
@@ -91,7 +101,7 @@ function CardSetupContent() {
             placeholders={{
               number: '4242 4242 4242 4242',
             }}
-            cardStyle={styles.cardField}
+            cardStyle={cardFieldStyle}
             style={styles.cardFieldContainer}
             onCardChange={(cardDetails) => {
               setCardComplete(cardDetails.complete);
@@ -212,15 +222,6 @@ const styles = StyleSheet.create({
   cardFieldContainer: {
     height: 50,
     marginBottom: 8,
-  },
-  cardField: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#3B82F6',
-    textColor: '#1E293B',
-    fontSize: 16,
-    placeholderColor: '#64748B',
   },
   cardHint: {
     fontSize: 13,
