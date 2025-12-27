@@ -180,7 +180,7 @@ export default function ProductShare() {
         });
 
         if (Platform.OS === 'web') {
-          window.location.href = trackingUrl;
+          window.open(trackingUrl, '_blank');
         } else {
           Alert.alert('External Checkout', 'Opening external checkout...');
         }
