@@ -706,16 +706,16 @@ export default function ProfileScreen() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Alternative Payment Method</Text>
                 <Text style={styles.infoValue}>
-                  {profile.payment_method
+                  {profile?.payment_method
                     ? `${PAYMENT_METHODS.find(m => m.value === profile.payment_method)?.label || profile.payment_method}`
                     : 'Not set'}
                 </Text>
-                {profile.payment_method === 'venmo' && profile.payment_details?.venmo_username && (
+                {profile?.payment_method === 'venmo' && profile?.payment_details?.venmo_username && (
                   <Text style={styles.infoSubtext}>
                     {profile.payment_details.venmo_username}
                   </Text>
                 )}
-                {profile.payment_method === 'bank_transfer' && profile.payment_details?.account_holder_name && (
+                {profile?.payment_method === 'bank_transfer' && profile?.payment_details?.account_holder_name && (
                   <Text style={styles.infoSubtext}>
                     {profile.payment_details.account_holder_name} • ****{profile.payment_details.account_number?.slice(-4)}
                   </Text>
