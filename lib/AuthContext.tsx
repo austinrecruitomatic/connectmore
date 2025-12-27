@@ -12,6 +12,16 @@ type Profile = {
   is_super_admin?: boolean;
   payment_method?: string | null;
   payment_details?: any;
+  stripe_payment_method_id?: string | null;
+  stripe_connect_account_id?: string | null;
+  stripe_onboarding_completed?: boolean;
+  stripe_account_status?: string | null;
+  company_id?: string | null;
+  recruited_by?: string | null;
+  notification_lead_dispositioned?: boolean;
+  notification_lead_closed?: boolean;
+  notification_customer_submission?: boolean;
+  notification_lead_update_response?: boolean;
 };
 
 type AuthContextType = {

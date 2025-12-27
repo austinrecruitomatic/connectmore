@@ -45,6 +45,11 @@ export default function PayoutSettingsScreen() {
   };
 
   const handleSave = async () => {
+    if (!profile) {
+      Alert.alert('Error', 'User profile not found');
+      return;
+    }
+
     if (!paymentMethod) {
       Alert.alert('Error', 'Please select a payment method');
       return;
