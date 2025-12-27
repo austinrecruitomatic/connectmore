@@ -50,12 +50,6 @@ export default function MarketingPage() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.hero}>
-        <Image
-          source={require('@/assets/images/connect_more_icon.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
         <Text style={styles.headline}>
           The Complete Affiliate{'\n'}Marketing Platform
         </Text>

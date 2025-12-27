@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   Modal,
+  TextInput,
 } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -23,6 +24,7 @@ import {
   Eye,
   MousePointer,
   Send,
+  Ban,
 } from 'lucide-react-native';
 
 type Commission = {
@@ -30,9 +32,11 @@ type Commission = {
   commission_amount: number;
   platform_fee_amount: number;
   affiliate_payout_amount: number;
-  status: 'pending' | 'approved' | 'paid';
+  status: 'pending' | 'approved' | 'paid' | 'denied';
   expected_payout_date: string;
   created_at: string;
+  company_notes: string | null;
+  company_notes_updated_at: string | null;
   deals: {
     deal_value: number;
     contact_submissions: {
@@ -100,9 +104,12 @@ export default function CommissionsScreen() {
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'paid'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'paid' | 'denied'>('all');
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [showLeadsModal, setShowLeadsModal] = useState(false);
+  const [showDenyModal, setShowDenyModal] = useState(false);
+  const [selectedCommission, setSelectedCommission] = useState<Commission | null>(null);
+  const [denyNotes, setDenyNotes] = useState('');
   const [trackingStats, setTrackingStats] = useState<TrackingStats>({
     totalViews: 0,
     totalSubmissions: 0,
@@ -158,6 +165,8 @@ export default function CommissionsScreen() {
           .from('commissions')
           .select(`
             *,
+            company_notes,
+            company_notes_updated_at,
             deals!inner (
               deal_value,
               contact_submissions (name, email)
@@ -181,6 +190,8 @@ export default function CommissionsScreen() {
           .from('commissions')
           .select(`
             *,
+            company_notes,
+            company_notes_updated_at,
             deals!inner (
               deal_value,
               contact_submissions (name, email)
@@ -422,6 +433,42 @@ export default function CommissionsScreen() {
     }
   };
 
+  const handleDenyPress = (commission: Commission) => {
+    setSelectedCommission(commission);
+    setDenyNotes('');
+    setShowDenyModal(true);
+  };
+
+  const handleDenySubmit = async () => {
+    if (!selectedCommission) return;
+
+    if (!denyNotes.trim()) {
+      Alert.alert('Notes Required', 'Please provide a reason for denying this commission');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('commissions')
+        .update({
+          status: 'denied',
+          company_notes: denyNotes.trim()
+        })
+        .eq('id', selectedCommission.id);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Commission denied');
+      setShowDenyModal(false);
+      setSelectedCommission(null);
+      setDenyNotes('');
+      loadCommissions();
+    } catch (error: any) {
+      console.error('Error denying commission:', error);
+      Alert.alert('Error', error.message || 'Failed to deny commission');
+    }
+  };
+
   const handleBulkApprove = async () => {
     const pendingCommissions = commissions.filter((c) => c.status === 'pending');
 
@@ -473,6 +520,8 @@ export default function CommissionsScreen() {
         return '#F59E0B';
       case 'paid':
         return '#10B981';
+      case 'denied':
+        return '#EF4444';
       default:
         return '#3B82F6';
     }
@@ -632,7 +681,7 @@ export default function CommissionsScreen() {
         </View>
 
         <View style={styles.filterContainer}>
-          {(['all', 'pending', 'approved', 'paid'] as const).map((status) => (
+          {(['all', 'pending', 'approved', 'paid', 'denied'] as const).map((status) => (
             <TouchableOpacity
               key={status}
               style={[styles.filterButton, filter === status && styles.filterButtonActive]}
@@ -734,19 +783,45 @@ export default function CommissionsScreen() {
                   ? isCompany
                     ? `Paid to platform ${formatDate(commission.created_at)}`
                     : `Received ${formatDate(commission.created_at)}`
+                  : commission.status === 'denied'
+                  ? `Denied ${formatDate(commission.created_at)}`
                   : isCompany
                   ? `Due ${formatDate(commission.expected_payout_date)}`
                   : `Expected ${formatDate(commission.expected_payout_date)}`}
               </Text>
 
+              {commission.company_notes && (
+                <View style={styles.companyNotesBox}>
+                  <View style={styles.companyNotesHeader}>
+                    <AlertCircle size={16} color="#F59E0B" />
+                    <Text style={styles.companyNotesLabel}>Company Notes:</Text>
+                  </View>
+                  <Text style={styles.companyNotes}>{commission.company_notes}</Text>
+                  {commission.company_notes_updated_at && (
+                    <Text style={styles.companyNotesDate}>
+                      Updated {formatDate(commission.company_notes_updated_at)}
+                    </Text>
+                  )}
+                </View>
+              )}
+
               {isCompany && commission.status === 'pending' && (
-                <TouchableOpacity
-                  style={styles.approveButton}
-                  onPress={() => handleApprove(commission.id)}
-                >
-                  <Check size={16} color="#fff" />
-                  <Text style={styles.approveButtonText}>Approve Commission</Text>
-                </TouchableOpacity>
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={styles.approveButton}
+                    onPress={() => handleApprove(commission.id)}
+                  >
+                    <Check size={16} color="#fff" />
+                    <Text style={styles.approveButtonText}>Approve</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.denyButton}
+                    onPress={() => handleDenyPress(commission)}
+                  >
+                    <Ban size={16} color="#fff" />
+                    <Text style={styles.denyButtonText}>Deny</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           ))
@@ -1062,6 +1137,71 @@ export default function CommissionsScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showDenyModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDenyModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.denyModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Deny Commission</Text>
+              <TouchableOpacity onPress={() => setShowDenyModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.denyModalBody}>
+              <Text style={styles.denyModalDescription}>
+                Please explain why this commission is being denied. This note will be visible to the affiliate.
+              </Text>
+
+              {selectedCommission && (
+                <View style={styles.denyCommissionInfo}>
+                  <Text style={styles.denyCommissionLabel}>Commission Details</Text>
+                  <Text style={styles.denyCommissionValue}>
+                    {selectedCommission.deals?.contact_submissions?.name || 'Customer'}
+                  </Text>
+                  <Text style={styles.denyCommissionAmount}>
+                    {formatCurrency(selectedCommission.commission_amount)}
+                  </Text>
+                </View>
+              )}
+
+              <Text style={styles.inputLabel}>Reason for Denial *</Text>
+              <TextInput
+                style={styles.notesInput}
+                multiline
+                numberOfLines={6}
+                placeholder="e.g., Customer cancelled order, Invalid lead, Outside service area..."
+                placeholderTextColor="#64748B"
+                value={denyNotes}
+                onChangeText={setDenyNotes}
+                textAlignVertical="top"
+              />
+
+              <View style={styles.denyModalActions}>
+                <TouchableOpacity
+                  style={styles.denyCancelButton}
+                  onPress={() => setShowDenyModal(false)}
+                >
+                  <Text style={styles.denyCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.denyConfirmButton, !denyNotes.trim() && styles.denyConfirmButtonDisabled]}
+                  onPress={handleDenySubmit}
+                  disabled={!denyNotes.trim()}
+                >
+                  <Ban size={16} color="#fff" />
+                  <Text style={styles.denyConfirmButtonText}>Deny Commission</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1201,13 +1341,14 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    gap: 8,
+    gap: 6,
     marginBottom: 16,
+    flexWrap: 'wrap',
   },
   filterButton: {
-    flex: 1,
+    minWidth: '18%',
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: 8,
     backgroundColor: '#1E293B',
     borderWidth: 1,
@@ -1309,7 +1450,12 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginBottom: 12,
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   approveButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1319,6 +1465,140 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   approveButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  denyButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  denyButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  companyNotesBox: {
+    backgroundColor: '#7C2D1220',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#EF444420',
+  },
+  companyNotesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  companyNotesLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  companyNotes: {
+    fontSize: 13,
+    color: '#E2E8F0',
+    lineHeight: 18,
+  },
+  companyNotesDate: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 6,
+  },
+  denyModalContent: {
+    backgroundColor: '#1E293B',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  denyModalBody: {
+    padding: 20,
+  },
+  denyModalDescription: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  denyCommissionInfo: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  denyCommissionLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  denyCommissionValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  denyCommissionAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E2E8F0',
+    marginBottom: 8,
+  },
+  notesInput: {
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    padding: 12,
+    color: '#FFFFFF',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#334155',
+    minHeight: 120,
+    marginBottom: 20,
+  },
+  denyModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  denyCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#334155',
+    alignItems: 'center',
+  },
+  denyCancelButtonText: {
+    color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  denyConfirmButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+  },
+  denyConfirmButtonDisabled: {
+    backgroundColor: '#EF444460',
+  },
+  denyConfirmButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
