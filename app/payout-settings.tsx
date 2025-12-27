@@ -1,45 +1,19 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Pressable, Platform } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Settings, DollarSign, Calendar, Bell, X, ChevronDown, CreditCard } from 'lucide-react-native';
+import { DollarSign, X, CreditCard } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { PAYOUT_FREQUENCIES, PAYOUT_METHODS, MINIMUM_PAYOUT_THRESHOLDS, formatCurrency, calculateStripeFee } from '@/lib/stripeConfig';
-
-type PayoutPreferences = {
-  id: string;
-  affiliate_id: string;
-  payout_frequency: string;
-  payout_frequency_days: number;
-  minimum_payout_threshold: number;
-  preferred_payout_method: string;
-  auto_payout_enabled: boolean;
-  notification_preferences: any;
-};
 
 export default function PayoutSettingsScreen() {
   const { profile } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [preferences, setPreferences] = useState<PayoutPreferences | null>(null);
-  const [showFrequencyModal, setShowFrequencyModal] = useState(false);
-  const [showMethodModal, setShowMethodModal] = useState(false);
-  const [showThresholdModal, setShowThresholdModal] = useState(false);
   const [cardLoading, setCardLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
-    payout_frequency: 'monthly',
-    payout_frequency_days: 30,
-    minimum_payout_threshold: 50,
-    preferred_payout_method: 'ach_standard',
-    auto_payout_enabled: true,
-    notification_preferences: {
-      payout_scheduled: true,
-      payout_completed: true,
-      payout_failed: true,
-    },
-  });
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentDetails, setPaymentDetails] = useState('');
 
   useEffect(() => {
     if (profile?.user_type === 'affiliate') {
@@ -52,23 +26,9 @@ export default function PayoutSettingsScreen() {
 
   const loadPreferences = async () => {
     try {
-      const { data } = await supabase
-        .from('payout_preferences')
-        .select('*')
-        .eq('affiliate_id', profile?.id)
-        .maybeSingle();
-
-      if (data) {
-        setPreferences(data);
-        setFormData({
-          payout_frequency: data.payout_frequency,
-          payout_frequency_days: data.payout_frequency_days,
-          minimum_payout_threshold: data.minimum_payout_threshold,
-          preferred_payout_method: data.preferred_payout_method,
-          auto_payout_enabled: data.auto_payout_enabled,
-          notification_preferences: data.notification_preferences || formData.notification_preferences,
-        });
-      }
+      setPaymentMethod(profile?.payment_method || '');
+      const details = profile?.payment_details as any;
+      setPaymentDetails(details?.account || '');
     } catch (error) {
       console.error('Error loading preferences:', error);
     } finally {
@@ -77,60 +37,37 @@ export default function PayoutSettingsScreen() {
   };
 
   const handleSave = async () => {
-    if (!profile?.stripe_connect_account_id || profile?.stripe_account_status !== 'verified') {
-      Alert.alert(
-        'Setup Required',
-        'Please complete Stripe Connect onboarding before configuring payout settings.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Setup Now', onPress: () => router.push('/stripe-onboarding') },
-        ]
-      );
+    if (!paymentMethod) {
+      Alert.alert('Error', 'Please select a payment method');
+      return;
+    }
+
+    if (!paymentDetails.trim()) {
+      Alert.alert('Error', 'Please enter your payment details');
       return;
     }
 
     setSaving(true);
 
     try {
-      if (preferences) {
-        const { error } = await supabase
-          .from('payout_preferences')
-          .update(formData)
-          .eq('affiliate_id', profile.id);
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          payment_method: paymentMethod,
+          payment_details: { account: paymentDetails.trim() },
+        })
+        .eq('id', profile.id);
 
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('payout_preferences')
-          .insert({
-            affiliate_id: profile.id,
-            ...formData,
-          });
+      if (error) throw error;
 
-        if (error) throw error;
-      }
-
-      Alert.alert('Success', 'Payout settings saved successfully!');
+      Alert.alert('Success', 'Payment settings saved successfully!');
       router.back();
-    } catch (error) {
-      console.error('Error saving preferences:', error);
-      Alert.alert('Error', 'Failed to save payout settings');
+    } catch (error: any) {
+      console.error('Error saving payment settings:', error);
+      Alert.alert('Error', error.message || 'Failed to save payment settings');
     } finally {
       setSaving(false);
     }
-  };
-
-  const getFrequencyLabel = () => {
-    const freq = PAYOUT_FREQUENCIES.find(f => f.value === formData.payout_frequency);
-    if (formData.payout_frequency === 'custom') {
-      return `Every ${formData.payout_frequency_days} days`;
-    }
-    return freq?.label || 'Monthly';
-  };
-
-  const getMethodLabel = () => {
-    const method = PAYOUT_METHODS.find(m => m.value === formData.preferred_payout_method);
-    return method?.label || 'Bank Transfer';
   };
 
   const handleAddCard = async () => {
@@ -233,10 +170,8 @@ export default function PayoutSettingsScreen() {
               if (!response.ok) throw new Error(data.error);
 
               Alert.alert('Success', 'Card removed successfully');
-              router.back();
-            } catch (error) {
-              console.error('Error removing card:', error);
-              Alert.alert('Error', 'Failed to remove card');
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
             }
           },
         },
@@ -328,333 +263,111 @@ export default function PayoutSettingsScreen() {
     );
   }
 
+  const PAYMENT_METHODS = [
+    { value: 'venmo', label: 'Venmo', placeholder: 'Enter your Venmo username, phone, or email' },
+    { value: 'paypal', label: 'PayPal', placeholder: 'Enter your PayPal email' },
+    { value: 'bank_transfer', label: 'Bank Transfer', placeholder: 'Enter your account details' },
+    { value: 'wise', label: 'Wise', placeholder: 'Enter your Wise email' },
+    { value: 'other', label: 'Other', placeholder: 'Enter your payment details' },
+  ];
+
+  const selectedMethod = PAYMENT_METHODS.find(m => m.value === paymentMethod);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          <Settings size={32} color="#60A5FA" />
+          <DollarSign size={32} color="#60A5FA" />
         </View>
-        <Text style={styles.title}>Payout Settings</Text>
+        <Text style={styles.title}>Payment Settings</Text>
         <Text style={styles.subtitle}>
-          Configure how and when you receive your earnings
+          Configure how you want to receive your commission payouts
         </Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payout Schedule</Text>
+        <Text style={styles.sectionTitle}>Payment Method</Text>
+        <Text style={styles.sectionDescription}>
+          Select how you'd like to receive your earnings. Your information is securely stored and only visible to platform administrators when processing payouts.
+        </Text>
 
-        <TouchableOpacity
-          style={styles.settingCard}
-          onPress={() => setShowFrequencyModal(true)}
-        >
-          <View style={styles.settingLeft}>
-            <View style={styles.settingIcon}>
-              <Calendar size={20} color="#60A5FA" />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Frequency</Text>
-              <Text style={styles.settingValue}>{getFrequencyLabel()}</Text>
-            </View>
-          </View>
-          <ChevronDown size={20} color="#94A3B8" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.settingCard}
-          onPress={() => setShowThresholdModal(true)}
-        >
-          <View style={styles.settingLeft}>
-            <View style={styles.settingIcon}>
-              <DollarSign size={20} color="#10B981" />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Minimum Threshold</Text>
-              <Text style={styles.settingValue}>
-                {formatCurrency(formData.minimum_payout_threshold)}
+        {PAYMENT_METHODS.map((method) => (
+          <TouchableOpacity
+            key={method.value}
+            style={[
+              styles.paymentMethodOption,
+              paymentMethod === method.value && styles.paymentMethodOptionSelected
+            ]}
+            onPress={() => setPaymentMethod(method.value)}
+          >
+            <View style={styles.paymentMethodContent}>
+              <View style={[
+                styles.radioOuter,
+                paymentMethod === method.value && styles.radioOuterSelected
+              ]}>
+                {paymentMethod === method.value && (
+                  <View style={styles.radioInner} />
+                )}
+              </View>
+              <Text style={[
+                styles.paymentMethodLabel,
+                paymentMethod === method.value && styles.paymentMethodLabelSelected
+              ]}>
+                {method.label}
               </Text>
             </View>
-          </View>
-          <ChevronDown size={20} color="#94A3B8" />
-        </TouchableOpacity>
-
-        <View style={styles.settingCard}>
-          <View style={styles.settingLeft}>
-            <View style={styles.settingIcon}>
-              <Bell size={20} color="#F59E0B" />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Automatic Payouts</Text>
-              <Text style={styles.settingDescription}>
-                Process payouts automatically when threshold is met
-              </Text>
-            </View>
-          </View>
-          <Switch
-            value={formData.auto_payout_enabled}
-            onValueChange={(value) =>
-              setFormData({ ...formData, auto_payout_enabled: value })
-            }
-            trackColor={{ false: '#334155', true: '#3B82F680' }}
-            thumbColor={formData.auto_payout_enabled ? '#3B82F6' : '#94A3B8'}
-          />
-        </View>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payout Method</Text>
+        <Text style={styles.sectionTitle}>Payment Details</Text>
+        <Text style={styles.sectionDescription}>
+          {selectedMethod?.placeholder || 'Enter your payment information'}
+        </Text>
 
-        <TouchableOpacity
-          style={styles.settingCard}
-          onPress={() => setShowMethodModal(true)}
-        >
-          <View style={styles.settingLeft}>
-            <View style={styles.settingIcon}>
-              <CreditCard size={20} color="#8B5CF6" />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Payment Method</Text>
-              <Text style={styles.settingValue}>{getMethodLabel()}</Text>
-              <Text style={styles.settingDescription}>
-                {PAYOUT_METHODS.find(m => m.value === formData.preferred_payout_method)?.description}
-              </Text>
-            </View>
-          </View>
-          <ChevronDown size={20} color="#94A3B8" />
-        </TouchableOpacity>
+        <TextInput
+          style={styles.input}
+          placeholder={selectedMethod?.placeholder || 'Enter your payment details'}
+          placeholderTextColor="#64748B"
+          value={paymentDetails}
+          onChangeText={setPaymentDetails}
+          autoCapitalize="none"
+          editable={!!paymentMethod}
+        />
 
-        <View style={styles.feeCard}>
-          <Text style={styles.feeTitle}>Fee Example</Text>
-          <View style={styles.feeRow}>
-            <Text style={styles.feeLabel}>$100.00 payout</Text>
-            <Text style={styles.feeValue}>
-              {formatCurrency(calculateStripeFee(100, formData.preferred_payout_method))} fee
+        {paymentMethod === 'venmo' && (
+          <View style={styles.infoCard}>
+            <Text style={styles.infoText}>
+              Enter your Venmo username (e.g., @john-doe), phone number, or email address. Make sure it's the account you want to receive payments to.
             </Text>
           </View>
-          <View style={styles.feeRow}>
-            <Text style={styles.feeLabel}>You receive</Text>
-            <Text style={styles.feeValueBold}>
-              {formatCurrency(100 - calculateStripeFee(100, formData.preferred_payout_method))}
+        )}
+
+        {paymentMethod === 'paypal' && (
+          <View style={styles.infoCard}>
+            <Text style={styles.infoText}>
+              Enter the email address associated with your PayPal account.
             </Text>
           </View>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notifications</Text>
-
-        <View style={styles.settingCard}>
-          <View style={styles.settingLeft}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Payout Scheduled</Text>
-              <Text style={styles.settingDescription}>
-                Notify when a payout is scheduled
-              </Text>
-            </View>
-          </View>
-          <Switch
-            value={formData.notification_preferences.payout_scheduled}
-            onValueChange={(value) =>
-              setFormData({
-                ...formData,
-                notification_preferences: {
-                  ...formData.notification_preferences,
-                  payout_scheduled: value,
-                },
-              })
-            }
-            trackColor={{ false: '#334155', true: '#3B82F680' }}
-            thumbColor={formData.notification_preferences.payout_scheduled ? '#3B82F6' : '#94A3B8'}
-          />
-        </View>
-
-        <View style={styles.settingCard}>
-          <View style={styles.settingLeft}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Payout Completed</Text>
-              <Text style={styles.settingDescription}>
-                Notify when money arrives in your account
-              </Text>
-            </View>
-          </View>
-          <Switch
-            value={formData.notification_preferences.payout_completed}
-            onValueChange={(value) =>
-              setFormData({
-                ...formData,
-                notification_preferences: {
-                  ...formData.notification_preferences,
-                  payout_completed: value,
-                },
-              })
-            }
-            trackColor={{ false: '#334155', true: '#3B82F680' }}
-            thumbColor={formData.notification_preferences.payout_completed ? '#3B82F6' : '#94A3B8'}
-          />
-        </View>
-
-        <View style={styles.settingCard}>
-          <View style={styles.settingLeft}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Payout Failed</Text>
-              <Text style={styles.settingDescription}>
-                Notify if a payout fails
-              </Text>
-            </View>
-          </View>
-          <Switch
-            value={formData.notification_preferences.payout_failed}
-            onValueChange={(value) =>
-              setFormData({
-                ...formData,
-                notification_preferences: {
-                  ...formData.notification_preferences,
-                  payout_failed: value,
-                },
-              })
-            }
-            trackColor={{ false: '#334155', true: '#3B82F680' }}
-            thumbColor={formData.notification_preferences.payout_failed ? '#3B82F6' : '#94A3B8'}
-          />
-        </View>
+        )}
       </View>
 
       <TouchableOpacity
-        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+        style={[styles.saveButton, (saving || !paymentMethod || !paymentDetails.trim()) && styles.saveButtonDisabled]}
         onPress={handleSave}
-        disabled={saving}
+        disabled={saving || !paymentMethod || !paymentDetails.trim()}
       >
-        <Text style={styles.saveButtonText}>
-          {saving ? 'Saving...' : 'Save Settings'}
-        </Text>
+        {saving ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.saveButtonText}>Save Payment Settings</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
         <Text style={styles.cancelButtonText}>Cancel</Text>
       </TouchableOpacity>
-
-      <Modal visible={showFrequencyModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Payout Frequency</Text>
-              <TouchableOpacity onPress={() => setShowFrequencyModal(false)}>
-                <X size={24} color="#94A3B8" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.modalList}>
-              {PAYOUT_FREQUENCIES.map((freq) => (
-                <TouchableOpacity
-                  key={freq.value}
-                  style={[
-                    styles.modalOption,
-                    formData.payout_frequency === freq.value && styles.modalOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setFormData({
-                      ...formData,
-                      payout_frequency: freq.value,
-                      payout_frequency_days: freq.days,
-                    });
-                    setShowFrequencyModal(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      formData.payout_frequency === freq.value && styles.modalOptionTextSelected,
-                    ]}
-                  >
-                    {freq.label}
-                  </Text>
-                  <Text style={styles.modalOptionDescription}>{freq.description}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={showMethodModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Payment Method</Text>
-              <TouchableOpacity onPress={() => setShowMethodModal(false)}>
-                <X size={24} color="#94A3B8" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.modalList}>
-              {PAYOUT_METHODS.map((method) => (
-                <TouchableOpacity
-                  key={method.value}
-                  style={[
-                    styles.modalOption,
-                    formData.preferred_payout_method === method.value && styles.modalOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setFormData({
-                      ...formData,
-                      preferred_payout_method: method.value,
-                    });
-                    setShowMethodModal(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      formData.preferred_payout_method === method.value && styles.modalOptionTextSelected,
-                    ]}
-                  >
-                    {method.label}
-                  </Text>
-                  <Text style={styles.modalOptionDescription}>{method.description}</Text>
-                  <Text style={styles.modalOptionFee}>{method.feeDescription}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={showThresholdModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Minimum Threshold</Text>
-              <TouchableOpacity onPress={() => setShowThresholdModal(false)}>
-                <X size={24} color="#94A3B8" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.modalList}>
-              {MINIMUM_PAYOUT_THRESHOLDS.map((threshold) => (
-                <TouchableOpacity
-                  key={threshold.value}
-                  style={[
-                    styles.modalOption,
-                    formData.minimum_payout_threshold === threshold.value && styles.modalOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setFormData({
-                      ...formData,
-                      minimum_payout_threshold: threshold.value,
-                    });
-                    setShowThresholdModal(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      formData.minimum_payout_threshold === threshold.value && styles.modalOptionTextSelected,
-                    ]}
-                  >
-                    {threshold.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
@@ -669,241 +382,165 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
+    backgroundColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
   },
   header: {
+    marginBottom: 24,
     alignItems: 'center',
-    marginBottom: 32,
-    marginTop: 24,
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#1E293B',
-    justifyContent: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#F1F5F9',
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#94A3B8',
+    lineHeight: 22,
     textAlign: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 20,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 12,
-  },
-  settingCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0F172A',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  settingInfo: {
-    flex: 1,
-  },
-  settingLabel: {
-    fontSize: 14,
-    color: '#94A3B8',
-    marginBottom: 4,
-  },
-  settingValue: {
-    fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  settingDescription: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
-  },
-  feeCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  feeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#94A3B8',
-    marginBottom: 12,
-  },
-  feeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    color: '#F1F5F9',
     marginBottom: 8,
   },
-  feeLabel: {
+  sectionDescription: {
     fontSize: 14,
     color: '#94A3B8',
+    lineHeight: 20,
+    marginBottom: 16,
   },
-  feeValue: {
-    fontSize: 14,
-    color: '#FFFFFF',
+  paymentMethodOption: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#334155',
   },
-  feeValueBold: {
+  paymentMethodOptionSelected: {
+    borderColor: '#3B82F6',
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+  },
+  paymentMethodContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#64748B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  radioOuterSelected: {
+    borderColor: '#3B82F6',
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#3B82F6',
+  },
+  paymentMethodLabel: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#10B981',
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  paymentMethodLabelSelected: {
+    color: '#F1F5F9',
+  },
+  input: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#F1F5F9',
+    borderWidth: 2,
+    borderColor: '#334155',
+    marginBottom: 12,
+  },
+  infoCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#93C5FD',
+    lineHeight: 20,
+  },
+  infoListItem: {
+    fontSize: 14,
+    color: '#CBD5E1',
+    marginBottom: 8,
+    lineHeight: 20,
   },
   saveButton: {
     backgroundColor: '#3B82F6',
-    padding: 18,
     borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
     marginBottom: 12,
   },
   saveButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
-    textAlign: 'center',
   },
   cancelButton: {
-    padding: 18,
-    marginBottom: 32,
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 24,
   },
   cancelButtonText: {
     color: '#94A3B8',
     fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#1E293B',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  modalList: {
-    padding: 8,
-  },
-  modalOption: {
-    padding: 16,
-    borderRadius: 8,
-    marginVertical: 4,
-    backgroundColor: '#0F172A',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  modalOptionSelected: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    borderColor: '#3B82F6',
-  },
-  modalOptionText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  modalOptionTextSelected: {
-    color: '#60A5FA',
-    fontWeight: '600',
-  },
-  modalOptionDescription: {
-    fontSize: 14,
-    color: '#94A3B8',
-  },
-  modalOptionFee: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    textAlign: 'center',
-  },
-  infoCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#94A3B8',
-    lineHeight: 20,
-  },
-  infoListItem: {
-    fontSize: 14,
-    color: '#94A3B8',
-    lineHeight: 22,
-    marginBottom: 8,
   },
   addCardButton: {
+    backgroundColor: '#3B82F6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3B82F6',
-    padding: 18,
+    gap: 10,
+    padding: 16,
     borderRadius: 12,
-    gap: 8,
     marginBottom: 16,
-    cursor: 'pointer',
-    zIndex: 10,
   },
   addCardButtonPressed: {
-    backgroundColor: '#2563EB',
     opacity: 0.8,
   },
   addCardButtonText: {
@@ -916,102 +553,31 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#10B981',
+    borderColor: '#334155',
   },
   currentCardTitle: {
     fontSize: 14,
+    fontWeight: '600',
     color: '#94A3B8',
     marginBottom: 12,
   },
   currentCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 12,
   },
   currentCardText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    fontSize: 15,
+    color: '#F1F5F9',
+    fontWeight: '500',
   },
   removeCardButton: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EF4444',
-    alignItems: 'center',
+    padding: 8,
   },
   removeCardText: {
     color: '#EF4444',
     fontSize: 14,
-    fontWeight: '600',
-  },
-  cardModalBody: {
-    padding: 20,
-  },
-  cardModalDescription: {
-    fontSize: 14,
-    color: '#94A3B8',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  cardElementContainer: {
-    marginBottom: 20,
-    position: 'relative',
-    minHeight: 60,
-    width: '100%',
-  },
-  cardLoadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#1E293B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#334155',
-    zIndex: 10,
-  },
-  cardLoadingText: {
-    color: '#94A3B8',
-    fontSize: 14,
-    marginTop: 12,
-  },
-  securityNotice: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-  },
-  securityText: {
-    fontSize: 13,
-    color: '#60A5FA',
-    lineHeight: 18,
-  },
-  submitCardButton: {
-    backgroundColor: '#3B82F6',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  submitCardButtonPressed: {
-    backgroundColor: '#2563EB',
-    opacity: 0.8,
-  },
-  submitCardButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  debugText: {
-    fontSize: 12,
-    color: '#10B981',
-    marginBottom: 12,
     fontWeight: '600',
   },
 });
