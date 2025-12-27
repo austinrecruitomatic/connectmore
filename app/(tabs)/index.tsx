@@ -310,13 +310,16 @@ export default function HomeScreen() {
       const response = await fetch(productImageFile);
       const blob = await response.blob();
       const arrayBuffer = await blob.arrayBuffer();
-      const fileExt = productImageFile.split('.').pop()?.toLowerCase() || 'jpg';
+
+      // Get proper mime type from blob
+      const mimeType = blob.type || 'image/jpeg';
+      const fileExt = mimeType.split('/')[1] || 'jpg';
       const fileName = `${companyId}/${Date.now()}.${fileExt}`;
 
       const { data, error } = await supabase.storage
         .from('product-images')
         .upload(fileName, arrayBuffer, {
-          contentType: `image/${fileExt}`,
+          contentType: mimeType,
           upsert: false,
         });
 
@@ -371,13 +374,16 @@ export default function HomeScreen() {
       const response = await fetch(heroImageFile);
       const blob = await response.blob();
       const arrayBuffer = await blob.arrayBuffer();
-      const fileExt = heroImageFile.split('.').pop()?.toLowerCase() || 'jpg';
+
+      // Get proper mime type from blob
+      const mimeType = blob.type || 'image/jpeg';
+      const fileExt = mimeType.split('/')[1] || 'jpg';
       const fileName = `${companyId}/hero/${Date.now()}.${fileExt}`;
 
       const { data, error } = await supabase.storage
         .from('product-images')
         .upload(fileName, arrayBuffer, {
-          contentType: `image/${fileExt}`,
+          contentType: mimeType,
           upsert: false,
         });
 
