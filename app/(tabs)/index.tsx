@@ -16,7 +16,7 @@ import {
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
-import { Plus, X, Trash2, Pencil, Layout, Star, TrendingUp, Users, DollarSign, Target, Upload } from 'lucide-react-native';
+import { Plus, X, Trash2, Pencil, Layout, Star, TrendingUp, Users, DollarSign, Target, Upload, Share2, Copy } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 type Product = {
@@ -62,6 +62,7 @@ export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [partnerships, setPartnerships] = useState<Set<string>>(new Set());
+  const [productPartnerships, setProductPartnerships] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);

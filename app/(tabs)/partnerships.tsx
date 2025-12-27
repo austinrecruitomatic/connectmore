@@ -16,7 +16,7 @@ import {
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useNavigation } from 'expo-router';
-import { Check, X, Copy, ExternalLink, List, Plus, Search, Gift } from 'lucide-react-native';
+import { Check, X, Copy, ExternalLink, List, Plus, Search, Gift, ChevronDown, ChevronUp, Package } from 'lucide-react-native';
 
 type Partnership = {
   id: string;
@@ -34,6 +34,16 @@ type Partnership = {
     full_name: string;
     email: string;
   };
+  companyProducts?: CompanyProduct[];
+};
+
+type CompanyProduct = {
+  id: string;
+  name: string;
+  description: string;
+  sale_type: 'lead_generation' | 'direct_sale';
+  commission_rate: number;
+  commission_type: string;
 };
 
 type Affiliate = {
@@ -62,6 +72,8 @@ export default function PartnershipsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [saving, setSaving] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [expandedPartnership, setExpandedPartnership] = useState<string | null>(null);
+  const [productsByPartnership, setProductsByPartnership] = useState<Map<string, CompanyProduct[]>>(new Map());
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -222,6 +234,37 @@ export default function PartnershipsScreen() {
     setShowAddModal(true);
   };
 
+  const toggleProductList = async (partnershipId: string, companyId: string) => {
+    if (expandedPartnership === partnershipId) {
+      setExpandedPartnership(null);
+    } else {
+      setExpandedPartnership(partnershipId);
+
+      if (!productsByPartnership.has(partnershipId)) {
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('id, name, description, sale_type, commission_rate, commission_type')
+          .eq('company_id', companyId)
+          .eq('is_active', true)
+          .order('name');
+
+        if (productsData) {
+          setProductsByPartnership(new Map(productsByPartnership.set(partnershipId, productsData)));
+        }
+      }
+    }
+  };
+
+  const handleCopyProductLink = (productId: string, affiliateCode: string) => {
+    const productShareUrl = `https://connect-more.io/product/${productId}/share?ref=${affiliateCode}`;
+    Clipboard.setString(productShareUrl);
+    Alert.alert('Product Link Copied!', 'Your shareable product link has been copied to clipboard.');
+  };
+
+  const handleViewProductPage = (productId: string, affiliateCode: string) => {
+    router.push(`/product/${productId}/share?ref=${affiliateCode}`);
+  };
+
   const handleCopyLink = (affiliateCode: string) => {
     const landingPageUrl = `https://connect-more.io/lp/${affiliateCode}`;
     Clipboard.setString(landingPageUrl);
@@ -294,22 +337,92 @@ export default function PartnershipsScreen() {
       )}
 
       {!isCompany && item.status === 'approved' && (
-        <View style={styles.linkActions}>
+        <>
+          <View style={styles.linkActions}>
+            <TouchableOpacity
+              style={styles.viewPageButton}
+              onPress={() => handleViewLandingPage(item.affiliate_code)}
+            >
+              <ExternalLink size={18} color="#3B82F6" />
+              <Text style={styles.viewPageButtonText}>View Page</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.copyLinkButton}
+              onPress={() => handleCopyLink(item.affiliate_code)}
+            >
+              <Copy size={18} color="#fff" />
+              <Text style={styles.copyLinkButtonText}>Copy Link</Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity
-            style={styles.viewPageButton}
-            onPress={() => handleViewLandingPage(item.affiliate_code)}
+            style={styles.expandButton}
+            onPress={() => toggleProductList(item.id, item.company_id)}
           >
-            <ExternalLink size={18} color="#3B82F6" />
-            <Text style={styles.viewPageButtonText}>View Page</Text>
+            <Package size={18} color="#60A5FA" />
+            <Text style={styles.expandButtonText}>
+              {expandedPartnership === item.id ? 'Hide Products' : 'Show Products'}
+            </Text>
+            {expandedPartnership === item.id ? (
+              <ChevronUp size={18} color="#60A5FA" />
+            ) : (
+              <ChevronDown size={18} color="#60A5FA" />
+            )}
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.copyLinkButton}
-            onPress={() => handleCopyLink(item.affiliate_code)}
-          >
-            <Copy size={18} color="#fff" />
-            <Text style={styles.copyLinkButtonText}>Copy Link</Text>
-          </TouchableOpacity>
-        </View>
+
+          {expandedPartnership === item.id && (
+            <View style={styles.productsContainer}>
+              {productsByPartnership.get(item.id)?.length === 0 && (
+                <Text style={styles.noProductsText}>No products available</Text>
+              )}
+              {productsByPartnership.get(item.id)?.map((product) => (
+                <View key={product.id} style={styles.productItem}>
+                  <View style={styles.productItemHeader}>
+                    <Text style={styles.productItemName}>{product.name}</Text>
+                    <View
+                      style={[
+                        styles.saleTypePill,
+                        product.sale_type === 'direct_sale'
+                          ? styles.saleTypePillDirect
+                          : styles.saleTypePillLead,
+                      ]}
+                    >
+                      <Text style={styles.saleTypePillText}>
+                        {product.sale_type === 'direct_sale' ? 'Sale' : 'Lead'}
+                      </Text>
+                    </View>
+                  </View>
+                  {product.description && (
+                    <Text style={styles.productItemDescription} numberOfLines={2}>
+                      {product.description}
+                    </Text>
+                  )}
+                  <Text style={styles.productItemCommission}>
+                    {product.commission_type === 'percentage'
+                      ? `${product.commission_rate}% Commission`
+                      : `$${product.commission_rate} per sale`}
+                  </Text>
+                  <View style={styles.productActions}>
+                    <TouchableOpacity
+                      style={styles.productViewButton}
+                      onPress={() => handleViewProductPage(product.id, item.affiliate_code)}
+                    >
+                      <ExternalLink size={16} color="#3B82F6" />
+                      <Text style={styles.productViewButtonText}>View</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.productCopyButton}
+                      onPress={() => handleCopyProductLink(product.id, item.affiliate_code)}
+                    >
+                      <Copy size={16} color="#FFF" />
+                      <Text style={styles.productCopyButtonText}>Copy Link</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -698,5 +811,121 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  expandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#60A5FA',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+  },
+  expandButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#60A5FA',
+  },
+  productsContainer: {
+    marginTop: 12,
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    padding: 12,
+    gap: 12,
+  },
+  noProductsText: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    padding: 20,
+  },
+  productItem: {
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  productItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  productItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    flex: 1,
+    marginRight: 8,
+  },
+  saleTypePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  saleTypePillDirect: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  saleTypePillLead: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+  },
+  saleTypePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  productItemDescription: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  productItemCommission: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10B981',
+    marginBottom: 12,
+  },
+  productActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  productViewButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+    borderRadius: 6,
+    padding: 10,
+  },
+  productViewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  productCopyButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#3B82F6',
+    borderRadius: 6,
+    padding: 10,
+  },
+  productCopyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
