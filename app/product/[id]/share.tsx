@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, ShoppingBag, MessageSquare, ExternalLink, X } from 'lucide-react-native';
+import CustomFormRenderer from '@/components/CustomFormRenderer';
 
 type Product = {
   id: string;
@@ -23,6 +24,7 @@ type Product = {
   lp_description?: string;
   lp_cta_text?: string;
   lp_hero_image?: string;
+  form_id?: string;
 };
 
 type Company = {
@@ -186,19 +188,14 @@ export default function ProductShare() {
     }
   };
 
-  const handleSubmitContact = async () => {
+  const handleSubmitContact = async (customFormResponses: Record<string, any>) => {
     if (!product || !partnership) return;
 
-    if (!formData.name.trim() || !formData.email.trim()) {
-      Alert.alert('Required Fields', 'Please enter your name and email');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
-      return;
-    }
+    const firstName = customFormResponses['First Name'] || '';
+    const lastName = customFormResponses['Last Name'] || '';
+    const email = customFormResponses['Email Address'] || '';
+    const phone = customFormResponses['Phone Number'] || '';
+    const fullName = `${firstName} ${lastName}`.trim();
 
     setSubmitting(true);
 
@@ -209,17 +206,26 @@ export default function ProductShare() {
           partnership_id: partnership.id,
           product_id: product.id,
           landing_page_slug: `product-${product.id}`,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          company_name: formData.company_name || null,
-          message: formData.message || null,
-          customer_referral_code: formData.customer_referral_code || null,
+          name: fullName,
+          email: email,
+          phone: phone || null,
+          company_name: null,
+          message: null,
+          customer_referral_code: null,
         })
         .select()
         .single();
 
       if (submissionError) throw submissionError;
+
+      if (product.form_id) {
+        await supabase.from('form_submissions').insert({
+          form_id: product.form_id,
+          product_id: product.id,
+          contact_submission_id: submission.id,
+          responses: customFormResponses,
+        });
+      }
 
       await supabase.from('leads').insert({
         partnership_id: partnership.id,
@@ -227,21 +233,13 @@ export default function ProductShare() {
         lead_data: {
           source: 'product_share_form',
           product_id: product.id,
-          contact_name: formData.name,
-          contact_email: formData.email,
+          contact_name: fullName,
+          contact_email: email,
         },
         contact_submission_id: submission.id,
       });
 
       setSubmitted(true);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        company_name: '',
-        message: '',
-        customer_referral_code: '',
-      });
 
       setTimeout(() => {
         setShowContactForm(false);
@@ -388,6 +386,12 @@ export default function ProductShare() {
                   We've received your information and will contact you soon!
                 </Text>
               </View>
+            ) : product.form_id ? (
+              <CustomFormRenderer
+                formId={product.form_id}
+                onSubmit={handleSubmitContact}
+                submitButtonText={submitting ? 'Submitting...' : 'Submit'}
+              />
             ) : (
               <ScrollView style={styles.formContainer}>
                 <Text style={styles.label}>Name *</Text>
@@ -456,7 +460,7 @@ export default function ProductShare() {
 
                 <TouchableOpacity
                   style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
-                  onPress={handleSubmitContact}
+                  onPress={() => handleSubmitContact(formData)}
                   disabled={submitting}
                 >
                   <Text style={styles.submitButtonText}>
