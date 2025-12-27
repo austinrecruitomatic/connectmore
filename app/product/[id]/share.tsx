@@ -97,7 +97,7 @@ export default function ProductShare() {
           .select('id, affiliate_id, company_id, affiliate_code')
           .eq('company_id', productData.company_id)
           .or(`affiliate_code.eq.${affiliateRef},affiliate_id.eq.${affiliateRef}`)
-          .eq('status', 'active')
+          .eq('status', 'approved')
           .maybeSingle();
 
         if (partnershipData) {
