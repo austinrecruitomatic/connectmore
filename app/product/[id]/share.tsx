@@ -164,42 +164,7 @@ export default function ProductShare() {
       return;
     }
 
-    if (product.sale_type === 'direct_sale') {
-      if (product.external_checkout_url) {
-        const separator = product.external_checkout_url.includes('?') ? '&' : '?';
-        const trackingUrl = `${product.external_checkout_url}${separator}ref=${partnership.affiliate_code}`;
-
-        await supabase.from('leads').insert({
-          partnership_id: partnership.id,
-          lead_type: 'click',
-          lead_data: {
-            destination: trackingUrl,
-            type: 'external_checkout',
-            product_id: product.id,
-          },
-        });
-
-        if (Platform.OS === 'web') {
-          window.open(trackingUrl, '_blank');
-        } else {
-          Alert.alert('External Checkout', 'Opening external checkout...');
-        }
-      } else {
-        await supabase.from('leads').insert({
-          partnership_id: partnership.id,
-          lead_type: 'click',
-          lead_data: {
-            destination: 'internal_checkout',
-            type: 'checkout_page',
-            product_id: product.id,
-          },
-        });
-
-        router.push(`/product/${product.id}/checkout?partnershipId=${partnership.id}`);
-      }
-    } else {
-      setShowContactForm(true);
-    }
+    setShowContactForm(true);
   };
 
   const handleSubmitContact = async (customFormResponses: Record<string, any>) => {
@@ -255,10 +220,24 @@ export default function ProductShare() {
 
       setSubmitted(true);
 
-      setTimeout(() => {
-        setShowContactForm(false);
-        setSubmitted(false);
-      }, 3000);
+      if (product.sale_type === 'direct_sale' && product.external_checkout_url) {
+        const separator = product.external_checkout_url.includes('?') ? '&' : '?';
+        const trackingUrl = `${product.external_checkout_url}${separator}ref=${partnership.affiliate_code}`;
+
+        setTimeout(() => {
+          setShowContactForm(false);
+          setSubmitted(false);
+
+          if (Platform.OS === 'web') {
+            window.open(trackingUrl, '_blank');
+          }
+        }, 2000);
+      } else {
+        setTimeout(() => {
+          setShowContactForm(false);
+          setSubmitted(false);
+        }, 3000);
+      }
     } catch (error) {
       console.error('Error submitting form:', error);
       Alert.alert('Error', 'Failed to submit form. Please try again.');
