@@ -149,10 +149,10 @@ export default function AnalyticsScreen() {
 
           const { data: deals } = await supabase
             .from('deals')
-            .select('deal_value, contact_submission_id')
+            .select('deal_value, contact_submission_id, status')
             .in('partnership_id', partnershipIds);
 
-          const totalRevenue = deals?.reduce((sum, deal) => sum + deal.deal_value, 0) || 0;
+          const totalRevenue = deals?.filter(d => d.status !== 'cancelled').reduce((sum, deal) => sum + deal.deal_value, 0) || 0;
 
           const allNewLeads = allSubmissions?.filter((s) => s.status === 'new').length || 0;
           const allContacted = allSubmissions?.filter((s) => s.status === 'contacted').length || 0;

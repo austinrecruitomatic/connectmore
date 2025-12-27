@@ -141,7 +141,7 @@ export default function AdminCompanies() {
                 .eq('status', 'approved'),
               supabase
                 .from('deals')
-                .select('deal_value')
+                .select('deal_value, status')
                 .eq('company_id', company.id),
               supabase
                 .from('company_reviews')
@@ -159,10 +159,9 @@ export default function AdminCompanies() {
             if (dealsRes.error) console.error('Deals query error:', dealsRes.error);
             if (reviewsRes.error) console.error('Reviews query error:', reviewsRes.error);
 
-            const totalRevenue = (dealsRes.data || []).reduce(
-              (sum, deal) => sum + deal.deal_value,
-              0
-            );
+            const totalRevenue = (dealsRes.data || [])
+              .filter((deal) => deal.status !== 'cancelled')
+              .reduce((sum, deal) => sum + deal.deal_value, 0);
 
             const avgRating =
               reviewsRes.data && reviewsRes.data.length > 0

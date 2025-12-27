@@ -578,7 +578,7 @@ export default function DealsScreen() {
   };
 
   const totalActiveDeals = deals.filter(d => d.status === 'active').length;
-  const totalRevenue = deals.reduce((sum, d) => sum + d.deal_value, 0);
+  const totalRevenue = deals.filter(d => d.status !== 'cancelled').reduce((sum, d) => sum + d.deal_value, 0);
 
   if (profile?.user_type !== 'company') {
     return (

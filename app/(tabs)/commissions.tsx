@@ -256,7 +256,7 @@ export default function CommissionsScreen() {
       const closedDeals = leads?.filter((l) => l.status === 'closed').length || 0;
       const conversionRate = totalLeads > 0 ? (closedDeals / totalLeads) * 100 : 0;
       const totalRevenue =
-        deals?.filter((d) => d.status === 'active').reduce((sum, d) => sum + d.deal_value, 0) || 0;
+        deals?.filter((d) => d.status !== 'cancelled').reduce((sum, d) => sum + d.deal_value, 0) || 0;
 
       setPipelineMetrics({
         totalLeads,
