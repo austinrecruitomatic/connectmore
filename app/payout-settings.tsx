@@ -6,7 +6,6 @@ import { DollarSign, CreditCard } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 const PAYMENT_METHODS = [
-  { value: 'venmo', label: 'Venmo', placeholder: 'Enter your Venmo username, phone, or email' },
   { value: 'paypal', label: 'PayPal', placeholder: 'Enter your PayPal email' },
   { value: 'bank_transfer', label: 'Bank Transfer', placeholder: 'Enter your account details' },
   { value: 'wise', label: 'Wise', placeholder: 'Enter your Wise email' },
@@ -340,14 +339,6 @@ export default function PayoutSettingsScreen() {
           autoCapitalize="none"
           editable={!!paymentMethod}
         />
-
-        {paymentMethod === 'venmo' && (
-          <View style={styles.infoCard}>
-            <Text style={styles.infoText}>
-              Enter your Venmo username (e.g., @john-doe), phone number, or email address. Make sure it's the account you want to receive payments to.
-            </Text>
-          </View>
-        )}
 
         {paymentMethod === 'paypal' && (
           <View style={styles.infoCard}>

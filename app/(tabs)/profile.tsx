@@ -17,7 +17,6 @@ const PAYMENT_METHODS = [
   { value: 'bank_transfer', label: 'Bank Transfer' },
   { value: 'paypal', label: 'PayPal' },
   { value: 'stripe', label: 'Stripe' },
-  { value: 'venmo', label: 'Venmo' },
   { value: 'wise', label: 'Wise' },
   { value: 'other', label: 'Other' },
 ];
