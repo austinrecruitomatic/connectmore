@@ -5,9 +5,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowRight, Check, Users, TrendingUp, DollarSign, Zap, Globe, Shield } from 'lucide-react-native';
+import { ArrowRight, Users, TrendingUp, DollarSign, Zap, Globe, Shield } from 'lucide-react-native';
 
 export default function MarketingPage() {
   const router = useRouter();
@@ -45,65 +46,15 @@ export default function MarketingPage() {
     },
   ];
 
-  const plans = [
-    {
-      name: 'Starter',
-      price: '49',
-      description: 'Perfect for small businesses',
-      features: [
-        'Up to 10 affiliates',
-        '5 products',
-        'Basic analytics',
-        'Email support',
-        'Custom landing pages',
-      ],
-    },
-    {
-      name: 'Professional',
-      price: '149',
-      description: 'For growing companies',
-      popular: true,
-      features: [
-        'Unlimited affiliates',
-        'Unlimited products',
-        'Advanced analytics',
-        'Priority support',
-        'Custom branding',
-        'API access',
-      ],
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      description: 'For large organizations',
-      features: [
-        'Everything in Professional',
-        'Dedicated account manager',
-        'Custom integrations',
-        'SLA guarantee',
-        'Advanced security',
-        'White-label solution',
-      ],
-    },
-  ];
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.hero}>
-        <View style={styles.logoPlaceholder}>
-          <View style={styles.logoGrid}>
-            {Array.from({ length: 15 }).map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.logoDot,
-                  { backgroundColor: '#60A5FA' },
-                ]}
-              />
-            ))}
-          </View>
-          <Text style={styles.logoText}>CONNECT{'\n'}MORE</Text>
-        </View>
+        <Image
+          source={require('@/assets/images/connect_more_icon.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
 
         <Text style={styles.headline}>
           The Complete Affiliate{'\n'}Marketing Platform
@@ -156,96 +107,17 @@ export default function MarketingPage() {
         </View>
       </View>
 
-      <View style={styles.stats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>10k+</Text>
-          <Text style={styles.statLabel}>Active Partnerships</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>$2M+</Text>
-          <Text style={styles.statLabel}>Commissions Paid</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>98%</Text>
-          <Text style={styles.statLabel}>Satisfaction Rate</Text>
-        </View>
-      </View>
-
-      <View style={styles.pricing}>
-        <Text style={styles.sectionTitle}>Simple, Transparent Pricing</Text>
-        <Text style={styles.sectionSubtitle}>
-          Choose the plan that fits your business needs
-        </Text>
-
-        <View style={styles.plansGrid}>
-          {plans.map((plan, index) => (
-            <View
-              key={index}
-              style={[
-                styles.planCard,
-                plan.popular && styles.planCardPopular,
-              ]}
-            >
-              {plan.popular && (
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
-                </View>
-              )}
-
-              <Text style={styles.planName}>{plan.name}</Text>
-              <View style={styles.priceRow}>
-                {plan.price !== 'Custom' && (
-                  <Text style={styles.currency}>$</Text>
-                )}
-                <Text style={styles.price}>{plan.price}</Text>
-                {plan.price !== 'Custom' && (
-                  <Text style={styles.period}>/month</Text>
-                )}
-              </View>
-              <Text style={styles.planDescription}>{plan.description}</Text>
-
-              <TouchableOpacity
-                style={[
-                  styles.planButton,
-                  plan.popular && styles.planButtonPopular,
-                ]}
-                onPress={() => router.push('/auth/signup')}
-              >
-                <Text
-                  style={[
-                    styles.planButtonText,
-                    plan.popular && styles.planButtonTextPopular,
-                  ]}
-                >
-                  Get Started
-                </Text>
-              </TouchableOpacity>
-
-              <View style={styles.planFeatures}>
-                {plan.features.map((feature, idx) => (
-                  <View key={idx} style={styles.planFeatureRow}>
-                    <Check size={18} color="#10B981" />
-                    <Text style={styles.planFeatureText}>{feature}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
 
       <View style={styles.cta}>
-        <Text style={styles.ctaTitle}>Ready to Grow Your Business?</Text>
+        <Text style={styles.ctaTitle}>We Only Get Paid If You Get Paid</Text>
         <Text style={styles.ctaSubtitle}>
-          Join thousands of companies already using Connect More to power their affiliate programs
+          Performance-based pricing means we succeed when you succeed. No upfront costs, no hidden fees.
         </Text>
         <TouchableOpacity
           style={styles.ctaPrimaryButton}
           onPress={() => router.push('/auth/signup')}
         >
-          <Text style={styles.ctaPrimaryButtonText}>Get Started Today</Text>
+          <Text style={styles.ctaPrimaryButtonText}>Get Started</Text>
           <ArrowRight size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -269,32 +141,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: '#1A2942',
   },
-  logoPlaceholder: {
-    alignItems: 'center',
+  logo: {
+    width: 200,
+    height: 200,
     marginBottom: 40,
-  },
-  logoGrid: {
-    width: 140,
-    height: 100,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    backgroundColor: '#1E3A5F',
-    borderRadius: 20,
-    padding: 10,
-    marginBottom: 16,
-  },
-  logoDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    margin: 3,
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#60A5FA',
-    textAlign: 'center',
-    lineHeight: 28,
   },
   headline: {
     fontSize: 42,
@@ -410,150 +260,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#94A3B8',
     lineHeight: 24,
-  },
-  stats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
-    backgroundColor: '#1A2942',
-    flexWrap: 'wrap',
-    gap: 40,
-  },
-  statItem: {
-    alignItems: 'center',
-    minWidth: 120,
-  },
-  statNumber: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: '#60A5FA',
-    marginBottom: 8,
-  },
-  statLabel: {
-    fontSize: 16,
-    color: '#94A3B8',
-    fontWeight: '600',
-  },
-  statDivider: {
-    width: 1,
-    height: 60,
-    backgroundColor: '#334155',
-  },
-  pricing: {
-    paddingVertical: 80,
-    paddingHorizontal: 20,
-    backgroundColor: '#0F172A',
-  },
-  plansGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 24,
-    justifyContent: 'center',
-  },
-  planCard: {
-    minWidth: 300,
-    maxWidth: 380,
-    flex: Platform.OS === 'web' ? 1 : undefined,
-    width: Platform.OS === 'web' ? undefined : '100%',
-    backgroundColor: '#1E293B',
-    padding: 32,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#334155',
-    position: 'relative',
-  },
-  planCardPopular: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#1E3A5F',
-    transform: [{ scale: 1.05 }],
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: -12,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  popularBadgeText: {
-    backgroundColor: '#3B82F6',
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-    paddingVertical: 4,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    letterSpacing: 1,
-  },
-  planName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  currency: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#60A5FA',
-    marginTop: 8,
-  },
-  price: {
-    fontSize: 56,
-    fontWeight: '800',
-    color: '#60A5FA',
-    lineHeight: 64,
-  },
-  period: {
-    fontSize: 18,
-    color: '#94A3B8',
-    alignSelf: 'flex-end',
-    marginBottom: 12,
-  },
-  planDescription: {
-    fontSize: 15,
-    color: '#94A3B8',
-    marginBottom: 24,
-  },
-  planButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#60A5FA',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  planButtonPopular: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
-  },
-  planButtonText: {
-    color: '#60A5FA',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  planButtonTextPopular: {
-    color: '#FFFFFF',
-  },
-  planFeatures: {
-    gap: 16,
-  },
-  planFeatureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  planFeatureText: {
-    fontSize: 15,
-    color: '#CBD5E1',
-    flex: 1,
   },
   cta: {
     paddingVertical: 80,
