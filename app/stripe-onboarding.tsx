@@ -121,9 +121,9 @@ export default function StripeOnboardingScreen() {
           Alert.alert('Error', 'Unable to open Stripe onboarding');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting onboarding:', error);
-      Alert.alert('Error', error.message || 'Failed to start onboarding');
+      Alert.alert('Error', error?.message || 'Failed to start onboarding');
     } finally {
       setProcessing(false);
     }

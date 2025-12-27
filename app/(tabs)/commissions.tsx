@@ -91,8 +91,8 @@ type LeadSubmission = {
     affiliate_id: string;
     companies: {
       company_name: string;
-    }[];
-  }[];
+    };
+  };
 };
 
 export default function CommissionsScreen() {
@@ -344,7 +344,7 @@ export default function CommissionsScreen() {
         if (leadsError) {
           console.error('Error loading leads:', leadsError);
         } else {
-          setLeadSubmissions(leads || []);
+          setLeadSubmissions((leads as unknown as LeadSubmission[]) || []);
         }
       } else {
         setLeadSubmissions([]);
