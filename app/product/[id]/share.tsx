@@ -92,13 +92,25 @@ export default function ProductShare() {
       }
 
       if (affiliateRef) {
-        const { data: partnershipData } = await supabase
+        // Check if affiliateRef is a valid UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const isUuid = uuidRegex.test(affiliateRef);
+
+        let query = supabase
           .from('affiliate_partnerships')
           .select('id, affiliate_id, company_id, affiliate_code')
           .eq('company_id', productData.company_id)
-          .or(`affiliate_code.eq.${affiliateRef},affiliate_id.eq.${affiliateRef}`)
-          .eq('status', 'approved')
-          .maybeSingle();
+          .eq('status', 'approved');
+
+        // If it's a UUID, check both affiliate_id and affiliate_code
+        // If not, only check affiliate_code
+        if (isUuid) {
+          query = query.or(`affiliate_code.eq.${affiliateRef},affiliate_id.eq.${affiliateRef}`);
+        } else {
+          query = query.eq('affiliate_code', affiliateRef);
+        }
+
+        const { data: partnershipData } = await query.maybeSingle();
 
         if (partnershipData) {
           setPartnership(partnershipData);
