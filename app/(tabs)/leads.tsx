@@ -28,6 +28,7 @@ import {
   Users as UsersIcon,
   Bell,
 } from 'lucide-react-native';
+import OverdueLeadsModal from '@/components/OverdueLeadsModal';
 
 type ContactSubmission = {
   id: string;
@@ -76,9 +77,14 @@ export default function LeadsScreen() {
   const [contractLength, setContractLength] = useState('');
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [requestingUpdate, setRequestingUpdate] = useState(false);
+  const [overdueLeads, setOverdueLeads] = useState<any[]>([]);
+  const [showOverdueModal, setShowOverdueModal] = useState(false);
 
   useEffect(() => {
     loadLeads();
+    if (profile?.user_type === 'company') {
+      checkOverdueLeads();
+    }
   }, [statusFilter]);
 
   const loadLeads = async () => {
@@ -184,6 +190,27 @@ export default function LeadsScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkOverdueLeads = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_overdue_leads');
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setOverdueLeads(data);
+        setShowOverdueModal(true);
+      }
+    } catch (error) {
+      console.error('Error checking overdue leads:', error);
+    }
+  };
+
+  const handleOverdueLeadsUpdated = async () => {
+    setShowOverdueModal(false);
+    setOverdueLeads([]);
+    await loadLeads();
   };
 
   const handleLeadClick = (lead: ContactSubmission) => {
@@ -991,6 +1018,12 @@ export default function LeadsScreen() {
           </View>
         </View>
       </Modal>
+
+      <OverdueLeadsModal
+        visible={showOverdueModal}
+        leads={overdueLeads}
+        onLeadsUpdated={handleOverdueLeadsUpdated}
+      />
     </View>
   );
 }
