@@ -514,10 +514,29 @@ export default function HomeScreen() {
         )}
       </View>
       <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.name}</Text>
+        <View style={styles.productHeader}>
+          <Text style={styles.productName}>{item.name}</Text>
+          <View
+            style={[
+              styles.saleTypeBadge,
+              item.sale_type === 'direct_sale'
+                ? styles.saleTypeBadgeDirectSale
+                : styles.saleTypeBadgeLeadGen,
+            ]}
+          >
+            <Text style={styles.saleTypeText}>
+              {item.sale_type === 'direct_sale' ? 'Direct Sale' : 'Lead Gen'}
+            </Text>
+          </View>
+        </View>
         <Text style={styles.productDescription} numberOfLines={2}>
           {item.description || 'No description'}
         </Text>
+        {item.sale_type === 'direct_sale' && item.external_checkout_url ? (
+          <Text style={styles.checkoutUrlText} numberOfLines={1}>
+            Checkout: {item.external_checkout_url}
+          </Text>
+        ) : null}
         <View style={styles.commissionBadge}>
           <Text style={styles.commissionText}>
             {item.commission_type === 'percentage'
@@ -786,9 +805,6 @@ export default function HomeScreen() {
                 )}
 
                 <Text style={styles.sectionHeader}>Sale Type & Pricing</Text>
-                <Text style={styles.helperText}>
-                  Choose how this product will be sold - as a lead generation tool or direct sale
-                </Text>
 
                 <Text style={styles.label}>Sale Type</Text>
                 <View style={styles.typeSelector}>
@@ -826,6 +842,16 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 </View>
 
+                {newProduct.sale_type === 'lead_generation' ? (
+                  <Text style={styles.helperText}>
+                    Affiliates will send customers to a landing page with a contact form. You'll receive leads and can follow up directly.
+                  </Text>
+                ) : (
+                  <Text style={styles.helperText}>
+                    Affiliates will send customers directly to your checkout page. Perfect for event tickets, products, or services with online purchase.
+                  </Text>
+                )}
+
                 {newProduct.sale_type === 'direct_sale' && (
                   <>
                     <Text style={styles.label}>Product Price</Text>
@@ -849,15 +875,17 @@ export default function HomeScreen() {
                       maxLength={3}
                     />
 
-                    <Text style={styles.label}>External Checkout URL (Optional)</Text>
+                    <Text style={styles.label}>Checkout URL</Text>
                     <Text style={styles.helperText}>
-                      If you have your own checkout system, enter the URL here
+                      Affiliates will send customers directly to this URL. We'll automatically add their tracking code (e.g., ?ref=ABC123)
                     </Text>
                     <TextInput
                       style={styles.input}
                       value={newProduct.external_checkout_url}
                       onChangeText={(text) => setNewProduct({ ...newProduct, external_checkout_url: text })}
-                      placeholder="https://yoursite.com/checkout"
+                      placeholder="https://yoursite.com/checkout/event-ticket"
+                      autoCapitalize="none"
+                      keyboardType="url"
                     />
 
                     <TouchableOpacity
@@ -1287,11 +1315,42 @@ const styles = StyleSheet.create({
   productInfo: {
     padding: 16,
   },
+  productHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   productName: {
     fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 4,
+    flex: 1,
+  },
+  saleTypeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  saleTypeBadgeDirectSale: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+  },
+  saleTypeBadgeLeadGen: {
+    backgroundColor: 'rgba(168, 85, 247, 0.15)',
+  },
+  saleTypeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  checkoutUrlText: {
+    fontSize: 12,
+    color: '#60A5FA',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   companyName: {
     fontSize: 14,

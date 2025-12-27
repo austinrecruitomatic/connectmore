@@ -34,6 +34,8 @@ interface LandingPageData {
   discountEnabled?: boolean;
   discountType?: 'percentage' | 'fixed_amount';
   discountValue?: number;
+  saleType?: 'lead_generation' | 'direct_sale';
+  externalCheckoutUrl?: string;
 }
 
 export default function LandingPageView() {
@@ -189,6 +191,8 @@ export default function LandingPageView() {
         discountEnabled: product?.affiliate_discount_enabled || false,
         discountType: product?.affiliate_discount_type || 'percentage',
         discountValue: product?.affiliate_discount_value || 0,
+        saleType: product?.sale_type || 'lead_generation',
+        externalCheckoutUrl: product?.external_checkout_url || '',
       };
 
       setPageData(pageInfo);
@@ -205,8 +209,27 @@ export default function LandingPageView() {
     }
   };
 
-  const handleCTAClick = () => {
-    setShowContactForm(true);
+  const handleCTAClick = async () => {
+    if (!pageData) return;
+
+    if (pageData.saleType === 'direct_sale' && pageData.externalCheckoutUrl) {
+      const separator = pageData.externalCheckoutUrl.includes('?') ? '&' : '?';
+      const trackingUrl = `${pageData.externalCheckoutUrl}${separator}ref=${pageData.affiliateCode}`;
+
+      await supabase.from('leads').insert({
+        partnership_id: pageData.partnershipId,
+        lead_type: 'click',
+        lead_data: { destination: trackingUrl, type: 'checkout' },
+      });
+
+      if (Platform.OS === 'web') {
+        window.open(trackingUrl, '_blank');
+      } else {
+        console.log('Opening checkout:', trackingUrl);
+      }
+    } else {
+      setShowContactForm(true);
+    }
   };
 
   const handleVisitWebsite = async () => {
@@ -352,7 +375,20 @@ export default function LandingPageView() {
           onPress={handleCTAClick}
         >
           <Text style={styles.ctaButtonText}>{pageData.ctaText}</Text>
+          {pageData.saleType === 'direct_sale' && (
+            <ExternalLink size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+          )}
         </TouchableOpacity>
+
+        {pageData.saleType === 'direct_sale' && pageData.externalCheckoutUrl ? (
+          <Text style={styles.ctaHelperText}>
+            Click to proceed to secure checkout
+          </Text>
+        ) : (
+          <Text style={styles.ctaHelperText}>
+            Click to get more information
+          </Text>
+        )}
 
         {pageData.productUrl ? (
           <TouchableOpacity
@@ -579,6 +615,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
     shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -589,6 +627,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
+  },
+  ctaHelperText: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 4,
   },
   footer: {
     marginTop: 48,
