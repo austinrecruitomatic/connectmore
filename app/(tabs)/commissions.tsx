@@ -59,7 +59,6 @@ type PipelineMetrics = {
   closedDeals: number;
   conversionRate: number;
   totalRevenue: number;
-  activeAffiliates: number;
 };
 
 type TrackingStats = {
@@ -124,7 +123,6 @@ export default function CommissionsScreen() {
     closedDeals: 0,
     conversionRate: 0,
     totalRevenue: 0,
-    activeAffiliates: 0,
   });
   const [customerReferralStats, setCustomerReferralStats] = useState<CustomerReferralStats>({
     totalCustomers: 0,
@@ -236,14 +234,12 @@ export default function CommissionsScreen() {
 
       const { data: partnerships } = await supabase
         .from('affiliate_partnerships')
-        .select('id, affiliate_id')
+        .select('id')
         .eq('company_id', companyData.id);
 
       if (!partnerships || partnerships.length === 0) return;
 
       const partnershipIds = partnerships.map((p) => p.id);
-      const uniqueAffiliates = new Set(partnerships.map((p) => p.affiliate_id));
-      const activeAffiliates = uniqueAffiliates.size;
 
       const { data: leads } = await supabase
         .from('contact_submissions')
@@ -268,7 +264,6 @@ export default function CommissionsScreen() {
         closedDeals,
         conversionRate,
         totalRevenue,
-        activeAffiliates,
       });
     } catch (error) {
       console.error('Error loading pipeline metrics:', error);
@@ -665,15 +660,6 @@ export default function CommissionsScreen() {
                   </Text>
                   <Text style={styles.metricLabel}>Revenue Generated</Text>
                   <Text style={styles.metricSubtext}>Total Active Deal Value</Text>
-                </View>
-
-                <View style={styles.metricCard}>
-                  <View style={styles.metricIcon}>
-                    <Users size={20} color="#8B5CF6" />
-                  </View>
-                  <Text style={styles.metricValue}>{pipelineMetrics.activeAffiliates}</Text>
-                  <Text style={styles.metricLabel}>Active Affiliates</Text>
-                  <Text style={styles.metricSubtext}>Total Partners</Text>
                 </View>
               </>
             )}
@@ -1285,43 +1271,43 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   metricCard: {
     backgroundColor: '#1E293B',
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#334155',
-    width: 'calc(50% - 5px)',
-    minWidth: 140,
+    width: 'calc(50% - 6px)',
+    minWidth: 150,
   },
   metricIcon: {
-    marginBottom: 6,
+    marginBottom: 8,
   },
   metricValue: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 3,
+    marginBottom: 4,
   },
   metricLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: '#94A3B8',
     marginBottom: 2,
   },
   metricSubtext: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#64748B',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   metricBreakdown: {
-    gap: 4,
+    gap: 6,
     marginTop: 4,
   },
   breakdownText: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#94A3B8',
   },
   conversionBar: {
