@@ -664,7 +664,7 @@ export default function CommissionsScreen() {
               </>
             )}
 
-            <View style={styles.metricCard}>
+            <View style={styles.earningsCard}>
               <View style={styles.metricIcon}>
                 <AlertCircle size={20} color="#3B82F6" />
               </View>
@@ -672,7 +672,7 @@ export default function CommissionsScreen() {
               <Text style={styles.metricLabel}>{isCompany ? 'To Approve' : 'Pending'}</Text>
             </View>
 
-            <View style={styles.metricCard}>
+            <View style={styles.earningsCard}>
               <View style={styles.metricIcon}>
                 <Check size={20} color="#F59E0B" />
               </View>
@@ -680,7 +680,7 @@ export default function CommissionsScreen() {
               <Text style={styles.metricLabel}>Approved</Text>
             </View>
 
-            <View style={styles.metricCard}>
+            <View style={styles.earningsCard}>
               <View style={styles.metricIcon}>
                 <DollarSign size={20} color="#10B981" />
               </View>
@@ -1281,6 +1281,14 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     width: 'calc(50% - 6px)',
     minWidth: 150,
+  },
+  earningsCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    width: '100%',
   },
   metricIcon: {
     marginBottom: 8,
