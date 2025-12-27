@@ -19,6 +19,10 @@ type Product = {
   inventory_quantity: number;
   external_checkout_url?: string;
   image_url?: string;
+  product_url?: string;
+  affiliate_discount_enabled?: boolean;
+  affiliate_discount_type?: string;
+  affiliate_discount_value?: number;
 };
 
 type Partnership = {
@@ -116,7 +120,20 @@ export default function ProductCheckout() {
     setProcessing(true);
 
     try {
-      const purchaseAmount = product.product_price * qty;
+      const subtotal = product.product_price * qty;
+      let discountAmount = 0;
+      let discountApplied = false;
+
+      if (product.affiliate_discount_enabled && product.affiliate_discount_value) {
+        discountApplied = true;
+        if (product.affiliate_discount_type === 'percentage') {
+          discountAmount = (subtotal * product.affiliate_discount_value) / 100;
+        } else {
+          discountAmount = product.affiliate_discount_value * qty;
+        }
+      }
+
+      const purchaseAmount = subtotal - discountAmount;
       let commissionAmount = 0;
 
       if (product.commission_type === 'percentage') {
@@ -147,6 +164,9 @@ export default function ProductCheckout() {
         quantity: qty,
         status: 'completed',
         payment_method: 'platform',
+        product_url: product.product_url || null,
+        discount_applied: discountApplied,
+        discount_amount: discountAmount,
         purchased_at: new Date().toISOString(),
       });
 
@@ -187,7 +207,19 @@ export default function ProductCheckout() {
     );
   }
 
-  const totalAmount = product.product_price * parseInt(quantity || '1');
+  const qty = parseInt(quantity || '1');
+  const subtotal = product.product_price * qty;
+
+  let discountAmount = 0;
+  if (product.affiliate_discount_enabled && product.affiliate_discount_value) {
+    if (product.affiliate_discount_type === 'percentage') {
+      discountAmount = (subtotal * product.affiliate_discount_value) / 100;
+    } else {
+      discountAmount = product.affiliate_discount_value * qty;
+    }
+  }
+
+  const totalAmount = subtotal - discountAmount;
 
   return (
     <View style={styles.container}>
@@ -263,9 +295,22 @@ export default function ProductCheckout() {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
             <Text style={styles.summaryValue}>
-              {product.currency} ${totalAmount.toFixed(2)}
+              {product.currency} ${subtotal.toFixed(2)}
             </Text>
           </View>
+          {discountAmount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, styles.discountLabel]}>
+                Affiliate Discount
+                {product.affiliate_discount_type === 'percentage'
+                  ? ` (${product.affiliate_discount_value}%)`
+                  : ''}
+              </Text>
+              <Text style={[styles.summaryValue, styles.discountValue]}>
+                -{product.currency} ${discountAmount.toFixed(2)}
+              </Text>
+            </View>
+          )}
           <View style={styles.summaryRowTotal}>
             <Text style={styles.summaryLabelTotal}>Total</Text>
             <Text style={styles.summaryValueTotal}>
@@ -406,6 +451,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  discountLabel: {
+    color: '#10B981',
+  },
+  discountValue: {
+    color: '#10B981',
   },
   summaryRowTotal: {
     flexDirection: 'row',
