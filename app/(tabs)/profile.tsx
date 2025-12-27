@@ -16,10 +16,6 @@ type Company = {
 const PAYMENT_METHODS = [
   { value: 'venmo', label: 'Venmo' },
   { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'paypal', label: 'PayPal' },
-  { value: 'stripe', label: 'Stripe' },
-  { value: 'wise', label: 'Wise' },
-  { value: 'other', label: 'Other' },
 ];
 
 const CATEGORIES = [
@@ -78,7 +74,12 @@ export default function ProfileScreen() {
   const [logoFile, setLogoFile] = useState<{ uri: string; type: string; name: string } | null>(null);
   const [paymentForm, setPaymentForm] = useState({
     payment_method: profile?.payment_method || '',
-    payment_details: '',
+    venmo_username: '',
+    account_number: '',
+    routing_number: '',
+    account_holder_name: '',
+    address: '',
+    ssn_last4: '',
   });
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [companySettings, setCompanySettings] = useState<any>(null);
@@ -127,9 +128,15 @@ export default function ProfileScreen() {
       loadRecruiterInfo();
     }
     if (profile) {
+      const details = profile.payment_details || {};
       setPaymentForm({
         payment_method: profile.payment_method || '',
-        payment_details: profile.payment_details?.details || '',
+        venmo_username: details.venmo_username || '',
+        account_number: details.account_number || '',
+        routing_number: details.routing_number || '',
+        account_holder_name: details.account_holder_name || '',
+        address: details.address || '',
+        ssn_last4: details.ssn_last4 || '',
       });
       if (profile.user_type === 'affiliate') {
         setNotificationPrefs({
@@ -394,14 +401,39 @@ export default function ProfileScreen() {
       return;
     }
 
+    if (paymentForm.payment_method === 'venmo' && !paymentForm.venmo_username.trim()) {
+      Alert.alert('Required Field', 'Please enter your Venmo username');
+      return;
+    }
+
+    if (paymentForm.payment_method === 'bank_transfer') {
+      if (!paymentForm.account_number.trim() || !paymentForm.routing_number.trim() ||
+          !paymentForm.account_holder_name.trim() || !paymentForm.address.trim() || !paymentForm.ssn_last4.trim()) {
+        Alert.alert('Required Fields', 'Please fill in all bank transfer fields');
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {
+      const paymentDetails: any = {};
+
+      if (paymentForm.payment_method === 'venmo') {
+        paymentDetails.venmo_username = paymentForm.venmo_username;
+      } else if (paymentForm.payment_method === 'bank_transfer') {
+        paymentDetails.account_number = paymentForm.account_number;
+        paymentDetails.routing_number = paymentForm.routing_number;
+        paymentDetails.account_holder_name = paymentForm.account_holder_name;
+        paymentDetails.address = paymentForm.address;
+        paymentDetails.ssn_last4 = paymentForm.ssn_last4;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
           payment_method: paymentForm.payment_method,
-          payment_details: { details: paymentForm.payment_details },
+          payment_details: paymentDetails,
         })
         .eq('id', profile.id);
 
@@ -678,13 +710,18 @@ export default function ProfileScreen() {
                     ? `${PAYMENT_METHODS.find(m => m.value === profile.payment_method)?.label || profile.payment_method}`
                     : 'Not set'}
                 </Text>
-                {profile.payment_details?.details && (
+                {profile.payment_method === 'venmo' && profile.payment_details?.venmo_username && (
                   <Text style={styles.infoSubtext}>
-                    {profile.payment_details.details}
+                    {profile.payment_details.venmo_username}
+                  </Text>
+                )}
+                {profile.payment_method === 'bank_transfer' && profile.payment_details?.account_holder_name && (
+                  <Text style={styles.infoSubtext}>
+                    {profile.payment_details.account_holder_name} • ****{profile.payment_details.account_number?.slice(-4)}
                   </Text>
                 )}
                 <Text style={[styles.infoSubtext, { marginTop: 4 }]}>
-                  Add Venmo or other payment methods for manual payouts
+                  Add Venmo or Bank Transfer for manual payouts
                 </Text>
               </View>
             </View>
@@ -1078,33 +1115,100 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               ))}
 
-              <Text style={[styles.label, { marginTop: 16 }]}>Payment Details</Text>
-              <Text style={styles.helpText}>
-                Enter your account details (email, account number, etc.)
-              </Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={paymentForm.payment_details}
-                onChangeText={(text) => setPaymentForm({ ...paymentForm, payment_details: text })}
-                placeholder="e.g., paypal@example.com or account details"
-                placeholderTextColor="#64748B"
-                multiline
-                numberOfLines={3}
-              />
+              {paymentForm.payment_method === 'venmo' && (
+                <>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Venmo Username</Text>
+                  <Text style={styles.helpText}>
+                    Enter your Venmo username (e.g., @username)
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={paymentForm.venmo_username}
+                    onChangeText={(text) => setPaymentForm({ ...paymentForm, venmo_username: text })}
+                    placeholder="@username"
+                    placeholderTextColor="#64748B"
+                    autoCapitalize="none"
+                  />
+                </>
+              )}
 
-              <TouchableOpacity
-                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-                onPress={handleSavePaymentMethod}
-                disabled={saving}
-              >
-                <Text style={styles.saveButtonText}>
-                  {saving ? 'Saving...' : 'Save Payment Method'}
-                </Text>
-              </TouchableOpacity>
+              {paymentForm.payment_method === 'bank_transfer' && (
+                <>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Account Holder Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={paymentForm.account_holder_name}
+                    onChangeText={(text) => setPaymentForm({ ...paymentForm, account_holder_name: text })}
+                    placeholder="First and Last Name"
+                    placeholderTextColor="#64748B"
+                  />
 
-              <Text style={styles.securityNote}>
-                Your payment information is stored securely and only visible to platform administrators when processing payouts.
-              </Text>
+                  <Text style={styles.label}>Account Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={paymentForm.account_number}
+                    onChangeText={(text) => setPaymentForm({ ...paymentForm, account_number: text })}
+                    placeholder="Account Number"
+                    placeholderTextColor="#64748B"
+                    keyboardType="number-pad"
+                    secureTextEntry
+                  />
+
+                  <Text style={styles.label}>Routing Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={paymentForm.routing_number}
+                    onChangeText={(text) => setPaymentForm({ ...paymentForm, routing_number: text })}
+                    placeholder="Routing Number"
+                    placeholderTextColor="#64748B"
+                    keyboardType="number-pad"
+                  />
+
+                  <Text style={styles.label}>Address</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={paymentForm.address}
+                    onChangeText={(text) => setPaymentForm({ ...paymentForm, address: text })}
+                    placeholder="Full Address"
+                    placeholderTextColor="#64748B"
+                    multiline
+                    numberOfLines={3}
+                  />
+
+                  <Text style={styles.label}>Last 4 Digits of SSN</Text>
+                  <Text style={styles.helpText}>
+                    Required for tax reporting purposes
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={paymentForm.ssn_last4}
+                    onChangeText={(text) => setPaymentForm({ ...paymentForm, ssn_last4: text })}
+                    placeholder="Last 4 digits"
+                    placeholderTextColor="#64748B"
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    secureTextEntry
+                  />
+                </>
+              )}
+
+              {paymentForm.payment_method && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                    onPress={handleSavePaymentMethod}
+                    disabled={saving}
+                  >
+                    <Text style={styles.saveButtonText}>
+                      {saving ? 'Saving...' : 'Save Payment Method'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.securityNote}>
+                    Your payment information is stored securely and only visible to platform administrators when processing payouts.
+                  </Text>
+                </>
+              )}
             </ScrollView>
           </View>
         </View>

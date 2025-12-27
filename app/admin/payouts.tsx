@@ -11,7 +11,14 @@ interface Payout {
   affiliate_name: string;
   affiliate_email: string;
   payment_method: string | null;
-  payment_details: { details?: string } | null;
+  payment_details: {
+    venmo_username?: string;
+    account_number?: string;
+    routing_number?: string;
+    account_holder_name?: string;
+    address?: string;
+    ssn_last4?: string;
+  } | null;
   total_amount: number;
   platform_fee_total: number;
   commission_count: number;
@@ -192,11 +199,18 @@ export default function AdminPayouts() {
                 <Text style={styles.detailLabel}>Payment Method</Text>
                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                   <Text style={styles.detailValue}>
-                    {payout.payment_method || 'Not set'}
+                    {payout.payment_method === 'venmo' ? 'Venmo' :
+                     payout.payment_method === 'bank_transfer' ? 'Bank Transfer' :
+                     payout.payment_method || 'Not set'}
                   </Text>
-                  {payout.payment_details?.details && (
+                  {payout.payment_method === 'venmo' && payout.payment_details?.venmo_username && (
                     <Text style={[styles.detailLabel, { fontSize: 12, marginTop: 2 }]}>
-                      {payout.payment_details.details}
+                      {payout.payment_details.venmo_username}
+                    </Text>
+                  )}
+                  {payout.payment_method === 'bank_transfer' && payout.payment_details?.account_holder_name && (
+                    <Text style={[styles.detailLabel, { fontSize: 12, marginTop: 2 }]}>
+                      {payout.payment_details.account_holder_name}
                     </Text>
                   )}
                 </View>
@@ -253,14 +267,57 @@ export default function AdminPayouts() {
                 <View style={styles.modalInfo}>
                   <Text style={styles.modalLabel}>Payment Method</Text>
                   <Text style={styles.modalValue}>
-                    {selectedPayout.payment_method || 'Not configured'}
+                    {selectedPayout.payment_method === 'venmo' ? 'Venmo' :
+                     selectedPayout.payment_method === 'bank_transfer' ? 'Bank Transfer' :
+                     selectedPayout.payment_method || 'Not configured'}
                   </Text>
-                  {selectedPayout.payment_details?.details && (
-                    <Text style={styles.modalSubvalue}>
-                      {selectedPayout.payment_details.details}
-                    </Text>
-                  )}
                 </View>
+
+                {selectedPayout.payment_method === 'venmo' && selectedPayout.payment_details?.venmo_username && (
+                  <View style={styles.paymentDetailsCard}>
+                    <Text style={styles.paymentDetailsTitle}>Venmo Payment Details</Text>
+                    <View style={styles.paymentDetailRow}>
+                      <Text style={styles.paymentDetailLabel}>Venmo Username:</Text>
+                      <Text style={styles.paymentDetailValue}>{selectedPayout.payment_details.venmo_username}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {selectedPayout.payment_method === 'bank_transfer' && selectedPayout.payment_details && (
+                  <View style={styles.paymentDetailsCard}>
+                    <Text style={styles.paymentDetailsTitle}>Bank Transfer Details</Text>
+                    {selectedPayout.payment_details.account_holder_name && (
+                      <View style={styles.paymentDetailRow}>
+                        <Text style={styles.paymentDetailLabel}>Account Holder:</Text>
+                        <Text style={styles.paymentDetailValue}>{selectedPayout.payment_details.account_holder_name}</Text>
+                      </View>
+                    )}
+                    {selectedPayout.payment_details.account_number && (
+                      <View style={styles.paymentDetailRow}>
+                        <Text style={styles.paymentDetailLabel}>Account Number:</Text>
+                        <Text style={styles.paymentDetailValue}>{selectedPayout.payment_details.account_number}</Text>
+                      </View>
+                    )}
+                    {selectedPayout.payment_details.routing_number && (
+                      <View style={styles.paymentDetailRow}>
+                        <Text style={styles.paymentDetailLabel}>Routing Number:</Text>
+                        <Text style={styles.paymentDetailValue}>{selectedPayout.payment_details.routing_number}</Text>
+                      </View>
+                    )}
+                    {selectedPayout.payment_details.address && (
+                      <View style={styles.paymentDetailRow}>
+                        <Text style={styles.paymentDetailLabel}>Address:</Text>
+                        <Text style={styles.paymentDetailValue}>{selectedPayout.payment_details.address}</Text>
+                      </View>
+                    )}
+                    {selectedPayout.payment_details.ssn_last4 && (
+                      <View style={styles.paymentDetailRow}>
+                        <Text style={styles.paymentDetailLabel}>SSN Last 4:</Text>
+                        <Text style={styles.paymentDetailValue}>***-**-{selectedPayout.payment_details.ssn_last4}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
 
                 <TextInput
                   style={styles.notesInput}
@@ -521,6 +578,33 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   cancelButtonText: {
+    color: '#FFFFFF',
+  },
+  paymentDetailsCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  paymentDetailsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#60A5FA',
+    marginBottom: 12,
+  },
+  paymentDetailRow: {
+    marginBottom: 8,
+  },
+  paymentDetailLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  paymentDetailValue: {
+    fontSize: 15,
+    fontWeight: '500',
     color: '#FFFFFF',
   },
 });
