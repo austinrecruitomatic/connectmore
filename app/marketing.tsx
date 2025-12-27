@@ -92,12 +92,12 @@ export default function MarketingPage() {
       <View style={styles.hero}>
         <View style={styles.logoPlaceholder}>
           <View style={styles.logoGrid}>
-            {Array.from({ length: 16 }).map((_, i) => (
+            {Array.from({ length: 15 }).map((_, i) => (
               <View
                 key={i}
                 style={[
                   styles.logoDot,
-                  { backgroundColor: i % 2 === 0 ? '#60A5FA' : '#3B82F6' },
+                  { backgroundColor: '#60A5FA' },
                 ]}
               />
             ))}
@@ -119,7 +119,7 @@ export default function MarketingPage() {
             style={styles.primaryButton}
             onPress={() => router.push('/auth/signup')}
           >
-            <Text style={styles.primaryButtonText}>Start Free Trial</Text>
+            <Text style={styles.primaryButtonText}>Get Started</Text>
             <ArrowRight size={20} color="#FFFFFF" />
           </TouchableOpacity>
 
@@ -131,7 +131,7 @@ export default function MarketingPage() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.trialText}>14-day free trial · No credit card required</Text>
+        <Text style={styles.trialText}>We only get paid if you get paid</Text>
       </View>
 
       <View style={styles.features}>
@@ -245,7 +245,7 @@ export default function MarketingPage() {
           style={styles.ctaPrimaryButton}
           onPress={() => router.push('/auth/signup')}
         >
-          <Text style={styles.ctaPrimaryButtonText}>Start Your Free Trial</Text>
+          <Text style={styles.ctaPrimaryButtonText}>Get Started Today</Text>
           <ArrowRight size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -274,20 +274,20 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   logoGrid: {
-    width: 120,
-    height: 120,
+    width: 140,
+    height: 100,
     flexDirection: 'row',
     flexWrap: 'wrap',
     backgroundColor: '#1E3A5F',
     borderRadius: 20,
-    padding: 12,
+    padding: 10,
     marginBottom: 16,
   },
   logoDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    margin: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    margin: 3,
   },
   logoText: {
     fontSize: 24,
