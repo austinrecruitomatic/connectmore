@@ -36,7 +36,7 @@ type ContactSubmission = {
   phone: string | null;
   company_name: string | null;
   message: string | null;
-  status: 'new' | 'contacted' | 'qualified' | 'not_interested' | 'closed';
+  status: 'new' | 'contacted' | 'qualified' | 'no_answer' | 'not_interested' | 'closed';
   notes: string | null;
   affiliate_notes: string | null;
   contract_value: number | null;
@@ -473,10 +473,12 @@ export default function LeadsScreen() {
         return '#F59E0B';
       case 'qualified':
         return '#10B981';
-      case 'closed':
-        return '#8B5CF6';
+      case 'no_answer':
+        return '#EAB308';
       case 'not_interested':
         return '#6B7280';
+      case 'closed':
+        return '#8B5CF6';
       default:
         return '#6B7280';
     }
@@ -486,6 +488,7 @@ export default function LeadsScreen() {
     'new',
     'contacted',
     'qualified',
+    'no_answer',
     'not_interested',
     'closed',
   ];
@@ -495,6 +498,7 @@ export default function LeadsScreen() {
     { label: 'New', value: 'new' },
     { label: 'Contacted', value: 'contacted' },
     { label: 'Qualified', value: 'qualified' },
+    { label: 'No Answer', value: 'no_answer' },
     { label: 'Not Interested', value: 'not_interested' },
     { label: 'Closed', value: 'closed' },
   ];

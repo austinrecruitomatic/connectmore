@@ -582,6 +582,10 @@ export default function AnalyticsScreen() {
                                       ? 'rgba(16, 185, 129, 0.15)'
                                       : lead.contact_submissions.status === 'contacted'
                                       ? 'rgba(245, 158, 11, 0.15)'
+                                      : lead.contact_submissions.status === 'no_answer'
+                                      ? 'rgba(234, 179, 8, 0.15)'
+                                      : lead.contact_submissions.status === 'not_interested'
+                                      ? 'rgba(107, 114, 128, 0.15)'
                                       : 'rgba(59, 130, 246, 0.15)',
                                 },
                               ]}
@@ -597,6 +601,10 @@ export default function AnalyticsScreen() {
                                         ? '#10B981'
                                         : lead.contact_submissions.status === 'contacted'
                                         ? '#F59E0B'
+                                        : lead.contact_submissions.status === 'no_answer'
+                                        ? '#EAB308'
+                                        : lead.contact_submissions.status === 'not_interested'
+                                        ? '#6B7280'
                                         : '#3B82F6',
                                   },
                                 ]}
