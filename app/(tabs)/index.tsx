@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Plus, X, Trash2, Pencil, Layout, Star, TrendingUp, Users, DollarSign, Target, Upload, Share2, Copy } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
@@ -301,17 +302,37 @@ export default function HomeScreen() {
     }
   };
 
+  const compressImage = async (uri: string, maxWidth: number = 1200): Promise<string> => {
+    try {
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: maxWidth } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      return manipulatedImage.uri;
+    } catch (error) {
+      console.error('Error compressing image:', error);
+      return uri;
+    }
+  };
+
   const uploadProductImage = async (): Promise<string | null> => {
     if (!productImageFile) return newProduct.image_url || null;
 
     try {
       setUploading(true);
 
-      const response = await fetch(productImageFile);
+      const compressedUri = await compressImage(productImageFile, 1200);
+
+      const response = await fetch(compressedUri);
       const blob = await response.blob();
       const arrayBuffer = await blob.arrayBuffer();
 
-      // Get proper mime type from blob
+      if (arrayBuffer.byteLength > 5 * 1024 * 1024) {
+        Alert.alert('Error', 'Image is too large. Please select a smaller image (max 5MB after compression).');
+        return null;
+      }
+
       const mimeType = blob.type || 'image/jpeg';
       const fileExt = mimeType.split('/')[1] || 'jpg';
       const fileName = `${companyId}/${Date.now()}.${fileExt}`;
@@ -371,11 +392,17 @@ export default function HomeScreen() {
     try {
       setUploading(true);
 
-      const response = await fetch(heroImageFile);
+      const compressedUri = await compressImage(heroImageFile, 1920);
+
+      const response = await fetch(compressedUri);
       const blob = await response.blob();
       const arrayBuffer = await blob.arrayBuffer();
 
-      // Get proper mime type from blob
+      if (arrayBuffer.byteLength > 5 * 1024 * 1024) {
+        Alert.alert('Error', 'Hero image is too large. Please select a smaller image (max 5MB after compression).');
+        return null;
+      }
+
       const mimeType = blob.type || 'image/jpeg';
       const fileExt = mimeType.split('/')[1] || 'jpg';
       const fileName = `${companyId}/hero/${Date.now()}.${fileExt}`;

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Check, Upload, X } from 'lucide-react-native';
 
@@ -120,16 +121,38 @@ export default function TemplateEditScreen() {
     }
   };
 
+  const compressImage = async (uri: string, maxWidth: number = 1920): Promise<string> => {
+    try {
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: maxWidth } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      return manipulatedImage.uri;
+    } catch (error) {
+      console.error('Error compressing image:', error);
+      return uri;
+    }
+  };
+
   const uploadImage = async (): Promise<string | null> => {
     if (!heroImageFile) return heroImageUrl || null;
 
     try {
       setUploading(true);
 
-      const response = await fetch(heroImageFile);
+      const compressedUri = await compressImage(heroImageFile, 1920);
+
+      const response = await fetch(compressedUri);
       const blob = await response.blob();
       const arrayBuffer = await blob.arrayBuffer();
-      const fileExt = heroImageFile.split('.').pop()?.toLowerCase() || 'jpg';
+
+      if (arrayBuffer.byteLength > 5 * 1024 * 1024) {
+        Alert.alert('Error', 'Image is too large. Please select a smaller image (max 5MB after compression).');
+        return null;
+      }
+
+      const fileExt = compressedUri.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${productId}/${Date.now()}.${fileExt}`;
 
       const { data, error } = await supabase.storage
