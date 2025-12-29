@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard, Trash2, Building2 } from 'lucide-react-native';
+import { ArrowLeft, Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard, Trash2, Building2, Calendar } from 'lucide-react-native';
 
 type Company = {
   id: string;
@@ -342,6 +342,14 @@ export default function CompanyDetailScreen() {
               </TouchableOpacity>
             )
           )}
+
+          <TouchableOpacity
+            style={styles.scheduleDemoButton}
+            onPress={() => router.push(`/company/${id}/schedule-demo`)}
+          >
+            <Calendar size={18} color="#FFFFFF" />
+            <Text style={styles.scheduleDemoButtonText}>Schedule a Demo</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -586,6 +594,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   requestPartnershipButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  scheduleDemoButton: {
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  scheduleDemoButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
