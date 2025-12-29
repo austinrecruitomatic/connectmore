@@ -55,6 +55,12 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ];
 
+const SERVICE_AREA_TYPES = [
+  { value: 'zip_codes', label: 'Specific Zip Codes' },
+  { value: 'national', label: 'National' },
+  { value: 'international', label: 'International' },
+];
+
 export default function SignupScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -68,6 +74,9 @@ export default function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<{ uri: string; type: string; name: string } | null>(null);
+  const [serviceAreaType, setServiceAreaType] = useState('national');
+  const [serviceZipCodes, setServiceZipCodes] = useState('');
+  const [showServiceAreaModal, setShowServiceAreaModal] = useState(false);
   const { signUp } = useAuth();
   const router = useRouter();
 
@@ -120,7 +129,21 @@ export default function SignupScreen() {
     setLoading(true);
     setError('');
 
-    const { error: signUpError, userId, companyId } = await signUp(email, password, fullName, userType, companyName, businessCategory, recruiterCode);
+    const zipCodesArray = serviceAreaType === 'zip_codes' && serviceZipCodes.trim()
+      ? serviceZipCodes.split(',').map(z => z.trim()).filter(z => z.length > 0)
+      : [];
+
+    const { error: signUpError, userId, companyId } = await signUp(
+      email,
+      password,
+      fullName,
+      userType,
+      companyName,
+      businessCategory,
+      recruiterCode,
+      serviceAreaType,
+      zipCodesArray
+    );
 
     if (signUpError) {
       setError(signUpError.message);
@@ -266,6 +289,33 @@ export default function SignupScreen() {
                   </Text>
                   <ChevronDown size={20} color="#94A3B8" />
                 </TouchableOpacity>
+
+                <Text style={styles.label}>Service Area</Text>
+                <TouchableOpacity
+                  style={styles.dropdown}
+                  onPress={() => setShowServiceAreaModal(true)}
+                >
+                  <Text style={styles.dropdownText}>
+                    {SERVICE_AREA_TYPES.find(s => s.value === serviceAreaType)?.label || 'Select Service Area'}
+                  </Text>
+                  <ChevronDown size={20} color="#94A3B8" />
+                </TouchableOpacity>
+
+                {serviceAreaType === 'zip_codes' && (
+                  <>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Zip Codes (comma separated)"
+                      value={serviceZipCodes}
+                      onChangeText={setServiceZipCodes}
+                      placeholderTextColor="#64748B"
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.helpText}>
+                      Enter zip codes separated by commas (e.g., 90210, 10001, 33139)
+                    </Text>
+                  </>
+                )}
               </>
             )}
 
@@ -349,6 +399,43 @@ export default function SignupScreen() {
                     ]}
                   >
                     {category.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showServiceAreaModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Service Area</Text>
+              <TouchableOpacity onPress={() => setShowServiceAreaModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList}>
+              {SERVICE_AREA_TYPES.map(type => (
+                <TouchableOpacity
+                  key={type.value}
+                  style={[
+                    styles.categoryItem,
+                    serviceAreaType === type.value && styles.categoryItemActive
+                  ]}
+                  onPress={() => {
+                    setServiceAreaType(type.value);
+                    setShowServiceAreaModal(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.categoryItemText,
+                      serviceAreaType === type.value && styles.categoryItemTextActive
+                    ]}
+                  >
+                    {type.label}
                   </Text>
                 </TouchableOpacity>
               ))}

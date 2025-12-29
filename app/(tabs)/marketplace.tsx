@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image, Modal } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { Search, Star, Building2 } from 'lucide-react-native';
+import { Search, Star, Building2, ChevronDown, X, MapPin } from 'lucide-react-native';
 import { useAuth } from '@/lib/AuthContext';
 
 type Company = {
@@ -13,6 +13,8 @@ type Company = {
   logo_url: string;
   average_rating: number;
   total_reviews: number;
+  service_area_type: string;
+  service_zip_codes: string[];
 };
 
 const CATEGORIES = [
@@ -73,6 +75,8 @@ export default function MarketplaceScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [zipCode, setZipCode] = useState('');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
@@ -80,7 +84,7 @@ export default function MarketplaceScreen() {
 
   useEffect(() => {
     filterCompanies();
-  }, [companies, searchQuery, selectedCategory]);
+  }, [companies, searchQuery, selectedCategory, zipCode]);
 
   const fetchCompanies = async () => {
     try {
@@ -112,6 +116,18 @@ export default function MarketplaceScreen() {
         c.company_name.toLowerCase().includes(query) ||
         c.description.toLowerCase().includes(query)
       );
+    }
+
+    if (zipCode.trim()) {
+      filtered = filtered.filter(c => {
+        if (c.service_area_type === 'international' || c.service_area_type === 'national') {
+          return true;
+        }
+        if (c.service_area_type === 'zip_codes' && c.service_zip_codes) {
+          return c.service_zip_codes.includes(zipCode.trim());
+        }
+        return false;
+      });
     }
 
     setFilteredCompanies(filtered);
@@ -148,30 +164,83 @@ export default function MarketplaceScreen() {
           />
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          {CATEGORIES.map(category => (
-            <TouchableOpacity
-              key={category.value}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category.value && styles.categoryChipActive
-              ]}
-              onPress={() => setSelectedCategory(category.value)}
-            >
-              <Text style={[
-                styles.categoryChipText,
-                selectedCategory === category.value && styles.categoryChipTextActive
-              ]}>
-                {category.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <View style={styles.filtersRow}>
+          <TouchableOpacity
+            style={styles.categoryDropdown}
+            onPress={() => setShowCategoryModal(true)}
+          >
+            <Text style={styles.categoryDropdownText}>
+              {CATEGORIES.find(c => c.value === selectedCategory)?.label || 'All'}
+            </Text>
+            <ChevronDown size={16} color="#94A3B8" />
+          </TouchableOpacity>
+
+          <View style={styles.zipCodeFilter}>
+            <MapPin size={16} color="#64748B" />
+            <TextInput
+              style={styles.zipCodeInput}
+              placeholder="Zip code"
+              value={zipCode}
+              onChangeText={setZipCode}
+              placeholderTextColor="#64748B"
+              keyboardType="numeric"
+              maxLength={5}
+            />
+            {zipCode.length > 0 && (
+              <TouchableOpacity onPress={() => setZipCode('')}>
+                <X size={16} color="#64748B" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </View>
+
+      <Modal
+        visible={showCategoryModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCategoryModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCategoryModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Category</Text>
+              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {CATEGORIES.map(category => (
+                <TouchableOpacity
+                  key={category.value}
+                  style={[
+                    styles.categoryOption,
+                    selectedCategory === category.value && styles.categoryOptionActive
+                  ]}
+                  onPress={() => {
+                    setSelectedCategory(category.value);
+                    setShowCategoryModal(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.categoryOptionText,
+                    selectedCategory === category.value && styles.categoryOptionTextActive
+                  ]}>
+                    {category.label}
+                  </Text>
+                  {selectedCategory === category.value && (
+                    <View style={styles.checkmark} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {loading ? (
         <View style={styles.centerContent}>
@@ -278,30 +347,100 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#FFFFFF',
   },
-  categoriesContent: {
-    paddingVertical: 4,
+  filtersRow: {
+    flexDirection: 'row',
     gap: 8,
   },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
+  categoryDropdown: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#0F172A',
-    marginRight: 8,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#334155',
   },
-  categoryChipActive: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+  categoryDropdownText: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
-  categoryChipText: {
-    fontSize: 13,
+  zipCodeFilter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+    minWidth: 120,
+  },
+  zipCodeInput: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    minWidth: 60,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: 500,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  modalTitle: {
+    fontSize: 18,
     fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  categoryOptionActive: {
+    backgroundColor: '#0F172A',
+  },
+  categoryOptionText: {
+    fontSize: 15,
     color: '#94A3B8',
   },
-  categoryChipTextActive: {
-    color: '#FFFFFF',
+  categoryOptionTextActive: {
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
+  checkmark: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#3B82F6',
   },
   companiesList: {
     flex: 1,

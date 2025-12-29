@@ -11,11 +11,19 @@ type Company = {
   company_name: string;
   logo_url: string;
   business_category: string;
+  service_area_type: string;
+  service_zip_codes: string[];
 };
 
 const PAYMENT_METHODS = [
   { value: 'venmo', label: 'Venmo' },
   { value: 'bank_transfer', label: 'Bank Transfer' },
+];
+
+const SERVICE_AREA_TYPES = [
+  { value: 'zip_codes', label: 'Specific Zip Codes' },
+  { value: 'national', label: 'National' },
+  { value: 'international', label: 'International' },
 ];
 
 const CATEGORIES = [
@@ -74,6 +82,7 @@ export default function ProfileScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showServiceAreaModal, setShowServiceAreaModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [company, setCompany] = useState<Company | null>(null);
@@ -81,6 +90,8 @@ export default function ProfileScreen() {
     company_name: '',
     logo_url: '',
     business_category: 'other',
+    service_area_type: 'national' as string,
+    service_zip_codes: [] as string[],
   });
   const [logoFile, setLogoFile] = useState<{ uri: string; type: string; name: string } | null>(null);
   const [paymentForm, setPaymentForm] = useState({
@@ -175,6 +186,8 @@ export default function ProfileScreen() {
         company_name: data.company_name,
         logo_url: data.logo_url || '',
         business_category: data.business_category || 'other',
+        service_area_type: data.service_area_type || 'national',
+        service_zip_codes: data.service_zip_codes || [],
       });
     }
   };
@@ -344,6 +357,8 @@ export default function ProfileScreen() {
           company_name: editForm.company_name,
           logo_url: logoUrl,
           business_category: editForm.business_category,
+          service_area_type: editForm.service_area_type,
+          service_zip_codes: editForm.service_zip_codes,
         })
         .eq('id', company.id);
 
@@ -1091,6 +1106,37 @@ export default function ProfileScreen() {
                 <ChevronDown size={20} color="#94A3B8" />
               </TouchableOpacity>
 
+              <Text style={styles.label}>Service Area</Text>
+              <TouchableOpacity
+                style={styles.dropdown}
+                onPress={() => setShowServiceAreaModal(true)}
+              >
+                <Text style={styles.dropdownText}>
+                  {SERVICE_AREA_TYPES.find(s => s.value === editForm.service_area_type)?.label || 'Select Service Area'}
+                </Text>
+                <ChevronDown size={20} color="#94A3B8" />
+              </TouchableOpacity>
+
+              {editForm.service_area_type === 'zip_codes' && (
+                <>
+                  <Text style={styles.label}>Zip Codes</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter zip codes (comma separated)"
+                    value={editForm.service_zip_codes.join(', ')}
+                    onChangeText={(text) => {
+                      const zipCodes = text.split(',').map(z => z.trim()).filter(z => z.length > 0);
+                      setEditForm({ ...editForm, service_zip_codes: zipCodes });
+                    }}
+                    placeholderTextColor="#64748B"
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.helpText}>
+                    Enter zip codes separated by commas (e.g., 90210, 10001, 33139)
+                  </Text>
+                </>
+              )}
+
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                 onPress={handleSaveCompany}
@@ -1268,6 +1314,43 @@ export default function ProfileScreen() {
                     ]}
                   >
                     {category.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showServiceAreaModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Service Area</Text>
+              <TouchableOpacity onPress={() => setShowServiceAreaModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList}>
+              {SERVICE_AREA_TYPES.map(type => (
+                <TouchableOpacity
+                  key={type.value}
+                  style={[
+                    styles.categoryItem,
+                    editForm.service_area_type === type.value && styles.categoryItemActive
+                  ]}
+                  onPress={() => {
+                    setEditForm({ ...editForm, service_area_type: type.value });
+                    setShowServiceAreaModal(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.categoryItemText,
+                      editForm.service_area_type === type.value && styles.categoryItemTextActive
+                    ]}
+                  >
+                    {type.label}
                   </Text>
                 </TouchableOpacity>
               ))}
