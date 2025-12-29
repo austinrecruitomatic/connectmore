@@ -15,6 +15,7 @@ export default function WebhookSettings() {
   const [leadSourceTag, setLeadSourceTag] = useState('connect more');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; status?: number } | null>(null);
+  const [showSaved, setShowSaved] = useState(false);
 
   useEffect(() => {
     if (profile?.user_type !== 'company') {
@@ -25,7 +26,12 @@ export default function WebhookSettings() {
   }, [profile]);
 
   async function loadWebhookSettings() {
-    if (!profile?.company_id) return;
+    if (!profile?.company_id) {
+      console.log('No company_id found in profile');
+      return;
+    }
+
+    console.log('Loading webhook settings for company:', profile.company_id);
 
     const { data, error } = await supabase
       .from('companies')
@@ -33,18 +39,24 @@ export default function WebhookSettings() {
       .eq('id', profile.company_id)
       .maybeSingle();
 
+    console.log('Load result:', { data, error });
+
     if (data) {
       setWebhookUrl(data.webhook_url || '');
       setWebhookSecret(data.webhook_secret || '');
       setWebhookEnabled(data.webhook_enabled || false);
       setLeadSourceTag(data.lead_source_tag || 'connect more');
+      console.log('Set webhook data:', {
+        url: data.webhook_url,
+        enabled: data.webhook_enabled,
+        tag: data.lead_source_tag
+      });
+    } else {
+      console.log('No data returned from companies table');
     }
   }
 
   async function saveWebhookSettings() {
-    console.log('SAVE FUNCTION CALLED');
-    alert('Save function called!');
-
     if (!profile?.company_id) {
       Alert.alert('Error', 'No company ID found');
       return;
@@ -62,27 +74,24 @@ export default function WebhookSettings() {
 
     setLoading(true);
 
-    try {
-      console.log('Saving webhook settings for company:', profile.company_id);
-      console.log('Data:', {
-        webhook_url: webhookUrl || null,
-        webhook_secret: webhookSecret || null,
-        webhook_enabled: webhookEnabled,
-        lead_source_tag: leadSourceTag || 'connect more',
-      });
+    const updateData = {
+      webhook_url: webhookUrl || null,
+      webhook_secret: webhookSecret || null,
+      webhook_enabled: webhookEnabled,
+      lead_source_tag: leadSourceTag || 'connect more',
+    };
 
+    console.log('Saving webhook settings for company:', profile.company_id);
+    console.log('Update data:', updateData);
+
+    try {
       const { data, error } = await supabase
         .from('companies')
-        .update({
-          webhook_url: webhookUrl || null,
-          webhook_secret: webhookSecret || null,
-          webhook_enabled: webhookEnabled,
-          lead_source_tag: leadSourceTag || 'connect more',
-        })
+        .update(updateData)
         .eq('id', profile.company_id)
         .select();
 
-      console.log('Update result:', { data, error });
+      console.log('Save result:', { data, error });
 
       setLoading(false);
 
@@ -90,12 +99,19 @@ export default function WebhookSettings() {
         console.error('Save error:', error);
         Alert.alert('Error', error.message);
       } else if (!data || data.length === 0) {
+        console.error('No rows updated');
         Alert.alert('Error', 'No rows were updated. You may not have permission to update this company.');
       } else {
-        Alert.alert('Success', 'Webhook settings saved successfully');
+        console.log('Successfully saved webhook settings');
+
+        // Show saved message
+        setShowSaved(true);
+        setTimeout(() => setShowSaved(false), 2000);
+
+        // Reload the data to confirm it saved
+        await loadWebhookSettings();
       }
     } catch (err: any) {
-      console.error('Exception during save:', err);
       setLoading(false);
       Alert.alert('Error', err.message || 'An unexpected error occurred');
     }
@@ -348,6 +364,15 @@ export default function WebhookSettings() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {showSaved && (
+        <View style={styles.savedOverlay}>
+          <View style={styles.savedCard}>
+            <CheckCircle size={48} color="#10B981" />
+            <Text style={styles.savedText}>Saved</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -565,5 +590,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94A3B8',
     lineHeight: 18,
+  },
+  savedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  savedCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    gap: 16,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  savedText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#10B981',
   },
 });
