@@ -16,6 +16,7 @@ export default function WebhookSettings() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; status?: number } | null>(null);
   const [showSaved, setShowSaved] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.user_type !== 'company') {
@@ -23,27 +24,27 @@ export default function WebhookSettings() {
       return;
     }
     loadWebhookSettings();
-  }, [profile]);
+  }, [user]);
 
   async function loadWebhookSettings() {
-    if (!profile?.company_id) {
-      console.log('No company_id found in profile');
+    if (!user?.id) {
+      console.log('No user ID found');
       return;
     }
 
-    console.log('Loading webhook settings for company:', profile.company_id);
-    console.log('Current user ID:', user?.id);
+    console.log('Loading company for user:', user.id);
 
     const { data, error } = await supabase
       .from('companies')
       .select('id, user_id, webhook_url, webhook_secret, webhook_enabled, lead_source_tag')
-      .eq('id', profile.company_id)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     console.log('Load result:', { data, error });
 
     if (data) {
-      console.log('Company user_id:', data.user_id, 'Current user:', user?.id, 'Match:', data.user_id === user?.id);
+      console.log('Found company:', data.id);
+      setCompanyId(data.id);
       setWebhookUrl(data.webhook_url || '');
       setWebhookSecret(data.webhook_secret || '');
       setWebhookEnabled(data.webhook_enabled || false);
@@ -54,19 +55,16 @@ export default function WebhookSettings() {
         tag: data.lead_source_tag
       });
     } else {
-      console.log('No data returned from companies table');
+      console.log('No company found for user');
     }
   }
 
   async function saveWebhookSettings() {
     console.log('=== SAVE WEBHOOK FUNCTION CALLED ===');
-    console.log('Profile:', profile);
-    console.log('User:', user);
+    console.log('Company ID:', companyId);
 
-    Alert.alert('Debug', `Function called. Company ID: ${profile?.company_id}`);
-
-    if (!profile?.company_id) {
-      Alert.alert('Error', 'No company ID found');
+    if (!companyId) {
+      Alert.alert('Error', 'No company found. Please ensure you have a company account.');
       return;
     }
 
@@ -89,14 +87,14 @@ export default function WebhookSettings() {
       lead_source_tag: leadSourceTag || 'connect more',
     };
 
-    console.log('Saving webhook settings for company:', profile.company_id);
+    console.log('Saving webhook settings for company:', companyId);
     console.log('Update data:', updateData);
 
     try {
       const { data, error } = await supabase
         .from('companies')
         .update(updateData)
-        .eq('id', profile.company_id)
+        .eq('id', companyId)
         .select();
 
       console.log('Save result:', { data, error });
@@ -110,7 +108,7 @@ export default function WebhookSettings() {
       } else if (!data || data.length === 0) {
         console.error('No rows updated');
         console.error('This usually means RLS policy blocked the update');
-        console.error('Check that user', user?.id, 'owns company', profile.company_id);
+        console.error('Check that user', user?.id, 'owns company', companyId);
         Alert.alert('Permission Error', 'No rows were updated. You may not have permission to update this company.\n\nCheck the console for details.');
       } else {
         console.log('Successfully saved webhook settings');
