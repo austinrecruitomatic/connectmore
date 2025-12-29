@@ -42,7 +42,10 @@ export default function WebhookSettings() {
   }
 
   async function saveWebhookSettings() {
-    if (!profile?.company_id) return;
+    if (!profile?.company_id) {
+      Alert.alert('Error', 'No company ID found');
+      return;
+    }
 
     if (webhookEnabled && !webhookUrl) {
       Alert.alert('Error', 'Please provide a webhook URL');
@@ -56,22 +59,42 @@ export default function WebhookSettings() {
 
     setLoading(true);
 
-    const { error } = await supabase
-      .from('companies')
-      .update({
+    try {
+      console.log('Saving webhook settings for company:', profile.company_id);
+      console.log('Data:', {
         webhook_url: webhookUrl || null,
         webhook_secret: webhookSecret || null,
         webhook_enabled: webhookEnabled,
         lead_source_tag: leadSourceTag || 'connect more',
-      })
-      .eq('id', profile.company_id);
+      });
 
-    setLoading(false);
+      const { data, error } = await supabase
+        .from('companies')
+        .update({
+          webhook_url: webhookUrl || null,
+          webhook_secret: webhookSecret || null,
+          webhook_enabled: webhookEnabled,
+          lead_source_tag: leadSourceTag || 'connect more',
+        })
+        .eq('id', profile.company_id)
+        .select();
 
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
-      Alert.alert('Success', 'Webhook settings saved successfully');
+      console.log('Update result:', { data, error });
+
+      setLoading(false);
+
+      if (error) {
+        console.error('Save error:', error);
+        Alert.alert('Error', error.message);
+      } else if (!data || data.length === 0) {
+        Alert.alert('Error', 'No rows were updated. You may not have permission to update this company.');
+      } else {
+        Alert.alert('Success', 'Webhook settings saved successfully');
+      }
+    } catch (err: any) {
+      console.error('Exception during save:', err);
+      setLoading(false);
+      Alert.alert('Error', err.message || 'An unexpected error occurred');
     }
   }
 
