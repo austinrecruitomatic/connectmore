@@ -70,7 +70,16 @@ type Appointment = {
   duration_minutes: number;
   notes: string | null;
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  assigned_to_user_id: string | null;
   created_at: string;
+};
+
+type TeamMember = {
+  id: string;
+  user_id: string;
+  profiles: {
+    full_name: string;
+  };
 };
 
 export default function LeadsScreen() {
@@ -96,6 +105,9 @@ export default function LeadsScreen() {
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [selectedTeamMember, setSelectedTeamMember] = useState<string>('all');
+  const [calendarMode, setCalendarMode] = useState<'shared' | 'individual'>('shared');
 
   useEffect(() => {
     loadLeads();
@@ -105,23 +117,52 @@ export default function LeadsScreen() {
     }
   }, [statusFilter]);
 
+  useEffect(() => {
+    if (profile?.user_type === 'company') {
+      loadAppointments();
+    }
+  }, [selectedTeamMember]);
+
   const loadAppointments = async () => {
     if (!profile?.id || profile?.user_type !== 'company') return;
 
     try {
       const { data: companyData } = await supabase
         .from('companies')
-        .select('id')
+        .select('id, calendar_mode')
         .eq('user_id', profile.id)
         .maybeSingle();
 
       if (!companyData) return;
 
-      const { data, error } = await supabase
+      setCalendarMode(companyData.calendar_mode || 'shared');
+
+      const { data: membersData } = await supabase
+        .from('team_members')
+        .select(`
+          id,
+          user_id,
+          profiles (
+            full_name
+          )
+        `)
+        .eq('company_id', companyData.id)
+        .eq('status', 'active')
+        .eq('can_manage_appointments', true);
+
+      setTeamMembers(membersData || []);
+
+      let query = supabase
         .from('demo_appointments')
         .select('*')
         .eq('company_id', companyData.id)
         .order('scheduled_time', { ascending: true });
+
+      if (calendarMode === 'individual' && selectedTeamMember !== 'all') {
+        query = query.eq('assigned_to_user_id', selectedTeamMember);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setAppointments(data || []);
@@ -1077,11 +1118,62 @@ export default function LeadsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Appointments</Text>
+              <View>
+                <Text style={styles.modalTitle}>Appointments</Text>
+                <TouchableOpacity
+                  style={styles.manageTeamLink}
+                  onPress={() => {
+                    setShowCalendarModal(false);
+                    router.push('/team-management');
+                  }}
+                >
+                  <UsersIcon size={14} color="#60A5FA" />
+                  <Text style={styles.manageTeamText}>Manage Team</Text>
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity onPress={() => setShowCalendarModal(false)}>
                 <X size={24} color="#94A3B8" />
               </TouchableOpacity>
             </View>
+
+            {calendarMode === 'individual' && teamMembers.length > 0 && (
+              <View style={styles.teamMemberFilter}>
+                <Text style={styles.teamMemberFilterLabel}>View appointments for:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.teamMemberFilterScroll}>
+                  <TouchableOpacity
+                    style={[
+                      styles.teamMemberFilterChip,
+                      selectedTeamMember === 'all' && styles.teamMemberFilterChipActive
+                    ]}
+                    onPress={() => setSelectedTeamMember('all')}
+                  >
+                    <Text style={[
+                      styles.teamMemberFilterChipText,
+                      selectedTeamMember === 'all' && styles.teamMemberFilterChipTextActive
+                    ]}>
+                      All Team
+                    </Text>
+                  </TouchableOpacity>
+                  {teamMembers.map((member) => (
+                    <TouchableOpacity
+                      key={member.user_id}
+                      style={[
+                        styles.teamMemberFilterChip,
+                        selectedTeamMember === member.user_id && styles.teamMemberFilterChipActive
+                      ]}
+                      onPress={() => setSelectedTeamMember(member.user_id)}
+                    >
+                      <Text style={[
+                        styles.teamMemberFilterChipText,
+                        selectedTeamMember === member.user_id && styles.teamMemberFilterChipTextActive
+                      ]}>
+                        {member.profiles.full_name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             <ScrollView style={styles.modalBody}>
               <View style={styles.calendarContainer}>
@@ -1914,5 +2006,52 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     padding: 20,
+  },
+  manageTeamLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  manageTeamText: {
+    fontSize: 13,
+    color: '#60A5FA',
+    fontWeight: '600',
+  },
+  teamMemberFilter: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  teamMemberFilterLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  teamMemberFilterScroll: {
+    flexGrow: 0,
+  },
+  teamMemberFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginRight: 8,
+  },
+  teamMemberFilterChipActive: {
+    backgroundColor: '#3B82F620',
+    borderColor: '#3B82F6',
+  },
+  teamMemberFilterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  teamMemberFilterChipTextActive: {
+    color: '#3B82F6',
   },
 });
