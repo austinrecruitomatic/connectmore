@@ -7,7 +7,7 @@
     "icon": "./assets/images/connect_more_icon.png",
     "scheme": "connectmore",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.connectmore.app",
@@ -27,7 +27,13 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-updates"
+      "expo-updates",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.connectmore.app"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
