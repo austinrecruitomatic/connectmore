@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     businessCategory?: string,
     recruiterCode?: string,
     serviceAreaType?: string,
-    serviceZipCodes?: string[]
+    serviceStates?: string[]
   ) => {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -153,7 +153,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           company_name: companyName || fullName,
           business_category: businessCategory || 'other',
           service_area_type: serviceAreaType || 'national',
-          service_zip_codes: serviceZipCodes || [],
+          service_states: serviceStates || [],
+          service_counties: {},
         })
         .select('id')
         .single();

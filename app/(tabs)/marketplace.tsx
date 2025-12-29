@@ -14,8 +14,62 @@ type Company = {
   average_rating: number;
   total_reviews: number;
   service_area_type: string;
-  service_zip_codes: string[];
+  service_states: string[];
+  service_counties: any;
 };
+
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' },
+  { code: 'AK', name: 'Alaska' },
+  { code: 'AZ', name: 'Arizona' },
+  { code: 'AR', name: 'Arkansas' },
+  { code: 'CA', name: 'California' },
+  { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' },
+  { code: 'DE', name: 'Delaware' },
+  { code: 'FL', name: 'Florida' },
+  { code: 'GA', name: 'Georgia' },
+  { code: 'HI', name: 'Hawaii' },
+  { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' },
+  { code: 'IN', name: 'Indiana' },
+  { code: 'IA', name: 'Iowa' },
+  { code: 'KS', name: 'Kansas' },
+  { code: 'KY', name: 'Kentucky' },
+  { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' },
+  { code: 'MD', name: 'Maryland' },
+  { code: 'MA', name: 'Massachusetts' },
+  { code: 'MI', name: 'Michigan' },
+  { code: 'MN', name: 'Minnesota' },
+  { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' },
+  { code: 'MT', name: 'Montana' },
+  { code: 'NE', name: 'Nebraska' },
+  { code: 'NV', name: 'Nevada' },
+  { code: 'NH', name: 'New Hampshire' },
+  { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' },
+  { code: 'NY', name: 'New York' },
+  { code: 'NC', name: 'North Carolina' },
+  { code: 'ND', name: 'North Dakota' },
+  { code: 'OH', name: 'Ohio' },
+  { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' },
+  { code: 'PA', name: 'Pennsylvania' },
+  { code: 'RI', name: 'Rhode Island' },
+  { code: 'SC', name: 'South Carolina' },
+  { code: 'SD', name: 'South Dakota' },
+  { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' },
+  { code: 'UT', name: 'Utah' },
+  { code: 'VT', name: 'Vermont' },
+  { code: 'VA', name: 'Virginia' },
+  { code: 'WA', name: 'Washington' },
+  { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' },
+  { code: 'WY', name: 'Wyoming' },
+];
 
 const CATEGORIES = [
   { value: 'all', label: 'All' },
@@ -75,8 +129,9 @@ export default function MarketplaceScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [zipCode, setZipCode] = useState('');
+  const [selectedState, setSelectedState] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showStateModal, setShowStateModal] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
@@ -84,7 +139,7 @@ export default function MarketplaceScreen() {
 
   useEffect(() => {
     filterCompanies();
-  }, [companies, searchQuery, selectedCategory, zipCode]);
+  }, [companies, searchQuery, selectedCategory, selectedState]);
 
   const fetchCompanies = async () => {
     try {
@@ -118,13 +173,13 @@ export default function MarketplaceScreen() {
       );
     }
 
-    if (zipCode.trim()) {
+    if (selectedState) {
       filtered = filtered.filter(c => {
         if (c.service_area_type === 'international' || c.service_area_type === 'national') {
           return true;
         }
-        if (c.service_area_type === 'zip_codes' && c.service_zip_codes) {
-          return c.service_zip_codes.includes(zipCode.trim());
+        if ((c.service_area_type === 'local' || c.service_area_type === 'regional') && c.service_states) {
+          return c.service_states.includes(selectedState);
         }
         return false;
       });
@@ -175,23 +230,22 @@ export default function MarketplaceScreen() {
             <ChevronDown size={16} color="#94A3B8" />
           </TouchableOpacity>
 
-          <View style={styles.zipCodeFilter}>
+          <TouchableOpacity
+            style={styles.stateFilter}
+            onPress={() => setShowStateModal(true)}
+          >
             <MapPin size={16} color="#64748B" />
-            <TextInput
-              style={styles.zipCodeInput}
-              placeholder="Zip code"
-              value={zipCode}
-              onChangeText={setZipCode}
-              placeholderTextColor="#64748B"
-              keyboardType="numeric"
-              maxLength={5}
-            />
-            {zipCode.length > 0 && (
-              <TouchableOpacity onPress={() => setZipCode('')}>
+            <Text style={styles.stateFilterText}>
+              {selectedState ? US_STATES.find(s => s.code === selectedState)?.code : 'State'}
+            </Text>
+            {selectedState ? (
+              <TouchableOpacity onPress={() => setSelectedState('')}>
                 <X size={16} color="#64748B" />
               </TouchableOpacity>
+            ) : (
+              <ChevronDown size={16} color="#94A3B8" />
             )}
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -233,6 +287,53 @@ export default function MarketplaceScreen() {
                     {category.label}
                   </Text>
                   {selectedCategory === category.value && (
+                    <View style={styles.checkmark} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={showStateModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStateModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowStateModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select State</Text>
+              <TouchableOpacity onPress={() => setShowStateModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {US_STATES.map(state => (
+                <TouchableOpacity
+                  key={state.code}
+                  style={[
+                    styles.categoryOption,
+                    selectedState === state.code && styles.categoryOptionActive
+                  ]}
+                  onPress={() => {
+                    setSelectedState(state.code);
+                    setShowStateModal(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.categoryOptionText,
+                    selectedState === state.code && styles.categoryOptionTextActive
+                  ]}>
+                    {state.name}
+                  </Text>
+                  {selectedState === state.code && (
                     <View style={styles.checkmark} />
                   )}
                 </TouchableOpacity>
@@ -368,7 +469,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '500',
   },
-  zipCodeFilter: {
+  stateFilter: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0F172A',
@@ -378,12 +479,12 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
     borderColor: '#334155',
-    minWidth: 120,
+    minWidth: 110,
   },
-  zipCodeInput: {
+  stateFilterText: {
     fontSize: 15,
     color: '#FFFFFF',
-    minWidth: 60,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,

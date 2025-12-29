@@ -12,7 +12,8 @@ type Company = {
   logo_url: string;
   business_category: string;
   service_area_type: string;
-  service_zip_codes: string[];
+  service_states: string[];
+  service_counties: any;
 };
 
 const PAYMENT_METHODS = [
@@ -21,9 +22,30 @@ const PAYMENT_METHODS = [
 ];
 
 const SERVICE_AREA_TYPES = [
-  { value: 'zip_codes', label: 'Specific Zip Codes' },
+  { value: 'local', label: 'Local (Specific States)' },
+  { value: 'regional', label: 'Regional (Multiple States)' },
   { value: 'national', label: 'National' },
   { value: 'international', label: 'International' },
+];
+
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
+  { code: 'AR', name: 'Arkansas' }, { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' }, { code: 'FL', name: 'Florida' },
+  { code: 'GA', name: 'Georgia' }, { code: 'HI', name: 'Hawaii' }, { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' }, { code: 'IA', name: 'Iowa' },
+  { code: 'KS', name: 'Kansas' }, { code: 'KY', name: 'Kentucky' }, { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' }, { code: 'MA', name: 'Massachusetts' },
+  { code: 'MI', name: 'Michigan' }, { code: 'MN', name: 'Minnesota' }, { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' }, { code: 'NE', name: 'Nebraska' },
+  { code: 'NV', name: 'Nevada' }, { code: 'NH', name: 'New Hampshire' }, { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' }, { code: 'NC', name: 'North Carolina' },
+  { code: 'ND', name: 'North Dakota' }, { code: 'OH', name: 'Ohio' }, { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' }, { code: 'RI', name: 'Rhode Island' },
+  { code: 'SC', name: 'South Carolina' }, { code: 'SD', name: 'South Dakota' }, { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' }, { code: 'VT', name: 'Vermont' },
+  { code: 'VA', name: 'Virginia' }, { code: 'WA', name: 'Washington' }, { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
 ];
 
 const CATEGORIES = [
@@ -83,6 +105,7 @@ export default function ProfileScreen() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showServiceAreaModal, setShowServiceAreaModal] = useState(false);
+  const [showStatesModal, setShowStatesModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [company, setCompany] = useState<Company | null>(null);
@@ -91,7 +114,7 @@ export default function ProfileScreen() {
     logo_url: '',
     business_category: 'other',
     service_area_type: 'national' as string,
-    service_zip_codes: [] as string[],
+    service_states: [] as string[],
   });
   const [logoFile, setLogoFile] = useState<{ uri: string; type: string; name: string } | null>(null);
   const [paymentForm, setPaymentForm] = useState({
@@ -187,7 +210,7 @@ export default function ProfileScreen() {
         logo_url: data.logo_url || '',
         business_category: data.business_category || 'other',
         service_area_type: data.service_area_type || 'national',
-        service_zip_codes: data.service_zip_codes || [],
+        service_states: data.service_states || [],
       });
     }
   };
@@ -358,7 +381,7 @@ export default function ProfileScreen() {
           logo_url: logoUrl,
           business_category: editForm.business_category,
           service_area_type: editForm.service_area_type,
-          service_zip_codes: editForm.service_zip_codes,
+          service_states: editForm.service_states,
         })
         .eq('id', company.id);
 
@@ -1117,22 +1140,41 @@ export default function ProfileScreen() {
                 <ChevronDown size={20} color="#94A3B8" />
               </TouchableOpacity>
 
-              {editForm.service_area_type === 'zip_codes' && (
+              {(editForm.service_area_type === 'local' || editForm.service_area_type === 'regional') && (
                 <>
-                  <Text style={styles.label}>Zip Codes</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter zip codes (comma separated)"
-                    value={editForm.service_zip_codes.join(', ')}
-                    onChangeText={(text) => {
-                      const zipCodes = text.split(',').map(z => z.trim()).filter(z => z.length > 0);
-                      setEditForm({ ...editForm, service_zip_codes: zipCodes });
-                    }}
-                    placeholderTextColor="#64748B"
-                    keyboardType="numeric"
-                  />
+                  <TouchableOpacity
+                    style={styles.dropdown}
+                    onPress={() => setShowStatesModal(true)}
+                  >
+                    <Text style={styles.dropdownText}>
+                      {editForm.service_states.length > 0
+                        ? `${editForm.service_states.length} state${editForm.service_states.length > 1 ? 's' : ''} selected`
+                        : 'Select States'}
+                    </Text>
+                    <ChevronDown size={20} color="#94A3B8" />
+                  </TouchableOpacity>
+                  {editForm.service_states.length > 0 && (
+                    <View style={styles.selectedStatesContainer}>
+                      {editForm.service_states.map((stateCode) => {
+                        const state = US_STATES.find(s => s.code === stateCode);
+                        return (
+                          <View key={stateCode} style={styles.stateChip}>
+                            <Text style={styles.stateChipText}>{state?.code}</Text>
+                            <TouchableOpacity
+                              onPress={() => setEditForm({
+                                ...editForm,
+                                service_states: editForm.service_states.filter(s => s !== stateCode)
+                              })}
+                            >
+                              <X size={14} color="#94A3B8" />
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
                   <Text style={styles.helpText}>
-                    Enter zip codes separated by commas (e.g., 90210, 10001, 33139)
+                    Select the states where you provide services
                   </Text>
                 </>
               )}
@@ -1355,6 +1397,66 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showStatesModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select States</Text>
+              <TouchableOpacity onPress={() => setShowStatesModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList}>
+              {US_STATES.map(state => {
+                const isSelected = editForm.service_states.includes(state.code);
+                return (
+                  <TouchableOpacity
+                    key={state.code}
+                    style={[
+                      styles.categoryItem,
+                      isSelected && styles.categoryItemActive
+                    ]}
+                    onPress={() => {
+                      if (isSelected) {
+                        setEditForm({
+                          ...editForm,
+                          service_states: editForm.service_states.filter(s => s !== state.code)
+                        });
+                      } else {
+                        setEditForm({
+                          ...editForm,
+                          service_states: [...editForm.service_states, state.code]
+                        });
+                      }
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryItemText,
+                        isSelected && styles.categoryItemTextActive
+                      ]}
+                    >
+                      {state.name}
+                    </Text>
+                    {isSelected && (
+                      <View style={styles.checkmark} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => setShowStatesModal(false)}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -2184,5 +2286,49 @@ const styles = StyleSheet.create({
   },
   toggleThumbActive: {
     transform: [{ translateX: 20 }],
+  },
+  selectedStatesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  stateChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  stateChipText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  checkmark: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#3B82F6',
+  },
+  modalFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  doneButton: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

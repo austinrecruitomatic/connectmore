@@ -56,9 +56,30 @@ const CATEGORIES = [
 ];
 
 const SERVICE_AREA_TYPES = [
-  { value: 'zip_codes', label: 'Specific Zip Codes' },
+  { value: 'local', label: 'Local (Specific States)' },
+  { value: 'regional', label: 'Regional (Multiple States)' },
   { value: 'national', label: 'National' },
   { value: 'international', label: 'International' },
+];
+
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
+  { code: 'AR', name: 'Arkansas' }, { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' }, { code: 'FL', name: 'Florida' },
+  { code: 'GA', name: 'Georgia' }, { code: 'HI', name: 'Hawaii' }, { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' }, { code: 'IA', name: 'Iowa' },
+  { code: 'KS', name: 'Kansas' }, { code: 'KY', name: 'Kentucky' }, { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' }, { code: 'MA', name: 'Massachusetts' },
+  { code: 'MI', name: 'Michigan' }, { code: 'MN', name: 'Minnesota' }, { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' }, { code: 'NE', name: 'Nebraska' },
+  { code: 'NV', name: 'Nevada' }, { code: 'NH', name: 'New Hampshire' }, { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' }, { code: 'NC', name: 'North Carolina' },
+  { code: 'ND', name: 'North Dakota' }, { code: 'OH', name: 'Ohio' }, { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' }, { code: 'RI', name: 'Rhode Island' },
+  { code: 'SC', name: 'South Carolina' }, { code: 'SD', name: 'South Dakota' }, { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' }, { code: 'VT', name: 'Vermont' },
+  { code: 'VA', name: 'Virginia' }, { code: 'WA', name: 'Washington' }, { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
 ];
 
 export default function SignupScreen() {
@@ -75,8 +96,9 @@ export default function SignupScreen() {
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<{ uri: string; type: string; name: string } | null>(null);
   const [serviceAreaType, setServiceAreaType] = useState('national');
-  const [serviceZipCodes, setServiceZipCodes] = useState('');
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [showServiceAreaModal, setShowServiceAreaModal] = useState(false);
+  const [showStatesModal, setShowStatesModal] = useState(false);
   const { signUp } = useAuth();
   const router = useRouter();
 
@@ -129,10 +151,6 @@ export default function SignupScreen() {
     setLoading(true);
     setError('');
 
-    const zipCodesArray = serviceAreaType === 'zip_codes' && serviceZipCodes.trim()
-      ? serviceZipCodes.split(',').map(z => z.trim()).filter(z => z.length > 0)
-      : [];
-
     const { error: signUpError, userId, companyId } = await signUp(
       email,
       password,
@@ -142,7 +160,7 @@ export default function SignupScreen() {
       businessCategory,
       recruiterCode,
       serviceAreaType,
-      zipCodesArray
+      selectedStates
     );
 
     if (signUpError) {
@@ -301,18 +319,38 @@ export default function SignupScreen() {
                   <ChevronDown size={20} color="#94A3B8" />
                 </TouchableOpacity>
 
-                {serviceAreaType === 'zip_codes' && (
+                {(serviceAreaType === 'local' || serviceAreaType === 'regional') && (
                   <>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Zip Codes (comma separated)"
-                      value={serviceZipCodes}
-                      onChangeText={setServiceZipCodes}
-                      placeholderTextColor="#64748B"
-                      keyboardType="numeric"
-                    />
+                    <TouchableOpacity
+                      style={styles.dropdown}
+                      onPress={() => setShowStatesModal(true)}
+                    >
+                      <Text style={styles.dropdownText}>
+                        {selectedStates.length > 0
+                          ? `${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''} selected`
+                          : 'Select States'}
+                      </Text>
+                      <ChevronDown size={20} color="#94A3B8" />
+                    </TouchableOpacity>
+                    {selectedStates.length > 0 && (
+                      <View style={styles.selectedStatesContainer}>
+                        {selectedStates.map((stateCode) => {
+                          const state = US_STATES.find(s => s.code === stateCode);
+                          return (
+                            <View key={stateCode} style={styles.stateChip}>
+                              <Text style={styles.stateChipText}>{state?.code}</Text>
+                              <TouchableOpacity
+                                onPress={() => setSelectedStates(selectedStates.filter(s => s !== stateCode))}
+                              >
+                                <X size={14} color="#94A3B8" />
+                              </TouchableOpacity>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
                     <Text style={styles.helpText}>
-                      Enter zip codes separated by commas (e.g., 90210, 10001, 33139)
+                      Select the states where you provide services
                     </Text>
                   </>
                 )}
@@ -440,6 +478,60 @@ export default function SignupScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showStatesModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select States</Text>
+              <TouchableOpacity onPress={() => setShowStatesModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList}>
+              {US_STATES.map(state => {
+                const isSelected = selectedStates.includes(state.code);
+                return (
+                  <TouchableOpacity
+                    key={state.code}
+                    style={[
+                      styles.categoryItem,
+                      isSelected && styles.categoryItemActive
+                    ]}
+                    onPress={() => {
+                      if (isSelected) {
+                        setSelectedStates(selectedStates.filter(s => s !== state.code));
+                      } else {
+                        setSelectedStates([...selectedStates, state.code]);
+                      }
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryItemText,
+                        isSelected && styles.categoryItemTextActive
+                      ]}
+                    >
+                      {state.name}
+                    </Text>
+                    {isSelected && (
+                      <View style={styles.checkmark} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => setShowStatesModal(false)}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -647,5 +739,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#60A5FA',
     fontWeight: '500',
+  },
+  selectedStatesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  stateChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  stateChipText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  checkmark: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#60A5FA',
+  },
+  modalFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  doneButton: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
