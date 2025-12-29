@@ -59,6 +59,12 @@ export default function WebhookSettings() {
   }
 
   async function saveWebhookSettings() {
+    console.log('=== SAVE WEBHOOK FUNCTION CALLED ===');
+    console.log('Profile:', profile);
+    console.log('User:', user);
+
+    Alert.alert('Debug', `Function called. Company ID: ${profile?.company_id}`);
+
     if (!profile?.company_id) {
       Alert.alert('Error', 'No company ID found');
       return;
