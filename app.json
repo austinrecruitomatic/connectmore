@@ -27,13 +27,7 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-updates",
-      [
-        "@stripe/stripe-react-native",
-        {
-          "merchantIdentifier": "merchant.com.connectmore.app"
-        }
-      ]
+      "expo-updates"
     ],
     "experiments": {
       "typedRoutes": true
