@@ -24,6 +24,7 @@ import {
   XCircle,
   Edit,
   Users,
+  Menu,
 } from 'lucide-react-native';
 
 type Deal = {
@@ -74,6 +75,18 @@ type CompanySettings = {
   platform_fee_paid_by: 'company' | 'affiliate';
 };
 
+type Appointment = {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  scheduled_time: string;
+  duration_minutes: number;
+  notes: string | null;
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  created_at: string;
+};
+
 export default function DealsScreen() {
   const { profile } = useAuth();
   const router = useRouter();
@@ -87,6 +100,9 @@ export default function DealsScreen() {
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [qualifiedLeads, setQualifiedLeads] = useState<any[]>([]);
   const [pendingPayments, setPendingPayments] = useState<PaymentPeriod[]>([]);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const [formData, setFormData] = useState({
     contact_submission_id: '',
@@ -102,7 +118,33 @@ export default function DealsScreen() {
     loadDeals();
     loadCompanySettings();
     loadPendingPayments();
+    loadAppointments();
   }, []);
+
+  const loadAppointments = async () => {
+    if (!profile?.id || profile?.user_type !== 'company') return;
+
+    try {
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (!companyData) return;
+
+      const { data, error } = await supabase
+        .from('demo_appointments')
+        .select('*')
+        .eq('company_id', companyData.id)
+        .order('scheduled_time', { ascending: true });
+
+      if (error) throw error;
+      setAppointments(data || []);
+    } catch (error) {
+      console.error('Error loading appointments:', error);
+    }
+  };
 
   const loadPendingPayments = async () => {
     if (profile?.user_type !== 'company') return;
@@ -622,9 +664,14 @@ export default function DealsScreen() {
           <Text style={styles.title}>Deals</Text>
           <Text style={styles.subtitle}>{totalActiveDeals} active deals</Text>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={openCreateModal}>
-          <Plus size={20} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity style={styles.menuButton} onPress={() => setShowCalendarModal(true)}>
+            <Menu size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={openCreateModal}>
+            <Plus size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.statsContainer}>
@@ -1104,6 +1151,148 @@ export default function DealsScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={showCalendarModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Appointments</Text>
+              <TouchableOpacity onPress={() => setShowCalendarModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.calendarContainer}>
+                <View style={styles.calendarHeader}>
+                  <Calendar size={20} color="#3B82F6" />
+                  <Text style={styles.calendarHeaderText}>
+                    {selectedDate.toLocaleDateString('en-US', {
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </Text>
+                </View>
+
+                <View style={styles.calendarGrid}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <Text key={day} style={styles.dayLabel}>{day}</Text>
+                  ))}
+                </View>
+
+                <View style={styles.calendarDaysGrid}>
+                  {(() => {
+                    const year = selectedDate.getFullYear();
+                    const month = selectedDate.getMonth();
+                    const firstDay = new Date(year, month, 1).getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const days = [];
+
+                    for (let i = 0; i < firstDay; i++) {
+                      days.push(<View key={`empty-${i}`} style={styles.emptyDay} />);
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                      const date = new Date(year, month, day);
+                      const hasAppointment = appointments.some(apt => {
+                        const aptDate = new Date(apt.scheduled_time);
+                        return aptDate.getDate() === day &&
+                               aptDate.getMonth() === month &&
+                               aptDate.getFullYear() === year &&
+                               apt.status === 'scheduled';
+                      });
+
+                      days.push(
+                        <TouchableOpacity
+                          key={day}
+                          style={[
+                            styles.calendarDay,
+                            hasAppointment && styles.calendarDayWithAppointment
+                          ]}
+                          onPress={() => setSelectedDate(new Date(year, month, day))}
+                        >
+                          <Text style={[
+                            styles.calendarDayText,
+                            hasAppointment && styles.calendarDayTextWithAppointment
+                          ]}>
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    }
+
+                    return days;
+                  })()}
+                </View>
+              </View>
+
+              <View style={styles.appointmentsSection}>
+                <Text style={styles.appointmentsSectionTitle}>
+                  Upcoming Appointments
+                </Text>
+
+                {appointments
+                  .filter(apt => new Date(apt.scheduled_time) >= new Date() && apt.status === 'scheduled')
+                  .slice(0, 10)
+                  .map((appointment) => (
+                    <View key={appointment.id} style={styles.appointmentCard}>
+                      <View style={styles.appointmentHeader}>
+                        <Text style={styles.appointmentCustomer}>{appointment.customer_name}</Text>
+                        <View style={[
+                          styles.appointmentStatusBadge,
+                          { backgroundColor: '#3B82F620' }
+                        ]}>
+                          <Text style={[styles.appointmentStatusText, { color: '#3B82F6' }]}>
+                            {appointment.status}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.appointmentDetails}>
+                        <View style={styles.appointmentDetailRow}>
+                          <Calendar size={14} color="#94A3B8" />
+                          <Text style={styles.appointmentDetailText}>
+                            {new Date(appointment.scheduled_time).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </Text>
+                        </View>
+                        <View style={styles.appointmentDetailRow}>
+                          <Text style={styles.appointmentDetailText}>
+                            {new Date(appointment.scheduled_time).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </Text>
+                          <Text style={styles.appointmentDetailText}>
+                            ({appointment.duration_minutes} min)
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.appointmentEmail}>{appointment.customer_email}</Text>
+                      {appointment.customer_phone && (
+                        <Text style={styles.appointmentPhone}>{appointment.customer_phone}</Text>
+                      )}
+                      {appointment.notes && (
+                        <Text style={styles.appointmentNotes} numberOfLines={2}>
+                          {appointment.notes}
+                        </Text>
+                      )}
+                    </View>
+                  ))}
+
+                {appointments.filter(apt => new Date(apt.scheduled_time) >= new Date() && apt.status === 'scheduled').length === 0 && (
+                  <Text style={styles.noAppointmentsText}>No upcoming appointments</Text>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1158,6 +1347,18 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#94A3B8',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#64748B',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   addButton: {
     width: 40,
@@ -1627,5 +1828,136 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  calendarContainer: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  calendarHeaderText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  dayLabel: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    paddingVertical: 8,
+  },
+  calendarDaysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  emptyDay: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+  },
+  calendarDay: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
+  },
+  calendarDayWithAppointment: {
+    backgroundColor: '#3B82F620',
+    borderRadius: 8,
+  },
+  calendarDayText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  calendarDayTextWithAppointment: {
+    fontWeight: '700',
+    color: '#3B82F6',
+  },
+  appointmentsSection: {
+    marginBottom: 20,
+  },
+  appointmentsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  appointmentCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  appointmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  appointmentCustomer: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  appointmentStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  appointmentStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  appointmentDetails: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 8,
+  },
+  appointmentDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  appointmentDetailText: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  appointmentEmail: {
+    fontSize: 14,
+    color: '#60A5FA',
+    marginBottom: 4,
+  },
+  appointmentPhone: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  appointmentNotes: {
+    fontSize: 13,
+    color: '#94A3B8',
+    lineHeight: 18,
+  },
+  noAppointmentsText: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    padding: 20,
   },
 });
