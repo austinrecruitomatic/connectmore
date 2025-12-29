@@ -135,6 +135,7 @@ export default function MarketplaceScreen() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
   const [showCountyModal, setShowCountyModal] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
 
   useEffect(() => {
     fetchCompanies();
@@ -290,22 +291,48 @@ export default function MarketplaceScreen() {
         visible={showCategoryModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowCategoryModal(false)}
+        onRequestClose={() => {
+          setShowCategoryModal(false);
+          setCategorySearchQuery('');
+        }}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setShowCategoryModal(false)}
+          onPress={() => {
+            setShowCategoryModal(false);
+            setCategorySearchQuery('');
+          }}
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Category</Text>
-              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+              <TouchableOpacity onPress={() => {
+                setShowCategoryModal(false);
+                setCategorySearchQuery('');
+              }}>
                 <X size={24} color="#94A3B8" />
               </TouchableOpacity>
             </View>
+            <View style={styles.searchContainer}>
+              <Search size={16} color="#64748B" />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Search categories..."
+                value={categorySearchQuery}
+                onChangeText={setCategorySearchQuery}
+                placeholderTextColor="#64748B"
+              />
+              {categorySearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setCategorySearchQuery('')}>
+                  <X size={16} color="#64748B" />
+                </TouchableOpacity>
+              )}
+            </View>
             <ScrollView style={styles.modalScroll}>
-              {CATEGORIES.map(category => (
+              {CATEGORIES.filter(category =>
+                category.label.toLowerCase().includes(categorySearchQuery.toLowerCase())
+              ).map(category => (
                 <TouchableOpacity
                   key={category.value}
                   style={[
@@ -315,6 +342,7 @@ export default function MarketplaceScreen() {
                   onPress={() => {
                     setSelectedCategory(category.value);
                     setShowCategoryModal(false);
+                    setCategorySearchQuery('');
                   }}
                 >
                   <Text style={[
@@ -790,5 +818,24 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     backgroundColor: '#3B82F6',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  modalSearchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#FFFFFF',
   },
 });
