@@ -55,6 +55,7 @@ const CATEGORIES = [
   { value: 'analytics', label: 'Analytics' },
   { value: 'banking', label: 'Banking' },
   { value: 'business_intelligence', label: 'Business Intelligence' },
+  { value: 'canvass_app', label: 'Canvass App' },
   { value: 'cloud_services', label: 'Cloud Services' },
   { value: 'construction', label: 'Construction' },
   { value: 'consulting', label: 'Consulting' },
