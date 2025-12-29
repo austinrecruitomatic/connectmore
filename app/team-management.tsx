@@ -18,6 +18,9 @@ import { ArrowLeft, Plus, Users, Trash2, Edit, X } from 'lucide-react-native';
 type TeamMember = {
   id: string;
   user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
   role: 'admin' | 'member';
   can_manage_leads: boolean;
   can_manage_deals: boolean;
@@ -40,6 +43,9 @@ export default function TeamManagementScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
   const [canManageLeads, setCanManageLeads] = useState(true);
@@ -73,7 +79,17 @@ export default function TeamManagementScreen() {
       const { data: members, error } = await supabase
         .from('team_members')
         .select(`
-          *,
+          id,
+          user_id,
+          first_name,
+          last_name,
+          phone,
+          role,
+          can_manage_leads,
+          can_manage_deals,
+          can_manage_appointments,
+          status,
+          created_at,
           profiles (
             full_name,
             email
@@ -93,7 +109,10 @@ export default function TeamManagementScreen() {
   };
 
   const handleAddMember = async () => {
-    if (!newMemberEmail.trim() || !companyId) return;
+    if (!newMemberEmail.trim() || !companyId || !firstName.trim() || !lastName.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
 
     setSaving(true);
 
@@ -115,6 +134,9 @@ export default function TeamManagementScreen() {
         .insert({
           company_id: companyId,
           user_id: userData.id,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: phone.trim() || null,
           role: newMemberRole,
           can_manage_leads: canManageLeads,
           can_manage_deals: canManageDeals,
@@ -135,6 +157,9 @@ export default function TeamManagementScreen() {
 
       Alert.alert('Success', 'Team member added successfully');
       setShowAddModal(false);
+      setFirstName('');
+      setLastName('');
+      setPhone('');
       setNewMemberEmail('');
       setNewMemberRole('member');
       setCanManageLeads(true);
@@ -150,7 +175,10 @@ export default function TeamManagementScreen() {
   };
 
   const handleUpdateMember = async () => {
-    if (!selectedMember) return;
+    if (!selectedMember || !firstName.trim() || !lastName.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
 
     setSaving(true);
 
@@ -158,6 +186,9 @@ export default function TeamManagementScreen() {
       const { error } = await supabase
         .from('team_members')
         .update({
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: phone.trim() || null,
           role: newMemberRole,
           can_manage_leads: canManageLeads,
           can_manage_deals: canManageDeals,
@@ -170,6 +201,9 @@ export default function TeamManagementScreen() {
       Alert.alert('Success', 'Team member updated successfully');
       setShowEditModal(false);
       setSelectedMember(null);
+      setFirstName('');
+      setLastName('');
+      setPhone('');
       loadTeamData();
     } catch (error) {
       console.error('Error updating member:', error);
@@ -230,6 +264,9 @@ export default function TeamManagementScreen() {
 
   const openEditModal = (member: TeamMember) => {
     setSelectedMember(member);
+    setFirstName(member.first_name || '');
+    setLastName(member.last_name || '');
+    setPhone(member.phone || '');
     setNewMemberRole(member.role);
     setCanManageLeads(member.can_manage_leads);
     setCanManageDeals(member.can_manage_deals);
@@ -311,8 +348,16 @@ export default function TeamManagementScreen() {
                   <Users size={20} color="#60A5FA" />
                 </View>
                 <View style={styles.memberDetails}>
-                  <Text style={styles.memberName}>{member.profiles.full_name}</Text>
+                  <Text style={styles.memberName}>
+                    {member.first_name && member.last_name
+                      ? `${member.first_name} ${member.last_name}`
+                      : member.profiles.full_name
+                    }
+                  </Text>
                   <Text style={styles.memberEmail}>{member.profiles.email}</Text>
+                  {member.phone && (
+                    <Text style={styles.memberPhone}>{member.phone}</Text>
+                  )}
                   <View style={styles.memberPermissions}>
                     <View style={[styles.badge, { backgroundColor: member.role === 'admin' ? '#F59E0B20' : '#3B82F620' }]}>
                       <Text style={[styles.badgeText, { color: member.role === 'admin' ? '#F59E0B' : '#3B82F6' }]}>
@@ -363,12 +408,50 @@ export default function TeamManagementScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Team Member</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+              <TouchableOpacity onPress={() => {
+                setShowAddModal(false);
+                setFirstName('');
+                setLastName('');
+                setPhone('');
+                setNewMemberEmail('');
+                setNewMemberRole('member');
+                setCanManageLeads(true);
+                setCanManageDeals(true);
+                setCanManageAppointments(true);
+              }}>
                 <X size={24} color="#94A3B8" />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalBody}>
+              <Text style={styles.label}>First Name</Text>
+              <TextInput
+                style={styles.input}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Enter first name"
+                placeholderTextColor="#64748B"
+              />
+
+              <Text style={styles.label}>Last Name</Text>
+              <TextInput
+                style={styles.input}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Enter last name"
+                placeholderTextColor="#64748B"
+              />
+
+              <Text style={styles.label}>Phone Number</Text>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Enter phone number"
+                placeholderTextColor="#64748B"
+                keyboardType="phone-pad"
+              />
+
               <Text style={styles.label}>Email Address</Text>
               <TextInput
                 style={styles.input}
@@ -440,7 +523,17 @@ export default function TeamManagementScreen() {
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setShowAddModal(false)}
+                onPress={() => {
+                  setShowAddModal(false);
+                  setFirstName('');
+                  setLastName('');
+                  setPhone('');
+                  setNewMemberEmail('');
+                  setNewMemberRole('member');
+                  setCanManageLeads(true);
+                  setCanManageDeals(true);
+                  setCanManageAppointments(true);
+                }}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
@@ -461,12 +554,46 @@ export default function TeamManagementScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Team Member</Text>
-              <TouchableOpacity onPress={() => setShowEditModal(false)}>
+              <TouchableOpacity onPress={() => {
+                setShowEditModal(false);
+                setSelectedMember(null);
+                setFirstName('');
+                setLastName('');
+                setPhone('');
+              }}>
                 <X size={24} color="#94A3B8" />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalBody}>
+              <Text style={styles.label}>First Name</Text>
+              <TextInput
+                style={styles.input}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Enter first name"
+                placeholderTextColor="#64748B"
+              />
+
+              <Text style={styles.label}>Last Name</Text>
+              <TextInput
+                style={styles.input}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Enter last name"
+                placeholderTextColor="#64748B"
+              />
+
+              <Text style={styles.label}>Phone Number</Text>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Enter phone number"
+                placeholderTextColor="#64748B"
+                keyboardType="phone-pad"
+              />
+
               <Text style={styles.label}>Role</Text>
               <View style={styles.radioGroup}>
                 <TouchableOpacity
@@ -527,7 +654,13 @@ export default function TeamManagementScreen() {
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setShowEditModal(false)}
+                onPress={() => {
+                  setShowEditModal(false);
+                  setSelectedMember(null);
+                  setFirstName('');
+                  setLastName('');
+                  setPhone('');
+                }}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
@@ -685,6 +818,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   memberEmail: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginBottom: 4,
+  },
+  memberPhone: {
     fontSize: 13,
     color: '#94A3B8',
     marginBottom: 8,
