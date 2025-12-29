@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 interface ContactSubmission {
+  event_type: 'new_lead' | 'lead_update';
   id: string;
   product_id: string;
   affiliate_id: string;
@@ -17,10 +18,15 @@ interface ContactSubmission {
   message?: string;
   contract_value?: number;
   contract_length_months?: number;
+  status?: string;
   created_at: string;
+  updated_at?: string;
+  previous_status?: string;
+  previous_contract_value?: number;
 }
 
 interface WebhookPayload {
+  event_type: 'new_lead' | 'lead_update';
   lead_id: string;
   product_name: string;
   affiliate_name: string;
@@ -32,8 +38,12 @@ interface WebhookPayload {
   message?: string;
   contract_value?: number;
   contract_length_months?: number;
+  status?: string;
   source_tag: string;
   submitted_at: string;
+  updated_at?: string;
+  previous_status?: string;
+  previous_contract_value?: number;
 }
 
 Deno.serve(async (req: Request) => {
@@ -109,6 +119,7 @@ Deno.serve(async (req: Request) => {
     const affiliate = affiliates?.[0];
 
     const webhookPayload: WebhookPayload = {
+      event_type: submission.event_type || 'new_lead',
       lead_id: submission.id,
       product_name: product.product_name,
       affiliate_name: affiliate?.full_name || "Unknown",
@@ -120,8 +131,14 @@ Deno.serve(async (req: Request) => {
       message: submission.message,
       contract_value: submission.contract_value,
       contract_length_months: submission.contract_length_months,
+      status: submission.status,
       source_tag: company.lead_source_tag || "connect more",
       submitted_at: submission.created_at,
+      updated_at: submission.updated_at,
+      ...(submission.event_type === 'lead_update' && {
+        previous_status: submission.previous_status,
+        previous_contract_value: submission.previous_contract_value,
+      }),
     };
 
     const webhookHeaders: Record<string, string> = {

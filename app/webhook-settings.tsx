@@ -150,9 +150,11 @@ export default function WebhookSettings() {
     setTestResult(null);
 
     const samplePayload = {
+      event_type: "new_lead",
       lead_id: "test-" + Date.now(),
       product_name: "Sample Product",
       affiliate_name: "Test Affiliate",
+      affiliate_email: "affiliate@example.com",
       contact_name: "John Doe",
       email: "john.doe@example.com",
       phone: "+1234567890",
@@ -160,8 +162,10 @@ export default function WebhookSettings() {
       message: "This is a test webhook from Connect More",
       contract_value: 5000,
       contract_length_months: 12,
+      status: "new",
       source_tag: leadSourceTag,
       submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       is_test: true
     };
 
@@ -339,12 +343,14 @@ export default function WebhookSettings() {
 
       <View style={styles.webhookInfo}>
         <Text style={styles.infoTitle}>Webhook Payload Format</Text>
-        <Text style={styles.infoText}>When a lead is submitted, we'll send a POST request with:</Text>
+        <Text style={styles.infoText}>When a lead is created or updated, we'll send a POST request with:</Text>
         <View style={styles.codeBlock}>
           <Text style={styles.code}>{`{
+  "event_type": "new_lead" | "lead_update",
   "lead_id": "uuid",
   "product_name": "string",
   "affiliate_name": "string",
+  "affiliate_email": "string",
   "contact_name": "string",
   "email": "string",
   "phone": "string",
@@ -352,15 +358,23 @@ export default function WebhookSettings() {
   "message": "string",
   "contract_value": number,
   "contract_length_months": number,
+  "status": "string",
   "source_tag": "${leadSourceTag}",
   "submitted_at": "timestamp",
-  "is_test": false
+  "updated_at": "timestamp",
+
+  // Only present for lead_update events:
+  "previous_status": "string",
+  "previous_contract_value": number
 }`}</Text>
         </View>
         <Text style={styles.infoText}>
-          Headers will include: Content-Type: application/json
+          Headers: Content-Type: application/json
           {webhookSecret && '\nX-Webhook-Secret: [your secret]'}
-          {'\n\nNote: Test webhooks will have "is_test": true'}
+          {'\n\nevent_type values:'}
+          {'\n• "new_lead" - A new lead was submitted'}
+          {'\n• "lead_update" - An existing lead was updated'}
+          {'\n\nTest webhooks have "is_test": true'}
         </Text>
       </View>
 
