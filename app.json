@@ -4,7 +4,7 @@
     "slug": "bolt-expo-nativewind",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/connect_more_icon.png",
     "scheme": "connectmore",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
