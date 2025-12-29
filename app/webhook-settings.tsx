@@ -42,6 +42,9 @@ export default function WebhookSettings() {
   }
 
   async function saveWebhookSettings() {
+    console.log('SAVE FUNCTION CALLED');
+    alert('Save function called!');
+
     if (!profile?.company_id) {
       Alert.alert('Error', 'No company ID found');
       return;
