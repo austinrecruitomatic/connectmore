@@ -93,7 +93,7 @@ export default function TeamManagementScreen() {
           can_manage_appointments,
           status,
           created_at,
-          profiles (
+          profiles!team_members_user_id_fkey (
             full_name,
             email
           )
