@@ -52,6 +52,7 @@ export default function TeamManagementScreen() {
   const [canManageDeals, setCanManageDeals] = useState(true);
   const [canManageAppointments, setCanManageAppointments] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadTeamData();
@@ -109,8 +110,19 @@ export default function TeamManagementScreen() {
   };
 
   const handleAddMember = async () => {
+    console.log('handleAddMember called', { firstName, lastName, newMemberEmail, companyId });
+    setErrorMessage(null);
+
     if (!newMemberEmail.trim() || !companyId || !firstName.trim() || !lastName.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      console.log('Validation failed', {
+        hasEmail: !!newMemberEmail.trim(),
+        hasCompanyId: !!companyId,
+        hasFirstName: !!firstName.trim(),
+        hasLastName: !!lastName.trim()
+      });
+      const message = 'Please fill in all required fields';
+      setErrorMessage(message);
+      Alert.alert('Error', message);
       return;
     }
 
@@ -124,7 +136,9 @@ export default function TeamManagementScreen() {
         .maybeSingle();
 
       if (userError || !userData) {
-        Alert.alert('Error', 'User not found with that email address');
+        const message = 'User not found with that email address';
+        setErrorMessage(message);
+        Alert.alert('Error', message);
         setSaving(false);
         return;
       }
@@ -147,7 +161,9 @@ export default function TeamManagementScreen() {
 
       if (error) {
         if (error.code === '23505') {
-          Alert.alert('Error', 'This user is already a team member');
+          const message = 'This user is already a team member';
+          setErrorMessage(message);
+          Alert.alert('Error', message);
         } else {
           throw error;
         }
@@ -165,10 +181,13 @@ export default function TeamManagementScreen() {
       setCanManageLeads(true);
       setCanManageDeals(true);
       setCanManageAppointments(true);
+      setErrorMessage(null);
       loadTeamData();
     } catch (error) {
       console.error('Error adding member:', error);
-      Alert.alert('Error', 'Failed to add team member');
+      const message = 'Failed to add team member';
+      setErrorMessage(message);
+      Alert.alert('Error', message);
     } finally {
       setSaving(false);
     }
@@ -418,12 +437,19 @@ export default function TeamManagementScreen() {
                 setCanManageLeads(true);
                 setCanManageDeals(true);
                 setCanManageAppointments(true);
+                setErrorMessage(null);
               }}>
                 <X size={24} color="#94A3B8" />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalBody}>
+              {errorMessage && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+              )}
+
               <Text style={styles.label}>First Name</Text>
               <TextInput
                 style={styles.input}
@@ -533,6 +559,7 @@ export default function TeamManagementScreen() {
                   setCanManageLeads(true);
                   setCanManageDeals(true);
                   setCanManageAppointments(true);
+                  setErrorMessage(null);
                 }}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -990,5 +1017,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  errorBanner: {
+    backgroundColor: '#EF444420',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
