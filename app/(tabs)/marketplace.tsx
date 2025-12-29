@@ -304,60 +304,62 @@ export default function MarketplaceScreen() {
             setCategorySearchQuery('');
           }}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Category</Text>
-              <TouchableOpacity onPress={() => {
-                setShowCategoryModal(false);
-                setCategorySearchQuery('');
-              }}>
-                <X size={24} color="#94A3B8" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.searchContainer}>
-              <Search size={16} color="#64748B" />
-              <TextInput
-                style={styles.modalSearchInput}
-                placeholder="Search categories..."
-                value={categorySearchQuery}
-                onChangeText={setCategorySearchQuery}
-                placeholderTextColor="#64748B"
-              />
-              {categorySearchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setCategorySearchQuery('')}>
-                  <X size={16} color="#64748B" />
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Category</Text>
+                <TouchableOpacity onPress={() => {
+                  setShowCategoryModal(false);
+                  setCategorySearchQuery('');
+                }}>
+                  <X size={24} color="#94A3B8" />
                 </TouchableOpacity>
-              )}
+              </View>
+              <View style={styles.searchContainer}>
+                <Search size={16} color="#64748B" />
+                <TextInput
+                  style={styles.modalSearchInput}
+                  placeholder="Search categories..."
+                  value={categorySearchQuery}
+                  onChangeText={setCategorySearchQuery}
+                  placeholderTextColor="#64748B"
+                />
+                {categorySearchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setCategorySearchQuery('')}>
+                    <X size={16} color="#64748B" />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <ScrollView style={styles.modalScroll}>
+                {CATEGORIES.filter(category =>
+                  category.label.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                ).map(category => (
+                  <TouchableOpacity
+                    key={category.value}
+                    style={[
+                      styles.categoryOption,
+                      selectedCategory === category.value && styles.categoryOptionActive
+                    ]}
+                    onPress={() => {
+                      setSelectedCategory(category.value);
+                      setShowCategoryModal(false);
+                      setCategorySearchQuery('');
+                    }}
+                  >
+                    <Text style={[
+                      styles.categoryOptionText,
+                      selectedCategory === category.value && styles.categoryOptionTextActive
+                    ]}>
+                      {category.label}
+                    </Text>
+                    {selectedCategory === category.value && (
+                      <View style={styles.checkmark} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
-            <ScrollView style={styles.modalScroll}>
-              {CATEGORIES.filter(category =>
-                category.label.toLowerCase().includes(categorySearchQuery.toLowerCase())
-              ).map(category => (
-                <TouchableOpacity
-                  key={category.value}
-                  style={[
-                    styles.categoryOption,
-                    selectedCategory === category.value && styles.categoryOptionActive
-                  ]}
-                  onPress={() => {
-                    setSelectedCategory(category.value);
-                    setShowCategoryModal(false);
-                    setCategorySearchQuery('');
-                  }}
-                >
-                  <Text style={[
-                    styles.categoryOptionText,
-                    selectedCategory === category.value && styles.categoryOptionTextActive
-                  ]}>
-                    {category.label}
-                  </Text>
-                  {selectedCategory === category.value && (
-                    <View style={styles.checkmark} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
