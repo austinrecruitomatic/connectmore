@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/AuthContext';
-import { ChevronDown, X, Upload, ImageIcon } from 'lucide-react-native';
+import { ChevronDown, X, Upload, ImageIcon, MapPin } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
+import { US_COUNTIES } from '@/lib/counties';
 
 const CATEGORIES = [
   { value: 'accounting', label: 'Accounting' },
@@ -97,8 +98,11 @@ export default function SignupScreen() {
   const [logoFile, setLogoFile] = useState<{ uri: string; type: string; name: string } | null>(null);
   const [serviceAreaType, setServiceAreaType] = useState('national');
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [serviceCounties, setServiceCounties] = useState<Record<string, string[]>>({});
   const [showServiceAreaModal, setShowServiceAreaModal] = useState(false);
   const [showStatesModal, setShowStatesModal] = useState(false);
+  const [showCountiesModal, setShowCountiesModal] = useState(false);
+  const [selectedStateForCounties, setSelectedStateForCounties] = useState<string | null>(null);
   const { signUp } = useAuth();
   const router = useRouter();
 
@@ -160,7 +164,8 @@ export default function SignupScreen() {
       businessCategory,
       recruiterCode,
       serviceAreaType,
-      selectedStates
+      selectedStates,
+      serviceCounties
     );
 
     if (signUpError) {
@@ -333,24 +338,61 @@ export default function SignupScreen() {
                       <ChevronDown size={20} color="#94A3B8" />
                     </TouchableOpacity>
                     {selectedStates.length > 0 && (
-                      <View style={styles.selectedStatesContainer}>
-                        {selectedStates.map((stateCode) => {
-                          const state = US_STATES.find(s => s.code === stateCode);
-                          return (
-                            <View key={stateCode} style={styles.stateChip}>
-                              <Text style={styles.stateChipText}>{state?.code}</Text>
-                              <TouchableOpacity
-                                onPress={() => setSelectedStates(selectedStates.filter(s => s !== stateCode))}
-                              >
-                                <X size={14} color="#94A3B8" />
-                              </TouchableOpacity>
-                            </View>
-                          );
-                        })}
-                      </View>
+                      <>
+                        <Text style={styles.sectionLabel}>Selected States & Counties</Text>
+                        <View style={styles.statesCountiesContainer}>
+                          {selectedStates.map((stateCode) => {
+                            const state = US_STATES.find(s => s.code === stateCode);
+                            const counties = serviceCounties[stateCode] || [];
+                            return (
+                              <View key={stateCode} style={styles.stateCountyCard}>
+                                <View style={styles.stateCardHeader}>
+                                  <Text style={styles.stateCardTitle}>{state?.name}</Text>
+                                  <TouchableOpacity
+                                    onPress={() => {
+                                      setSelectedStates(selectedStates.filter(s => s !== stateCode));
+                                      const newCounties = { ...serviceCounties };
+                                      delete newCounties[stateCode];
+                                      setServiceCounties(newCounties);
+                                    }}
+                                  >
+                                    <X size={16} color="#94A3B8" />
+                                  </TouchableOpacity>
+                                </View>
+                                <TouchableOpacity
+                                  style={styles.manageCountiesButton}
+                                  onPress={() => {
+                                    setSelectedStateForCounties(stateCode);
+                                    setShowCountiesModal(true);
+                                  }}
+                                >
+                                  <MapPin size={14} color="#60A5FA" />
+                                  <Text style={styles.manageCountiesText}>
+                                    {counties.length > 0
+                                      ? `${counties.length} ${counties.length === 1 ? 'county' : 'counties'} selected`
+                                      : 'Entire state (Add specific counties)'}
+                                  </Text>
+                                </TouchableOpacity>
+                                {counties.length > 0 && (
+                                  <View style={styles.countyChipsContainer}>
+                                    {counties.slice(0, 3).map((county) => (
+                                      <View key={county} style={styles.countyChip}>
+                                        <Text style={styles.countyChipText}>{county}</Text>
+                                      </View>
+                                    ))}
+                                    {counties.length > 3 && (
+                                      <Text style={styles.moreCountiesText}>+{counties.length - 3} more</Text>
+                                    )}
+                                  </View>
+                                )}
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </>
                     )}
                     <Text style={styles.helpText}>
-                      Select the states where you provide services
+                      Select states and optionally specify counties within each state
                     </Text>
                   </>
                 )}
@@ -504,6 +546,9 @@ export default function SignupScreen() {
                     onPress={() => {
                       if (isSelected) {
                         setSelectedStates(selectedStates.filter(s => s !== state.code));
+                        const newCounties = { ...serviceCounties };
+                        delete newCounties[state.code];
+                        setServiceCounties(newCounties);
                       } else {
                         setSelectedStates([...selectedStates, state.code]);
                       }
@@ -528,6 +573,72 @@ export default function SignupScreen() {
               <TouchableOpacity
                 style={styles.doneButton}
                 onPress={() => setShowStatesModal(false)}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showCountiesModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Select Counties - {selectedStateForCounties && US_STATES.find(s => s.code === selectedStateForCounties)?.name}
+              </Text>
+              <TouchableOpacity onPress={() => setShowCountiesModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              Leave empty to serve the entire state
+            </Text>
+            <ScrollView style={styles.modalList}>
+              {selectedStateForCounties && US_COUNTIES[selectedStateForCounties]?.map(county => {
+                const isSelected = serviceCounties[selectedStateForCounties]?.includes(county);
+                return (
+                  <TouchableOpacity
+                    key={county}
+                    style={[
+                      styles.categoryItem,
+                      isSelected && styles.categoryItemActive
+                    ]}
+                    onPress={() => {
+                      const currentCounties = serviceCounties[selectedStateForCounties] || [];
+                      if (isSelected) {
+                        setServiceCounties({
+                          ...serviceCounties,
+                          [selectedStateForCounties]: currentCounties.filter(c => c !== county)
+                        });
+                      } else {
+                        setServiceCounties({
+                          ...serviceCounties,
+                          [selectedStateForCounties]: [...currentCounties, county]
+                        });
+                      }
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryItemText,
+                        isSelected && styles.categoryItemTextActive
+                      ]}
+                    >
+                      {county}
+                    </Text>
+                    {isSelected && (
+                      <View style={styles.checkmark} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => setShowCountiesModal(false)}
               >
                 <Text style={styles.doneButtonText}>Done</Text>
               </TouchableOpacity>
@@ -783,5 +894,82 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  sectionLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  statesCountiesContainer: {
+    gap: 12,
+  },
+  stateCountyCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  stateCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stateCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  manageCountiesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  manageCountiesText: {
+    fontSize: 13,
+    color: '#60A5FA',
+    fontWeight: '500',
+  },
+  countyChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  countyChip: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  countyChipText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  moreCountiesText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontStyle: 'italic',
+    alignSelf: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#94A3B8',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
   },
 });

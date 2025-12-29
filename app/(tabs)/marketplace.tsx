@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Search, Star, Building2, ChevronDown, X, MapPin } from 'lucide-react-native';
 import { useAuth } from '@/lib/AuthContext';
+import { US_COUNTIES } from '@/lib/counties';
 
 type Company = {
   id: string;
@@ -130,8 +131,10 @@ export default function MarketplaceScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedState, setSelectedState] = useState('');
+  const [selectedCounty, setSelectedCounty] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
+  const [showCountyModal, setShowCountyModal] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
@@ -139,7 +142,7 @@ export default function MarketplaceScreen() {
 
   useEffect(() => {
     filterCompanies();
-  }, [companies, searchQuery, selectedCategory, selectedState]);
+  }, [companies, searchQuery, selectedCategory, selectedState, selectedCounty]);
 
   const fetchCompanies = async () => {
     try {
@@ -179,7 +182,19 @@ export default function MarketplaceScreen() {
           return true;
         }
         if ((c.service_area_type === 'local' || c.service_area_type === 'regional') && c.service_states) {
-          return c.service_states.includes(selectedState);
+          if (!c.service_states.includes(selectedState)) {
+            return false;
+          }
+
+          if (selectedCounty && c.service_counties && c.service_counties[selectedState]) {
+            const counties = c.service_counties[selectedState];
+            if (counties.length === 0) {
+              return true;
+            }
+            return counties.includes(selectedCounty);
+          }
+
+          return true;
         }
         return false;
       });
@@ -239,13 +254,35 @@ export default function MarketplaceScreen() {
               {selectedState ? US_STATES.find(s => s.code === selectedState)?.code : 'State'}
             </Text>
             {selectedState ? (
-              <TouchableOpacity onPress={() => setSelectedState('')}>
+              <TouchableOpacity onPress={() => {
+                setSelectedState('');
+                setSelectedCounty('');
+              }}>
                 <X size={16} color="#64748B" />
               </TouchableOpacity>
             ) : (
               <ChevronDown size={16} color="#94A3B8" />
             )}
           </TouchableOpacity>
+
+          {selectedState && US_COUNTIES[selectedState] && US_COUNTIES[selectedState].length > 0 && (
+            <TouchableOpacity
+              style={styles.countyFilter}
+              onPress={() => setShowCountyModal(true)}
+            >
+              <MapPin size={14} color="#64748B" />
+              <Text style={styles.countyFilterText}>
+                {selectedCounty || 'County (optional)'}
+              </Text>
+              {selectedCounty ? (
+                <TouchableOpacity onPress={() => setSelectedCounty('')}>
+                  <X size={14} color="#64748B" />
+                </TouchableOpacity>
+              ) : (
+                <ChevronDown size={14} color="#94A3B8" />
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -334,6 +371,58 @@ export default function MarketplaceScreen() {
                     {state.name}
                   </Text>
                   {selectedState === state.code && (
+                    <View style={styles.checkmark} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={showCountyModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCountyModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCountyModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Select County - {selectedState && US_STATES.find(s => s.code === selectedState)?.name}
+              </Text>
+              <TouchableOpacity onPress={() => setShowCountyModal(false)}>
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              Filter companies by county
+            </Text>
+            <ScrollView style={styles.modalScroll}>
+              {selectedState && US_COUNTIES[selectedState]?.map(county => (
+                <TouchableOpacity
+                  key={county}
+                  style={[
+                    styles.categoryOption,
+                    selectedCounty === county && styles.categoryOptionActive
+                  ]}
+                  onPress={() => {
+                    setSelectedCounty(county);
+                    setShowCountyModal(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.categoryOptionText,
+                    selectedCounty === county && styles.categoryOptionTextActive
+                  ]}>
+                    {county}
+                  </Text>
+                  {selectedCounty === county && (
                     <View style={styles.checkmark} />
                   )}
                 </TouchableOpacity>
@@ -483,6 +572,23 @@ const styles = StyleSheet.create({
   },
   stateFilterText: {
     fontSize: 15,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  countyFilter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#334155',
+    minWidth: 140,
+  },
+  countyFilterText: {
+    fontSize: 13,
     color: '#FFFFFF',
     fontWeight: '500',
   },
@@ -669,5 +775,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#94A3B8',
     textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#94A3B8',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    marginTop: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  checkmark: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#3B82F6',
   },
 });
