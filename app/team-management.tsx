@@ -17,9 +17,10 @@ import { ArrowLeft, Plus, Users, Trash2, Edit, X } from 'lucide-react-native';
 
 type TeamMember = {
   id: string;
-  user_id: string;
+  user_id: string | null;
   first_name: string | null;
   last_name: string | null;
+  email: string | null;
   phone: string | null;
   role: 'admin' | 'member';
   can_manage_leads: boolean;
@@ -30,7 +31,7 @@ type TeamMember = {
   profiles: {
     full_name: string;
     email: string;
-  };
+  } | null;
 };
 
 export default function TeamManagementScreen() {
@@ -84,6 +85,7 @@ export default function TeamManagementScreen() {
           user_id,
           first_name,
           last_name,
+          email,
           phone,
           role,
           can_manage_leads,
@@ -110,16 +112,9 @@ export default function TeamManagementScreen() {
   };
 
   const handleAddMember = async () => {
-    console.log('handleAddMember called', { firstName, lastName, newMemberEmail, companyId });
     setErrorMessage(null);
 
     if (!newMemberEmail.trim() || !companyId || !firstName.trim() || !lastName.trim()) {
-      console.log('Validation failed', {
-        hasEmail: !!newMemberEmail.trim(),
-        hasCompanyId: !!companyId,
-        hasFirstName: !!firstName.trim(),
-        hasLastName: !!lastName.trim()
-      });
       const message = 'Please fill in all required fields';
       setErrorMessage(message);
       Alert.alert('Error', message);
@@ -129,27 +124,20 @@ export default function TeamManagementScreen() {
     setSaving(true);
 
     try {
-      const { data: userData, error: userError } = await supabase
+      const { data: userData } = await supabase
         .from('profiles')
         .select('id, email')
         .eq('email', newMemberEmail.trim().toLowerCase())
         .maybeSingle();
 
-      if (userError || !userData) {
-        const message = 'User not found with that email address';
-        setErrorMessage(message);
-        Alert.alert('Error', message);
-        setSaving(false);
-        return;
-      }
-
       const { error } = await supabase
         .from('team_members')
         .insert({
           company_id: companyId,
-          user_id: userData.id,
+          user_id: userData?.id || null,
           first_name: firstName.trim(),
           last_name: lastName.trim(),
+          email: newMemberEmail.trim().toLowerCase(),
           phone: phone.trim() || null,
           role: newMemberRole,
           can_manage_leads: canManageLeads,
@@ -194,7 +182,7 @@ export default function TeamManagementScreen() {
   };
 
   const handleUpdateMember = async () => {
-    if (!selectedMember || !firstName.trim() || !lastName.trim()) {
+    if (!selectedMember || !firstName.trim() || !lastName.trim() || !newMemberEmail.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -207,6 +195,7 @@ export default function TeamManagementScreen() {
         .update({
           first_name: firstName.trim(),
           last_name: lastName.trim(),
+          email: newMemberEmail.trim().toLowerCase(),
           phone: phone.trim() || null,
           role: newMemberRole,
           can_manage_leads: canManageLeads,
@@ -223,6 +212,7 @@ export default function TeamManagementScreen() {
       setFirstName('');
       setLastName('');
       setPhone('');
+      setNewMemberEmail('');
       loadTeamData();
     } catch (error) {
       console.error('Error updating member:', error);
@@ -285,6 +275,7 @@ export default function TeamManagementScreen() {
     setSelectedMember(member);
     setFirstName(member.first_name || '');
     setLastName(member.last_name || '');
+    setNewMemberEmail(member.email || member.profiles?.email || '');
     setPhone(member.phone || '');
     setNewMemberRole(member.role);
     setCanManageLeads(member.can_manage_leads);
@@ -370,10 +361,12 @@ export default function TeamManagementScreen() {
                   <Text style={styles.memberName}>
                     {member.first_name && member.last_name
                       ? `${member.first_name} ${member.last_name}`
-                      : member.profiles.full_name
+                      : member.profiles?.full_name || 'Unknown'
                     }
                   </Text>
-                  <Text style={styles.memberEmail}>{member.profiles.email}</Text>
+                  <Text style={styles.memberEmail}>
+                    {member.email || member.profiles?.email || 'No email'}
+                  </Text>
                   {member.phone && (
                     <Text style={styles.memberPhone}>{member.phone}</Text>
                   )}
@@ -586,6 +579,7 @@ export default function TeamManagementScreen() {
                 setSelectedMember(null);
                 setFirstName('');
                 setLastName('');
+                setNewMemberEmail('');
                 setPhone('');
               }}>
                 <X size={24} color="#94A3B8" />
@@ -619,6 +613,17 @@ export default function TeamManagementScreen() {
                 placeholder="Enter phone number"
                 placeholderTextColor="#64748B"
                 keyboardType="phone-pad"
+              />
+
+              <Text style={styles.label}>Email Address</Text>
+              <TextInput
+                style={styles.input}
+                value={newMemberEmail}
+                onChangeText={setNewMemberEmail}
+                placeholder="Enter email address"
+                placeholderTextColor="#64748B"
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
 
               <Text style={styles.label}>Role</Text>
@@ -686,6 +691,7 @@ export default function TeamManagementScreen() {
                   setSelectedMember(null);
                   setFirstName('');
                   setLastName('');
+                  setNewMemberEmail('');
                   setPhone('');
                 }}
               >
