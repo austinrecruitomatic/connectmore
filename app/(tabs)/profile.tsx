@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Image, Modal, Platform } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'expo-router';
-import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown, Webhook, ImageIcon, Bell, FileText, MapPin } from 'lucide-react-native';
+import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown, Webhook, ImageIcon, Bell, FileText, MapPin, Search } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
@@ -109,6 +109,7 @@ export default function ProfileScreen() {
   const [showStatesModal, setShowStatesModal] = useState(false);
   const [showCountiesModal, setShowCountiesModal] = useState(false);
   const [selectedStateForCounties, setSelectedStateForCounties] = useState<string | null>(null);
+  const [countySearchQuery, setCountySearchQuery] = useState('');
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [company, setCompany] = useState<Company | null>(null);
@@ -1516,15 +1517,35 @@ export default function ProfileScreen() {
               <Text style={styles.modalTitle}>
                 Select Counties - {selectedStateForCounties && US_STATES.find(s => s.code === selectedStateForCounties)?.name}
               </Text>
-              <TouchableOpacity onPress={() => setShowCountiesModal(false)}>
+              <TouchableOpacity onPress={() => {
+                setShowCountiesModal(false);
+                setCountySearchQuery('');
+              }}>
                 <X size={24} color="#94A3B8" />
               </TouchableOpacity>
+            </View>
+            <View style={styles.searchContainer}>
+              <Search size={16} color="#64748B" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search counties..."
+                value={countySearchQuery}
+                onChangeText={setCountySearchQuery}
+                placeholderTextColor="#64748B"
+              />
+              {countySearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setCountySearchQuery('')}>
+                  <X size={16} color="#64748B" />
+                </TouchableOpacity>
+              )}
             </View>
             <Text style={styles.modalSubtitle}>
               Leave empty to serve the entire state
             </Text>
             <ScrollView style={styles.modalList}>
-              {selectedStateForCounties && US_COUNTIES[selectedStateForCounties]?.map(county => {
+              {selectedStateForCounties && US_COUNTIES[selectedStateForCounties]
+                ?.filter(county => county.toLowerCase().includes(countySearchQuery.toLowerCase()))
+                .map(county => {
                 const isSelected = editForm.service_counties[selectedStateForCounties]?.includes(county);
                 return (
                   <TouchableOpacity
@@ -1572,7 +1593,10 @@ export default function ProfileScreen() {
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.doneButton}
-                onPress={() => setShowCountiesModal(false)}
+                onPress={() => {
+                  setShowCountiesModal(false);
+                  setCountySearchQuery('');
+                }}
               >
                 <Text style={styles.doneButtonText}>Done</Text>
               </TouchableOpacity>
@@ -2527,5 +2551,23 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#334155',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginTop: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#FFFFFF',
   },
 });
