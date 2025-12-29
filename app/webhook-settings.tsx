@@ -32,16 +32,18 @@ export default function WebhookSettings() {
     }
 
     console.log('Loading webhook settings for company:', profile.company_id);
+    console.log('Current user ID:', user?.id);
 
     const { data, error } = await supabase
       .from('companies')
-      .select('webhook_url, webhook_secret, webhook_enabled, lead_source_tag')
+      .select('id, user_id, webhook_url, webhook_secret, webhook_enabled, lead_source_tag')
       .eq('id', profile.company_id)
       .maybeSingle();
 
     console.log('Load result:', { data, error });
 
     if (data) {
+      console.log('Company user_id:', data.user_id, 'Current user:', user?.id, 'Match:', data.user_id === user?.id);
       setWebhookUrl(data.webhook_url || '');
       setWebhookSecret(data.webhook_secret || '');
       setWebhookEnabled(data.webhook_enabled || false);
@@ -97,12 +99,16 @@ export default function WebhookSettings() {
 
       if (error) {
         console.error('Save error:', error);
-        Alert.alert('Error', error.message);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        Alert.alert('Error Saving', `${error.message}\n\nCode: ${error.code}\nDetails: ${error.details}`);
       } else if (!data || data.length === 0) {
         console.error('No rows updated');
-        Alert.alert('Error', 'No rows were updated. You may not have permission to update this company.');
+        console.error('This usually means RLS policy blocked the update');
+        console.error('Check that user', user?.id, 'owns company', profile.company_id);
+        Alert.alert('Permission Error', 'No rows were updated. You may not have permission to update this company.\n\nCheck the console for details.');
       } else {
         console.log('Successfully saved webhook settings');
+        console.log('Updated data:', data);
 
         // Show saved message
         setShowSaved(true);
@@ -112,6 +118,7 @@ export default function WebhookSettings() {
         await loadWebhookSettings();
       }
     } catch (err: any) {
+      console.error('Exception during save:', err);
       setLoading(false);
       Alert.alert('Error', err.message || 'An unexpected error occurred');
     }
