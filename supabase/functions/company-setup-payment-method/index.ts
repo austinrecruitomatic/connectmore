@@ -138,6 +138,45 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    if (action === 'verify_setup') {
+      const { clientSecret } = body;
+
+      if (!clientSecret) {
+        return new Response(
+          JSON.stringify({ error: 'clientSecret is required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const setupIntentId = clientSecret.split('_secret_')[0];
+      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+
+      if (setupIntent.status !== 'succeeded') {
+        return new Response(
+          JSON.stringify({ error: 'Payment method setup not completed' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const paymentMethodId = setupIntent.payment_method as string;
+
+      if (profile.stripe_customer_id) {
+        await stripe.customers.update(profile.stripe_customer_id, {
+          invoice_settings: {
+            default_payment_method: paymentMethodId,
+          },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          paymentMethodId: paymentMethodId,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'remove_payment_method') {
       if (profile.stripe_payment_method_id) {
         await stripe.paymentMethods.detach(profile.stripe_payment_method_id);
