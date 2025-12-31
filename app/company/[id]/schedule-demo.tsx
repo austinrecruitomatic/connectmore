@@ -125,7 +125,11 @@ export default function ScheduleDemoScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Schedule Demo</Text>
@@ -292,6 +296,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 16,
+    padding: 8,
+    marginLeft: -8,
   },
   headerTitle: {
     fontSize: 20,
