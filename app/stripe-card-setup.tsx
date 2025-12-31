@@ -1,71 +1,9 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
-import { useState } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { X, CreditCard, AlertCircle } from 'lucide-react-native';
-import { CardField, useStripe } from '@stripe/stripe-react-native';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/AuthContext';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { X, CreditCard } from 'lucide-react-native';
 
 export default function StripeCardSetupScreen() {
-  const { clientSecret } = useLocalSearchParams();
   const router = useRouter();
-  const { confirmSetupIntent } = useStripe();
-  const { profile } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [cardComplete, setCardComplete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleAddCard = async () => {
-    if (!clientSecret || !cardComplete) {
-      setError('Please enter valid card details');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { setupIntent, error: confirmError } = await confirmSetupIntent(
-        clientSecret as string,
-        {
-          paymentMethodType: 'Card',
-        }
-      );
-
-      if (confirmError) {
-        setError(confirmError.message);
-        return;
-      }
-
-      if (setupIntent?.status === 'Succeeded' && setupIntent.paymentMethodId) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            stripe_payment_method_id: setupIntent.paymentMethodId,
-            payment_method: 'stripe'
-          })
-          .eq('id', profile?.id);
-
-        if (updateError) {
-          throw updateError;
-        }
-
-        const message = 'Payment card added successfully!';
-        if (Platform.OS === 'web') {
-          alert(message);
-        } else {
-          Alert.alert('Success', message);
-        }
-
-        router.back();
-      }
-    } catch (err: any) {
-      console.error('Error adding card:', err);
-      setError(err.message || 'Failed to add card');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -86,62 +24,23 @@ export default function StripeCardSetupScreen() {
         </View>
 
         <Text style={styles.description}>
-          Enter your card details to enable automatic commission payments
+          Credit card setup is available on iOS and Android apps
         </Text>
 
-        {error && (
-          <View style={styles.errorContainer}>
-            <AlertCircle size={16} color="#EF4444" />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
-        <View style={styles.cardFieldContainer}>
-          <CardField
-            postalCodeEnabled={true}
-            placeholders={{
-              number: '4242 4242 4242 4242',
-            }}
-            cardStyle={{
-              backgroundColor: '#1E293B',
-              textColor: '#FFFFFF',
-              placeholderColor: '#64748B',
-              borderRadius: 8,
-            }}
-            style={styles.cardField}
-            onCardChange={(cardDetails) => {
-              setCardComplete(cardDetails.complete);
-              if (cardDetails.complete) {
-                setError(null);
-              }
-            }}
-          />
-        </View>
-
-        <View style={styles.securityNote}>
-          <Text style={styles.securityText}>
-            Your card information is encrypted and securely processed by Stripe. We never store your full card details.
+        <View style={styles.infoCard}>
+          <Text style={styles.infoText}>
+            To add a payment card for commission payments, please use the mobile app (iOS or Android).
+          </Text>
+          <Text style={[styles.infoText, { marginTop: 12 }]}>
+            The card collection feature uses native mobile APIs for secure payment processing and is not available on the web version.
           </Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.addButton, (!cardComplete || loading) && styles.addButtonDisabled]}
-          onPress={handleAddCard}
-          disabled={!cardComplete || loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.addButtonText}>Add Card</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.cancelButton}
+          style={styles.backButton}
           onPress={() => router.back()}
-          disabled={loading}
         >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -173,6 +72,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'center',
+    alignItems: 'center',
     maxWidth: 500,
     width: '100%',
     alignSelf: 'center',
@@ -185,78 +85,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-    alignSelf: 'center',
   },
   description: {
-    fontSize: 16,
-    color: '#94A3B8',
+    fontSize: 18,
+    color: '#F1F5F9',
     marginBottom: 24,
-    lineHeight: 22,
+    lineHeight: 24,
     textAlign: 'center',
+    fontWeight: '600',
   },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  infoCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 32,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    gap: 8,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
   },
-  errorText: {
-    flex: 1,
+  infoText: {
     fontSize: 14,
-    color: '#EF4444',
-  },
-  cardFieldContainer: {
-    width: '100%',
-    marginBottom: 16,
-  },
-  cardField: {
-    width: '100%',
-    height: 50,
-  },
-  securityNote: {
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.1)',
-  },
-  securityText: {
-    fontSize: 12,
-    color: '#64748B',
-    lineHeight: 18,
+    color: '#93C5FD',
+    lineHeight: 20,
     textAlign: 'center',
   },
-  addButton: {
+  backButton: {
     backgroundColor: '#3B82F6',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 12,
+    minWidth: 200,
   },
-  addButtonDisabled: {
-    opacity: 0.5,
-  },
-  addButtonText: {
+  backButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  cancelButtonText: {
-    color: '#94A3B8',
-    fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
