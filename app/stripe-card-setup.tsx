@@ -96,13 +96,14 @@ export default function StripeCardSetupScreen() {
       const mountElement = () => {
         const container = document.getElementById('payment-element');
         if (container) {
-          paymentElement.mount('#payment-element').then(() => {
+          try {
+            paymentElement.mount('#payment-element');
             setStripeLoading(false);
-          }).catch((err: any) => {
+          } catch (err: any) {
             console.error('Mount error:', err);
             setError('Failed to load payment form: ' + err.message);
             setStripeLoading(false);
-          });
+          }
         } else {
           setTimeout(mountElement, 100);
         }
