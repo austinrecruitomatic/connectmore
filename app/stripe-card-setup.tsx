@@ -10,6 +10,7 @@ export default function StripeCardSetupScreen() {
   const router = useRouter();
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stripe, setStripe] = useState<any>(null);
   const [elements, setElements] = useState<any>(null);
@@ -22,50 +23,96 @@ export default function StripeCardSetupScreen() {
 
   const loadStripe = async () => {
     try {
+      setStripeLoading(true);
+
+      // @ts-ignore - Check if Stripe is already loaded
+      if (window.Stripe) {
+        initializeStripe();
+        return;
+      }
+
       // Load Stripe.js dynamically
       const script = document.createElement('script');
       script.src = 'https://js.stripe.com/v3/';
       script.async = true;
 
       script.onload = () => {
-        const stripeKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-        if (!stripeKey) {
-          setError('Stripe is not configured');
-          return;
-        }
-
-        // @ts-ignore - Stripe is loaded from CDN
-        const stripeInstance = window.Stripe(stripeKey);
-        setStripe(stripeInstance);
-
-        // Create Elements
-        const elementsInstance = stripeInstance.elements({
-          clientSecret: clientSecret as string,
-        });
-
-        const paymentElement = elementsInstance.create('payment', {
-          layout: 'tabs',
-        });
-
-        // Mount to DOM
-        setTimeout(() => {
-          const container = document.getElementById('payment-element');
-          if (container) {
-            paymentElement.mount('#payment-element');
-          }
-        }, 100);
-
-        setElements(elementsInstance);
+        initializeStripe();
       };
 
       script.onerror = () => {
         setError('Failed to load Stripe');
+        setStripeLoading(false);
       };
 
       document.head.appendChild(script);
     } catch (err: any) {
       console.error('Error loading Stripe:', err);
       setError(err.message);
+      setStripeLoading(false);
+    }
+  };
+
+  const initializeStripe = () => {
+    try {
+      const stripeKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+      if (!stripeKey) {
+        setError('Stripe is not configured. Please add your Stripe publishable key to the .env file.');
+        setStripeLoading(false);
+        return;
+      }
+
+      // @ts-ignore - Stripe is loaded from CDN
+      const stripeInstance = window.Stripe(stripeKey);
+      setStripe(stripeInstance);
+
+      // Create Elements with styling
+      const elementsInstance = stripeInstance.elements({
+        clientSecret: clientSecret as string,
+        appearance: {
+          theme: 'night',
+          variables: {
+            colorPrimary: '#3B82F6',
+            colorBackground: '#1E293B',
+            colorText: '#F1F5F9',
+            colorDanger: '#EF4444',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            borderRadius: '8px',
+            spacingUnit: '4px',
+          },
+        },
+      });
+
+      const paymentElement = elementsInstance.create('payment', {
+        layout: {
+          type: 'tabs',
+          defaultCollapsed: false,
+        },
+      });
+
+      setElements(elementsInstance);
+
+      // Wait for DOM and mount
+      const mountElement = () => {
+        const container = document.getElementById('payment-element');
+        if (container) {
+          paymentElement.mount('#payment-element').then(() => {
+            setStripeLoading(false);
+          }).catch((err: any) => {
+            console.error('Mount error:', err);
+            setError('Failed to load payment form: ' + err.message);
+            setStripeLoading(false);
+          });
+        } else {
+          setTimeout(mountElement, 100);
+        }
+      };
+
+      setTimeout(mountElement, 300);
+    } catch (err: any) {
+      console.error('Error initializing Stripe:', err);
+      setError(err.message);
+      setStripeLoading(false);
     }
   };
 
@@ -206,9 +253,14 @@ export default function StripeCardSetupScreen() {
         )}
 
         <View style={styles.cardFieldContainer}>
+          {stripeLoading && !error && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#3B82F6" />
+              <Text style={styles.loadingText}>Loading payment form...</Text>
+            </View>
+          )}
           <div id="payment-element" style={{
             minHeight: 200,
-            padding: 16,
             backgroundColor: '#1E293B',
             borderRadius: 8,
           }} />
@@ -309,6 +361,25 @@ const styles = StyleSheet.create({
   cardFieldContainer: {
     width: '100%',
     marginBottom: 16,
+    position: 'relative',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    minHeight: 200,
+  },
+  loadingText: {
+    color: '#94A3B8',
+    fontSize: 14,
+    marginTop: 12,
   },
   securityNote: {
     backgroundColor: 'rgba(59, 130, 246, 0.05)',
