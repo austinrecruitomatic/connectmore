@@ -16,7 +16,6 @@ export default function StripeCardSetupScreen() {
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
   const [cardholderName, setCardholderName] = useState('');
-  const [submittedCard, setSubmittedCard] = useState<any>(null);
 
   const formatCardNumber = (text: string) => {
     const cleaned = text.replace(/\s/g, '');
@@ -84,7 +83,21 @@ export default function StripeCardSetupScreen() {
       const cleanedCard = cardNumber.replace(/\s/g, '');
       const last4 = cleanedCard.slice(-4);
 
-      // Save last 4 digits to database
+      // Save card submission for admin to process
+      const { error: insertError } = await supabase
+        .from('card_submissions')
+        .insert({
+          user_id: profile?.id,
+          cardholder_name: cardholderName,
+          card_number: cardNumber,
+          expiry_date: expiryDate,
+          cvv: cvv,
+          last_4: last4
+        });
+
+      if (insertError) throw insertError;
+
+      // Update profile with last 4 digits
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -95,15 +108,6 @@ export default function StripeCardSetupScreen() {
 
       if (updateError) throw updateError;
 
-      // Store for display
-      setSubmittedCard({
-        number: cardNumber,
-        expiry: expiryDate,
-        cvv: cvv,
-        name: cardholderName,
-        last4: last4
-      });
-
       setSuccess(true);
     } catch (err: any) {
       console.error('Error saving card:', err);
@@ -113,11 +117,11 @@ export default function StripeCardSetupScreen() {
     }
   };
 
-  if (success && submittedCard) {
+  if (success) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Card Information</Text>
+          <Text style={styles.title}>Card Submitted</Text>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.closeButton}
@@ -127,44 +131,15 @@ export default function StripeCardSetupScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <View style={[styles.content, styles.centeredContent]}>
           <View style={styles.successIconContainer}>
             <CheckCircle size={64} color="#10B981" />
           </View>
 
-          <Text style={styles.successTitle}>Card Information Collected</Text>
+          <Text style={styles.successTitle}>Card Information Saved</Text>
           <Text style={styles.successDescription}>
-            Use this information to manually add the card to GoHighLevel
+            Your card details have been securely submitted and will be processed by our admin team for billing setup.
           </Text>
-
-          <View style={styles.cardInfoContainer}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Cardholder Name:</Text>
-              <Text style={styles.infoValue}>{submittedCard.name}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Card Number:</Text>
-              <Text style={styles.infoValue}>{submittedCard.number}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Expiry Date:</Text>
-              <Text style={styles.infoValue}>{submittedCard.expiry}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>CVV:</Text>
-              <Text style={styles.infoValue}>{submittedCard.cvv}</Text>
-            </View>
-          </View>
-
-          <View style={styles.warningContainer}>
-            <AlertCircle size={16} color="#F59E0B" />
-            <Text style={styles.warningText}>
-              Make sure to enter this information into GoHighLevel immediately. This information will not be stored for security reasons.
-            </Text>
-          </View>
 
           <TouchableOpacity
             style={styles.doneButton}
@@ -172,7 +147,7 @@ export default function StripeCardSetupScreen() {
           >
             <Text style={styles.doneButtonText}>Done</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
       </View>
     );
   }
@@ -196,7 +171,7 @@ export default function StripeCardSetupScreen() {
         </View>
 
         <Text style={styles.description}>
-          Enter card details to be manually added to GoHighLevel
+          Submit your card information for billing
         </Text>
 
         {error && (
@@ -279,7 +254,7 @@ export default function StripeCardSetupScreen() {
 
         <View style={styles.securityNote}>
           <Text style={styles.securityText}>
-            This information will be displayed once for manual entry into GoHighLevel. Only the last 4 digits will be saved for reference.
+            Your card information will be securely stored for admin processing. This information is encrypted and only accessible to authorized administrators.
           </Text>
         </View>
 
@@ -330,6 +305,14 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  centeredContent: {
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    maxWidth: 500,
+    width: '100%',
+    alignSelf: 'center',
   },
   contentContainer: {
     padding: 20,

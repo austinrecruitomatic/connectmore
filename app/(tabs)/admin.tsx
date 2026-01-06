@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { DollarSign, Users, Building2, TrendingUp, Clock, CheckCircle } from 'lucide-react-native';
+import { DollarSign, Users, Building2, TrendingUp, Clock, CheckCircle, CreditCard } from 'lucide-react-native';
 
 interface DashboardStats {
   totalAffiliates: number;
@@ -13,6 +13,7 @@ interface DashboardStats {
   approvedCommissions: number;
   approvedCommissionAmount: number;
   totalPlatformFees: number;
+  pendingCardSubmissions: number;
 }
 
 export default function AdminDashboard() {
@@ -36,11 +37,12 @@ export default function AdminDashboard() {
 
   const loadDashboardStats = async () => {
     try {
-      const [affiliatesRes, companiesRes, payoutsRes, commissionsRes] = await Promise.all([
+      const [affiliatesRes, companiesRes, payoutsRes, commissionsRes, cardSubmissionsRes] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('user_type', 'affiliate'),
         supabase.from('companies').select('id', { count: 'exact', head: true }),
         supabase.from('payouts').select('total_amount, platform_fee_total').eq('status', 'scheduled'),
-        supabase.from('commissions').select('commission_amount, platform_fee_amount').eq('status', 'approved')
+        supabase.from('commissions').select('commission_amount, platform_fee_amount').eq('status', 'approved'),
+        supabase.from('card_submissions').select('id', { count: 'exact', head: true }).eq('processed', false)
       ]);
 
       const pendingPayouts = payoutsRes.data || [];
@@ -53,7 +55,8 @@ export default function AdminDashboard() {
         pendingPayoutAmount: pendingPayouts.reduce((sum, p) => sum + Number(p.total_amount), 0),
         approvedCommissions: approvedCommissions.length,
         approvedCommissionAmount: approvedCommissions.reduce((sum, c) => sum + Number(c.commission_amount), 0),
-        totalPlatformFees: approvedCommissions.reduce((sum, c) => sum + Number(c.platform_fee_amount), 0)
+        totalPlatformFees: approvedCommissions.reduce((sum, c) => sum + Number(c.platform_fee_amount), 0),
+        pendingCardSubmissions: cardSubmissionsRes.count || 0
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -171,6 +174,22 @@ export default function AdminDashboard() {
             <Text style={styles.actionTitle}>Manage Companies</Text>
             <Text style={styles.actionSubtitle}>View all companies and partnerships</Text>
           </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/admin/card-submissions')}
+        >
+          <CreditCard color="#60A5FA" size={20} />
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>Card Submissions</Text>
+            <Text style={styles.actionSubtitle}>View and process credit card submissions</Text>
+          </View>
+          {stats && stats.pendingCardSubmissions > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{stats.pendingCardSubmissions}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
     </ScrollView>
