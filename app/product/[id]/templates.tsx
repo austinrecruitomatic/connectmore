@@ -11,7 +11,8 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Plus, Edit, Trash2, Star, Eye } from 'lucide-react-native';
+import { Plus, Edit, Trash2, Star, Eye } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 type LandingPageTemplate = {
   id: string;
@@ -199,9 +200,7 @@ export default function ProductTemplatesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <BackButton style={styles.backButton} />
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Landing Page Templates</Text>
           <Text style={styles.headerSubtitle}>{productName}</Text>

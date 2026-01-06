@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, ShoppingCart, CreditCard } from 'lucide-react-native';
+import { ShoppingCart, CreditCard } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 type Product = {
   id: string;
@@ -224,9 +225,7 @@ export default function ProductCheckout() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Checkout</Text>
         <View style={{ width: 24 }} />
       </View>

@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { Users, DollarSign, TrendingUp, ArrowLeft } from 'lucide-react-native';
+import { Users, DollarSign, TrendingUp } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 interface Affiliate {
   id: string;
@@ -86,9 +87,7 @@ export default function AdminAffiliates() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color="#60A5FA" size={24} />
-        </TouchableOpacity>
+        <BackButton color="#60A5FA" style={styles.backButton} />
         <View style={styles.headerContent}>
           <Text style={styles.title}>Affiliate Management</Text>
           <Text style={styles.subtitle}>{affiliates.length} affiliates</Text>

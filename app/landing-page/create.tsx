@@ -14,7 +14,8 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Sparkles } from 'lucide-react-native';
+import { Sparkles } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 type Template = {
   id: string;
@@ -188,9 +189,7 @@ export default function CreateLandingPageScreen() {
       style={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#007AFF" />
-        </TouchableOpacity>
+        <BackButton color="#007AFF" style={styles.backButton} />
         <Text style={styles.headerTitle}>Create Landing Page</Text>
         <View style={{ width: 40 }} />
       </View>

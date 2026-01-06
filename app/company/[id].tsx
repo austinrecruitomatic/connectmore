@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard, Trash2, Building2, Calendar } from 'lucide-react-native';
+import { Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard, Trash2, Building2, Calendar } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 type Company = {
   id: string;
@@ -280,9 +281,7 @@ export default function CompanyDetailScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Company Details</Text>
       </View>
 

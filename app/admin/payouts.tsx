@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { DollarSign, CheckCircle, XCircle, AlertCircle, ArrowLeft } from 'lucide-react-native';
+import { DollarSign, CheckCircle, XCircle, AlertCircle } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 interface Payout {
   id: string;
@@ -142,9 +143,7 @@ export default function AdminPayouts() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color="#60A5FA" size={24} />
-        </TouchableOpacity>
+        <BackButton color="#60A5FA" style={styles.backButton} />
         <View style={styles.headerContent}>
           <Text style={styles.title}>Payout Management</Text>
           <Text style={styles.subtitle}>{payouts.length} payouts</Text>

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 type LandingPageData = {
   id: string;
@@ -114,9 +114,7 @@ export default function ViewLandingPageScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color="#007AFF" />
-          </TouchableOpacity>
+          <BackButton color="#007AFF" style={styles.backButton} />
           <Text style={styles.headerTitle}>Landing Page</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -131,9 +129,7 @@ export default function ViewLandingPageScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#007AFF" />
-        </TouchableOpacity>
+        <BackButton color="#007AFF" style={styles.backButton} />
         <Text style={styles.headerTitle}>{page.title}</Text>
         <View style={{ width: 40 }} />
       </View>

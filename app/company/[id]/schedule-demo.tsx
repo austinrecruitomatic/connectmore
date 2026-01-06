@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Calendar, Clock, User, Mail, Phone, FileText } from 'lucide-react-native';
+import { Calendar, Clock, User, Mail, Phone, FileText } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 export default function ScheduleDemoScreen() {
   const { id } = useLocalSearchParams();
@@ -125,13 +126,7 @@ export default function ScheduleDemoScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <BackButton style={styles.backButton} />
         <Text style={styles.headerTitle}>Schedule Demo</Text>
       </View>
 

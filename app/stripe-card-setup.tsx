@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, Alert } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { X, CreditCard, AlertCircle, CheckCircle } from 'lucide-react-native';
+import { CreditCard, AlertCircle, CheckCircle } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import BackButton from '@/components/BackButton';
 
 export default function StripeCardSetupScreen() {
   const router = useRouter();
@@ -122,13 +123,7 @@ export default function StripeCardSetupScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Card Submitted</Text>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.closeButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <X size={24} color="#94A3B8" />
-          </TouchableOpacity>
+          <BackButton color="#94A3B8" style={styles.closeButton} />
         </View>
 
         <View style={[styles.content, styles.centeredContent]}>
@@ -156,13 +151,7 @@ export default function StripeCardSetupScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Add Payment Card</Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.closeButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <X size={24} color="#94A3B8" />
-        </TouchableOpacity>
+        <BackButton color="#94A3B8" style={styles.closeButton} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>

@@ -13,7 +13,8 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Eye, ExternalLink, Trash2, ArrowLeft } from 'lucide-react-native';
+import { Eye, ExternalLink, Trash2 } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 type LandingPage = {
   id: string;
@@ -140,9 +141,7 @@ export default function MyPagesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#007AFF" />
-        </TouchableOpacity>
+        <BackButton color="#007AFF" style={styles.backButton} />
         <Text style={styles.headerTitle}>My Landing Pages</Text>
         <View style={{ width: 40 }} />
       </View>

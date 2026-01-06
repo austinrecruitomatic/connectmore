@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Calendar, Clock, User, Mail, Phone, CheckCircle, XCircle, AlertCircle } from 'lucide-react-native';
+import { Calendar, Clock, User, Mail, Phone, CheckCircle, XCircle, AlertCircle } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 type Appointment = {
   id: string;
@@ -215,9 +216,7 @@ export default function DemoAppointmentsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <BackButton style={styles.backButton} />
         <Text style={styles.headerTitle}>Demo Appointments</Text>
       </View>
 

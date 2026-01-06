@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { Building2, Users, Package, DollarSign, ArrowLeft, Settings, X } from 'lucide-react-native';
+import { Building2, Users, Package, DollarSign, Settings, X } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 interface Company {
   id: string;
@@ -203,9 +204,7 @@ export default function AdminCompanies() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color="#60A5FA" size={24} />
-        </TouchableOpacity>
+        <BackButton color="#60A5FA" style={styles.backButton} />
         <View style={styles.headerContent}>
           <Text style={styles.title}>Company Management</Text>
           <Text style={styles.subtitle}>{companies.length} companies</Text>
@@ -322,9 +321,7 @@ export default function AdminCompanies() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Platform Fee</Text>
-              <TouchableOpacity onPress={closeEditModal}>
-                <X size={24} color="#94A3B8" />
-              </TouchableOpacity>
+              <BackButton color="#94A3B8" onPress={closeEditModal} />
             </View>
 
             {editingCompany && (

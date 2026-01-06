@@ -2,7 +2,8 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIn
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, ShoppingBag, MessageSquare, ExternalLink, X } from 'lucide-react-native';
+import { ShoppingBag, MessageSquare, ExternalLink, X } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 import CustomFormRenderer from '@/components/CustomFormRenderer';
 
 type Product = {
@@ -306,9 +307,7 @@ export default function ProductShare() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <BackButton style={styles.headerBackButton} />
         <Text style={styles.headerTitle}>Product Details</Text>
         <View style={{ width: 24 }} />
       </View>
@@ -384,9 +383,7 @@ export default function ProductShare() {
               <Text style={styles.modalTitle}>
                 {submitted ? 'Thank You!' : 'Get in Touch'}
               </Text>
-              <TouchableOpacity onPress={() => setShowContactForm(false)}>
-                <X size={24} color="#FFFFFF" />
-              </TouchableOpacity>
+              <BackButton color="#94A3B8" onPress={() => setShowContactForm(false)} />
             </View>
 
             {submitted ? (

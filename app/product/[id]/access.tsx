@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowLeft, Users } from 'lucide-react-native';
+import { Users } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 type Product = {
   id: string;
@@ -157,9 +158,7 @@ export default function ProductAccessScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <BackButton style={styles.backButton} />
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Manage Access</Text>
           <Text style={styles.headerSubtitle}>{product.name}</Text>

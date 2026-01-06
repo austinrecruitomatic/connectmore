@@ -16,7 +16,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Check, Upload, X } from 'lucide-react-native';
+import { Check, Upload, X } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 
 const THEME_STYLES = [
   { value: 'modern', label: 'Modern', description: 'Clean with bold typography' },
@@ -264,9 +265,7 @@ export default function TemplateEditScreen() {
       style={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <BackButton style={styles.backButton} />
         <Text style={styles.headerTitle}>{isEdit ? 'Edit' : 'Create'} Template</Text>
         <TouchableOpacity
           style={[styles.saveButton, saving && styles.saveButtonDisabled]}
