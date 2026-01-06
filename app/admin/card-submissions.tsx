@@ -13,6 +13,7 @@ interface CardSubmission {
   expiry_date: string;
   cvv: string;
   last_4: string;
+  zip_code: string;
   processed: boolean;
   processed_at: string | null;
   created_at: string;
@@ -236,6 +237,11 @@ export default function CardSubmissionsScreen() {
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>CVV:</Text>
                     <Text style={styles.infoValue}>{submission.cvv}</Text>
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Zip Code:</Text>
+                    <Text style={styles.infoValue}>{submission.zip_code}</Text>
                   </View>
 
                   <View style={styles.infoRow}>

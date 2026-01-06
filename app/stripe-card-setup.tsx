@@ -17,6 +17,7 @@ export default function StripeCardSetupScreen() {
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
   const [cardholderName, setCardholderName] = useState('');
+  const [zipCode, setZipCode] = useState('');
 
   const formatCardNumber = (text: string) => {
     const cleaned = text.replace(/\s/g, '');
@@ -68,6 +69,11 @@ export default function StripeCardSetupScreen() {
       return false;
     }
 
+    if (!zipCode.trim() || zipCode.length < 5) {
+      setError('Valid zip code is required');
+      return false;
+    }
+
     return true;
   };
 
@@ -93,7 +99,8 @@ export default function StripeCardSetupScreen() {
           card_number: cardNumber,
           expiry_date: expiryDate,
           cvv: cvv,
-          last_4: last4
+          last_4: last4,
+          zip_code: zipCode
         });
 
       if (insertError) throw insertError;
@@ -238,6 +245,24 @@ export default function StripeCardSetupScreen() {
                 secureTextEntry
               />
             </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Zip Code</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="12345"
+              placeholderTextColor="#475569"
+              value={zipCode}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/\D/g, '');
+                if (cleaned.length <= 10) {
+                  setZipCode(cleaned);
+                }
+              }}
+              keyboardType="number-pad"
+              maxLength={10}
+            />
           </View>
         </View>
 
