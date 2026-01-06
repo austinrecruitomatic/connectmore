@@ -101,7 +101,7 @@ export default function StripeCardSetupScreen() {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          payment_method: 'manual_card',
+          payment_method: 'stripe',
           stripe_payment_method_id: `card_****${last4}`
         })
         .eq('id', profile?.id);
