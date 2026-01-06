@@ -1,194 +1,123 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
-import { useState, useEffect } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { X, CreditCard, AlertCircle } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, Alert } from 'react-native';
+import { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { X, CreditCard, AlertCircle, CheckCircle } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function StripeCardSetupScreen() {
-  const { clientSecret } = useLocalSearchParams();
   const router = useRouter();
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [stripeLoading, setStripeLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stripe, setStripe] = useState<any>(null);
-  const [elements, setElements] = useState<any>(null);
+  const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    if (Platform.OS === 'web' && clientSecret) {
-      loadStripe();
-    }
-  }, [clientSecret]);
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [cardholderName, setCardholderName] = useState('');
+  const [submittedCard, setSubmittedCard] = useState<any>(null);
 
-  const loadStripe = async () => {
-    try {
-      setStripeLoading(true);
-
-      // @ts-ignore - Check if Stripe is already loaded
-      if (window.Stripe) {
-        initializeStripe();
-        return;
-      }
-
-      // Load Stripe.js dynamically
-      const script = document.createElement('script');
-      script.src = 'https://js.stripe.com/v3/';
-      script.async = true;
-
-      script.onload = () => {
-        initializeStripe();
-      };
-
-      script.onerror = () => {
-        setError('Failed to load Stripe');
-        setStripeLoading(false);
-      };
-
-      document.head.appendChild(script);
-    } catch (err: any) {
-      console.error('Error loading Stripe:', err);
-      setError(err.message);
-      setStripeLoading(false);
-    }
+  const formatCardNumber = (text: string) => {
+    const cleaned = text.replace(/\s/g, '');
+    const chunks = cleaned.match(/.{1,4}/g);
+    return chunks ? chunks.join(' ') : cleaned;
   };
 
-  const initializeStripe = () => {
-    try {
-      const stripeKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-      if (!stripeKey) {
-        setError('Stripe is not configured. Please add your Stripe publishable key to the .env file.');
-        setStripeLoading(false);
-        return;
-      }
-
-      // @ts-ignore - Stripe is loaded from CDN
-      const stripeInstance = window.Stripe(stripeKey);
-      setStripe(stripeInstance);
-
-      // Create Elements with styling
-      const elementsInstance = stripeInstance.elements({
-        clientSecret: clientSecret as string,
-        appearance: {
-          theme: 'night',
-          variables: {
-            colorPrimary: '#3B82F6',
-            colorBackground: '#1E293B',
-            colorText: '#F1F5F9',
-            colorDanger: '#EF4444',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            borderRadius: '8px',
-            spacingUnit: '4px',
-          },
-        },
-      });
-
-      const paymentElement = elementsInstance.create('payment', {
-        layout: {
-          type: 'tabs',
-          defaultCollapsed: false,
-        },
-      });
-
-      setElements(elementsInstance);
-
-      // Wait for DOM and mount
-      const mountElement = () => {
-        const container = document.getElementById('payment-element');
-        if (container) {
-          try {
-            paymentElement.mount('#payment-element');
-            setStripeLoading(false);
-          } catch (err: any) {
-            console.error('Mount error:', err);
-            setError('Failed to load payment form: ' + err.message);
-            setStripeLoading(false);
-          }
-        } else {
-          setTimeout(mountElement, 100);
-        }
-      };
-
-      setTimeout(mountElement, 300);
-    } catch (err: any) {
-      console.error('Error initializing Stripe:', err);
-      setError(err.message);
-      setStripeLoading(false);
+  const formatExpiryDate = (text: string) => {
+    const cleaned = text.replace(/\D/g, '');
+    if (cleaned.length >= 2) {
+      return cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4);
     }
+    return cleaned;
   };
 
-  const handleAddCard = async () => {
-    if (!stripe || !elements) {
-      setError('Stripe not loaded');
+  const validateCard = () => {
+    const cleanedCard = cardNumber.replace(/\s/g, '');
+
+    if (cleanedCard.length < 15 || cleanedCard.length > 16) {
+      setError('Card number must be 15-16 digits');
+      return false;
+    }
+
+    if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+      setError('Expiry date must be in MM/YY format');
+      return false;
+    }
+
+    const [month, year] = expiryDate.split('/').map(Number);
+    if (month < 1 || month > 12) {
+      setError('Invalid expiry month');
+      return false;
+    }
+
+    const currentYear = new Date().getFullYear() % 100;
+    const currentMonth = new Date().getMonth() + 1;
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      setError('Card has expired');
+      return false;
+    }
+
+    if (cvv.length < 3 || cvv.length > 4) {
+      setError('CVV must be 3-4 digits');
+      return false;
+    }
+
+    if (!cardholderName.trim()) {
+      setError('Cardholder name is required');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    setError(null);
+
+    if (!validateCard()) {
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
 
-      const { error: submitError } = await stripe.confirmSetup({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + '/payout-settings',
-        },
-        redirect: 'if_required',
+      const cleanedCard = cardNumber.replace(/\s/g, '');
+      const last4 = cleanedCard.slice(-4);
+
+      // Save last 4 digits to database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          payment_method: 'manual_card',
+          stripe_payment_method_id: `card_****${last4}`
+        })
+        .eq('id', profile?.id);
+
+      if (updateError) throw updateError;
+
+      // Store for display
+      setSubmittedCard({
+        number: cardNumber,
+        expiry: expiryDate,
+        cvv: cvv,
+        name: cardholderName,
+        last4: last4
       });
 
-      if (submitError) {
-        setError(submitError.message);
-        return;
-      }
-
-      // Get the setup intent to retrieve payment method
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) throw new Error('No session');
-
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/company-setup-payment-method`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'verify_setup',
-            clientSecret: clientSecret as string
-          }),
-        }
-      );
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-
-      if (data.paymentMethodId) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            stripe_payment_method_id: data.paymentMethodId,
-            payment_method: 'stripe'
-          })
-          .eq('id', profile?.id);
-
-        if (updateError) throw updateError;
-
-        alert('Payment card added successfully!');
-        router.back();
-      }
+      setSuccess(true);
     } catch (err: any) {
-      console.error('Error adding card:', err);
-      setError(err.message || 'Failed to add card');
+      console.error('Error saving card:', err);
+      setError(err.message || 'Failed to save card');
     } finally {
       setLoading(false);
     }
   };
 
-  if (Platform.OS !== 'web') {
+  if (success && submittedCard) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Add Payment Card</Text>
+          <Text style={styles.title}>Card Information</Text>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.closeButton}
@@ -198,28 +127,52 @@ export default function StripeCardSetupScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.content}>
-          <View style={styles.iconContainer}>
-            <CreditCard size={48} color="#60A5FA" />
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          <View style={styles.successIconContainer}>
+            <CheckCircle size={64} color="#10B981" />
           </View>
 
-          <Text style={styles.description}>
-            Credit card setup requires native app
+          <Text style={styles.successTitle}>Card Information Collected</Text>
+          <Text style={styles.successDescription}>
+            Use this information to manually add the card to GoHighLevel
           </Text>
 
-          <View style={styles.infoCard}>
-            <Text style={styles.infoText}>
-              Please use this feature in a mobile build of the app.
+          <View style={styles.cardInfoContainer}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Cardholder Name:</Text>
+              <Text style={styles.infoValue}>{submittedCard.name}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Card Number:</Text>
+              <Text style={styles.infoValue}>{submittedCard.number}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Expiry Date:</Text>
+              <Text style={styles.infoValue}>{submittedCard.expiry}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>CVV:</Text>
+              <Text style={styles.infoValue}>{submittedCard.cvv}</Text>
+            </View>
+          </View>
+
+          <View style={styles.warningContainer}>
+            <AlertCircle size={16} color="#F59E0B" />
+            <Text style={styles.warningText}>
+              Make sure to enter this information into GoHighLevel immediately. This information will not be stored for security reasons.
             </Text>
           </View>
 
           <TouchableOpacity
-            style={styles.backButton}
+            style={styles.doneButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={styles.doneButtonText}>Done</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -237,13 +190,13 @@ export default function StripeCardSetupScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <View style={styles.iconContainer}>
           <CreditCard size={48} color="#60A5FA" />
         </View>
 
         <Text style={styles.description}>
-          Enter your card details to enable automatic commission payments
+          Enter card details to be manually added to GoHighLevel
         </Text>
 
         {error && (
@@ -253,35 +206,92 @@ export default function StripeCardSetupScreen() {
           </View>
         )}
 
-        <View style={styles.cardFieldContainer}>
-          {stripeLoading && !error && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="#3B82F6" />
-              <Text style={styles.loadingText}>Loading payment form...</Text>
+        <View style={styles.formContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Cardholder Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="John Doe"
+              placeholderTextColor="#475569"
+              value={cardholderName}
+              onChangeText={setCardholderName}
+              autoCapitalize="words"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Card Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="1234 5678 9012 3456"
+              placeholderTextColor="#475569"
+              value={cardNumber}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/\D/g, '');
+                if (cleaned.length <= 16) {
+                  setCardNumber(formatCardNumber(cleaned));
+                }
+              }}
+              keyboardType="number-pad"
+              maxLength={19}
+            />
+          </View>
+
+          <View style={styles.rowInputs}>
+            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+              <Text style={styles.label}>Expiry Date</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="MM/YY"
+                placeholderTextColor="#475569"
+                value={expiryDate}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/\D/g, '');
+                  if (cleaned.length <= 4) {
+                    setExpiryDate(formatExpiryDate(cleaned));
+                  }
+                }}
+                keyboardType="number-pad"
+                maxLength={5}
+              />
             </View>
-          )}
-          <div id="payment-element" style={{
-            minHeight: 200,
-            backgroundColor: '#1E293B',
-            borderRadius: 8,
-          }} />
+
+            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+              <Text style={styles.label}>CVV</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="123"
+                placeholderTextColor="#475569"
+                value={cvv}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/\D/g, '');
+                  if (cleaned.length <= 4) {
+                    setCvv(cleaned);
+                  }
+                }}
+                keyboardType="number-pad"
+                maxLength={4}
+                secureTextEntry
+              />
+            </View>
+          </View>
         </View>
 
         <View style={styles.securityNote}>
           <Text style={styles.securityText}>
-            Your card information is encrypted and securely processed by Stripe. We never store your full card details.
+            This information will be displayed once for manual entry into GoHighLevel. Only the last 4 digits will be saved for reference.
           </Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.addButton, loading && styles.addButtonDisabled]}
-          onPress={handleAddCard}
-          disabled={loading || !stripe || !elements}
+          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={loading}
         >
           {loading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.addButtonText}>Add Card</Text>
+            <Text style={styles.submitButtonText}>Submit Card Info</Text>
           )}
         </TouchableOpacity>
 
@@ -292,7 +302,7 @@ export default function StripeCardSetupScreen() {
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -320,8 +330,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 20,
-    justifyContent: 'center',
     maxWidth: 500,
     width: '100%',
     alignSelf: 'center',
@@ -336,12 +347,36 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignSelf: 'center',
   },
+  successIconContainer: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    alignSelf: 'center',
+  },
   description: {
     fontSize: 16,
     color: '#94A3B8',
     marginBottom: 24,
     lineHeight: 22,
     textAlign: 'center',
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  successDescription: {
+    fontSize: 16,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
   },
   errorContainer: {
     flexDirection: 'row',
@@ -359,28 +394,70 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#EF4444',
   },
-  cardFieldContainer: {
-    width: '100%',
-    marginBottom: 16,
-    position: 'relative',
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#1E293B',
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-    minHeight: 200,
+    padding: 16,
+    marginBottom: 24,
+    gap: 12,
   },
-  loadingText: {
-    color: '#94A3B8',
+  warningText: {
+    flex: 1,
     fontSize: 14,
-    marginTop: 12,
+    color: '#F59E0B',
+    lineHeight: 20,
+  },
+  formContainer: {
+    marginBottom: 24,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E2E8F0',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  rowInputs: {
+    flexDirection: 'row',
+  },
+  cardInfoContainer: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  infoRow: {
+    marginBottom: 16,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
   securityNote: {
     backgroundColor: 'rgba(59, 130, 246, 0.05)',
@@ -396,17 +473,28 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'center',
   },
-  addButton: {
+  submitButton: {
     backgroundColor: '#3B82F6',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 12,
   },
-  addButtonDisabled: {
+  submitButtonDisabled: {
     opacity: 0.5,
   },
-  addButtonText: {
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  doneButton: {
+    backgroundColor: '#10B981',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  doneButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
@@ -422,31 +510,5 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 16,
     fontWeight: '600',
-  },
-  infoCard: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#93C5FD',
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  backButton: {
-    backgroundColor: '#3B82F6',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    minWidth: 200,
-  },
-  backButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
   },
 });
