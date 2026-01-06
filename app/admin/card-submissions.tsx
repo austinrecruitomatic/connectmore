@@ -18,7 +18,7 @@ interface CardSubmission {
   created_at: string;
   profiles: {
     email: string;
-    company_name: string | null;
+    full_name: string | null;
   };
 }
 
@@ -48,7 +48,7 @@ export default function CardSubmissionsScreen() {
           *,
           profiles:user_id (
             email,
-            company_name
+            full_name
           )
         `)
         .order('created_at', { ascending: false });
@@ -103,7 +103,7 @@ export default function CardSubmissionsScreen() {
     const matchesSearch =
       submission.cardholder_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       submission.profiles.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (submission.profiles.company_name && submission.profiles.company_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (submission.profiles.full_name && submission.profiles.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       submission.last_4.includes(searchQuery);
 
     const matchesFilter =
@@ -135,7 +135,7 @@ export default function CardSubmissionsScreen() {
         <Search size={20} color="#64748B" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name, email, company, or last 4 digits..."
+          placeholder="Search by cardholder name, email, or last 4 digits..."
           placeholderTextColor="#475569"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -216,10 +216,10 @@ export default function CardSubmissionsScreen() {
                     <Text style={styles.infoValue}>{submission.profiles.email}</Text>
                   </View>
 
-                  {submission.profiles.company_name && (
+                  {submission.profiles.full_name && (
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Company:</Text>
-                      <Text style={styles.infoValue}>{submission.profiles.company_name}</Text>
+                      <Text style={styles.infoLabel}>Name:</Text>
+                      <Text style={styles.infoValue}>{submission.profiles.full_name}</Text>
                     </View>
                   )}
 
