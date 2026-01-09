@@ -200,9 +200,6 @@ export default function AdminCommissions() {
               <View style={styles.affiliateInfo}>
                 <Text style={styles.affiliateName}>{commission.profiles.full_name}</Text>
                 <Text style={styles.affiliateEmail}>{commission.profiles.email}</Text>
-                {commission.profiles.venmo_username && (
-                  <Text style={styles.venmoUsername}>@{commission.profiles.venmo_username}</Text>
-                )}
               </View>
               <View
                 style={[
@@ -239,6 +236,12 @@ export default function AdminCommissions() {
                   {new Date(commission.expected_payout_date).toLocaleDateString()}
                 </Text>
               </View>
+              {commission.profiles.venmo_username && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Venmo</Text>
+                  <Text style={styles.venmoUsername}>@{commission.profiles.venmo_username}</Text>
+                </View>
+              )}
             </View>
 
             {commission.status === 'pending' && (
@@ -295,6 +298,9 @@ export default function AdminCommissions() {
                 <View style={styles.paymentRow}>
                   <View style={styles.paymentInfo}>
                     <Text style={styles.paymentLabel}>Paid to Rep</Text>
+                    {commission.profiles.venmo_username && (
+                      <Text style={styles.venmoUsername}>@{commission.profiles.venmo_username}</Text>
+                    )}
                     {commission.rep_paid && commission.rep_paid_at && (
                       <Text style={styles.paymentDate}>
                         {new Date(commission.rep_paid_at).toLocaleDateString()}
@@ -509,10 +515,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   venmoUsername: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#60A5FA',
-    marginTop: 2,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   paymentTracking: {
     marginTop: 12,
