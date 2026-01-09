@@ -115,6 +115,7 @@ export default function CommissionsScreen() {
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [showLeadsModal, setShowLeadsModal] = useState(false);
   const [showDenyModal, setShowDenyModal] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [selectedCommission, setSelectedCommission] = useState<Commission | null>(null);
   const [denyNotes, setDenyNotes] = useState('');
   const [trackingStats, setTrackingStats] = useState<TrackingStats>({
@@ -632,11 +633,22 @@ export default function CommissionsScreen() {
             </View>
           )}
         </View>
-        {isCompany && pendingTotal > 0 && (
-          <TouchableOpacity style={styles.approveAllButton} onPress={handleBulkApprove}>
-            <Check size={18} color="#fff" />
-            <Text style={styles.approveAllText}>Approve All</Text>
-          </TouchableOpacity>
+        {isCompany && (
+          <View style={styles.headerButtons}>
+            <TouchableOpacity
+              style={styles.trackingButton}
+              onPress={() => setShowDashboard(!showDashboard)}
+            >
+              <BarChart3 size={16} color="#fff" />
+              <Text style={styles.trackingButtonText}>Dashboard</Text>
+            </TouchableOpacity>
+            {pendingTotal > 0 && (
+              <TouchableOpacity style={styles.approveAllButton} onPress={handleBulkApprove}>
+                <Check size={18} color="#fff" />
+                <Text style={styles.approveAllText}>Approve All</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
         {isAffiliate && (
           <View style={styles.headerButtons}>
@@ -671,84 +683,86 @@ export default function CommissionsScreen() {
           />
         }
       >
-        <View style={styles.metricsContainer}>
-          {isCompany && <Text style={styles.dashboardTitle}>Performance Dashboard</Text>}
+        {((isCompany && showDashboard) || isAffiliate) && (
+          <View style={styles.metricsContainer}>
+            <Text style={styles.dashboardTitle}>Performance Dashboard</Text>
 
-          <View style={styles.metricsGrid}>
-            {isCompany && (
-              <>
-                <View style={styles.metricCard}>
-                  <View style={styles.metricIcon}>
-                    <Users size={20} color="#3B82F6" />
+            <View style={styles.metricsGrid}>
+              {isCompany && (
+                <>
+                  <View style={styles.metricCard}>
+                    <View style={styles.metricIcon}>
+                      <Users size={24} color="#3B82F6" />
+                    </View>
+                    <Text style={styles.metricValue}>{pipelineMetrics.totalLeads}</Text>
+                    <Text style={styles.metricLabel}>Pipeline</Text>
+                    <Text style={styles.metricSubtext}>Total Leads</Text>
+                    <View style={styles.metricBreakdown}>
+                      <Text style={styles.breakdownText}>
+                        Qualified: {pipelineMetrics.qualifiedLeads}
+                      </Text>
+                      <Text style={styles.breakdownText}>Closed: {pipelineMetrics.closedDeals}</Text>
+                    </View>
                   </View>
-                  <Text style={styles.metricValue}>{pipelineMetrics.totalLeads}</Text>
-                  <Text style={styles.metricLabel}>Pipeline</Text>
-                  <Text style={styles.metricSubtext}>Total Leads</Text>
-                  <View style={styles.metricBreakdown}>
-                    <Text style={styles.breakdownText}>
-                      Qualified: {pipelineMetrics.qualifiedLeads}
+
+                  <View style={styles.metricCard}>
+                    <View style={styles.metricIcon}>
+                      <Target size={24} color="#10B981" />
+                    </View>
+                    <Text style={styles.metricValue}>
+                      {pipelineMetrics.conversionRate.toFixed(1)}%
                     </Text>
-                    <Text style={styles.breakdownText}>Closed: {pipelineMetrics.closedDeals}</Text>
+                    <Text style={styles.metricLabel}>Conversion</Text>
+                    <Text style={styles.metricSubtext}>Close Rate</Text>
+                    <View style={styles.conversionBar}>
+                      <View
+                        style={[
+                          styles.conversionBarFill,
+                          { width: `${Math.min(pipelineMetrics.conversionRate, 100)}%` },
+                        ]}
+                      />
+                    </View>
                   </View>
+
+                  <View style={styles.metricCard}>
+                    <View style={styles.metricIcon}>
+                      <BarChart3 size={24} color="#F59E0B" />
+                    </View>
+                    <Text style={styles.metricValue}>
+                      {formatCurrency(pipelineMetrics.totalRevenue)}
+                    </Text>
+                    <Text style={styles.metricLabel}>Revenue Generated</Text>
+                    <Text style={styles.metricSubtext}>Total Active Deal Value</Text>
+                  </View>
+                </>
+              )}
+
+              <View style={styles.earningsCard}>
+                <View style={styles.metricIcon}>
+                  <AlertCircle size={24} color="#3B82F6" />
                 </View>
+                <Text style={styles.metricValue}>{formatCurrency(pendingTotal)}</Text>
+                <Text style={styles.metricLabel}>{isCompany ? 'To Approve' : 'Pending'}</Text>
+              </View>
 
-                <View style={styles.metricCard}>
-                  <View style={styles.metricIcon}>
-                    <Target size={20} color="#10B981" />
-                  </View>
-                  <Text style={styles.metricValue}>
-                    {pipelineMetrics.conversionRate.toFixed(1)}%
-                  </Text>
-                  <Text style={styles.metricLabel}>Conversion</Text>
-                  <Text style={styles.metricSubtext}>Close Rate</Text>
-                  <View style={styles.conversionBar}>
-                    <View
-                      style={[
-                        styles.conversionBarFill,
-                        { width: `${Math.min(pipelineMetrics.conversionRate, 100)}%` },
-                      ]}
-                    />
-                  </View>
+              <View style={styles.earningsCard}>
+                <View style={styles.metricIcon}>
+                  <Check size={24} color="#F59E0B" />
                 </View>
+                <Text style={styles.metricValue}>{formatCurrency(approvedTotal)}</Text>
+                <Text style={styles.metricLabel}>Approved</Text>
+              </View>
 
-                <View style={styles.metricCard}>
-                  <View style={styles.metricIcon}>
-                    <BarChart3 size={20} color="#F59E0B" />
-                  </View>
-                  <Text style={styles.metricValue}>
-                    {formatCurrency(pipelineMetrics.totalRevenue)}
-                  </Text>
-                  <Text style={styles.metricLabel}>Revenue Generated</Text>
-                  <Text style={styles.metricSubtext}>Total Active Deal Value</Text>
+              <View style={styles.earningsCard}>
+                <View style={styles.metricIcon}>
+                  <DollarSign size={24} color="#10B981" />
                 </View>
-              </>
-            )}
-
-            <View style={styles.earningsCard}>
-              <View style={styles.metricIcon}>
-                <AlertCircle size={20} color="#3B82F6" />
+                <Text style={styles.metricValue}>{formatCurrency(paidTotal)}</Text>
+                <Text style={styles.metricLabel}>{isCompany ? 'Paid' : 'Received'}</Text>
               </View>
-              <Text style={styles.metricValue}>{formatCurrency(pendingTotal)}</Text>
-              <Text style={styles.metricLabel}>{isCompany ? 'To Approve' : 'Pending'}</Text>
-            </View>
-
-            <View style={styles.earningsCard}>
-              <View style={styles.metricIcon}>
-                <Check size={20} color="#F59E0B" />
-              </View>
-              <Text style={styles.metricValue}>{formatCurrency(approvedTotal)}</Text>
-              <Text style={styles.metricLabel}>Approved</Text>
-            </View>
-
-            <View style={styles.earningsCard}>
-              <View style={styles.metricIcon}>
-                <DollarSign size={20} color="#10B981" />
-              </View>
-              <Text style={styles.metricValue}>{formatCurrency(paidTotal)}</Text>
-              <Text style={styles.metricLabel}>{isCompany ? 'Paid' : 'Received'}</Text>
             </View>
           </View>
-        </View>
+        )}
 
         <View style={styles.filterContainer}>
           {(['all', 'pending', 'approved', 'paid', 'denied'] as const).map((status) => (
@@ -1365,94 +1379,87 @@ const styles = StyleSheet.create({
   approveAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: '#10B981',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   approveAllText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   metricsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    marginTop: 8,
   },
   dashboardTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 16,
   },
   metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
-    justifyContent: 'flex-start',
   },
   metricCard: {
     backgroundColor: '#1E293B',
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#334155',
-    flex: 1,
-    minWidth: 160,
-    maxWidth: 200,
+    width: '100%',
   },
   earningsCard: {
     backgroundColor: '#1E293B',
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#334155',
-    flex: 1,
-    minWidth: 160,
-    maxWidth: 200,
+    width: '100%',
   },
   metricIcon: {
-    marginBottom: 8,
+    marginBottom: 12,
   },
   metricValue: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 4,
-    flexShrink: 0,
-    lineHeight: 28,
+    marginBottom: 6,
+    lineHeight: 34,
   },
   metricLabel: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: '#94A3B8',
     marginBottom: 2,
   },
   metricSubtext: {
-    fontSize: 11,
+    fontSize: 13,
     color: '#64748B',
     marginBottom: 8,
   },
   metricBreakdown: {
-    gap: 6,
-    marginTop: 4,
+    gap: 8,
+    marginTop: 8,
   },
   breakdownText: {
-    fontSize: 11,
+    fontSize: 13,
     color: '#94A3B8',
   },
   conversionBar: {
-    height: 6,
+    height: 8,
     backgroundColor: '#334155',
-    borderRadius: 3,
+    borderRadius: 4,
     overflow: 'hidden',
     marginTop: 8,
   },
   conversionBarFill: {
     height: '100%',
     backgroundColor: '#10B981',
-    borderRadius: 3,
+    borderRadius: 4,
   },
   filterContainer: {
     flexDirection: 'row',
