@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { CreditCard, Search, Check, X, Clock } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import BackButton from '@/components/BackButton';
 
 interface CardSubmission {
   id: string;
@@ -124,6 +125,7 @@ export default function CardSubmissionsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <BackButton color="#60A5FA" />
         <Text style={styles.title}>Card Submissions</Text>
         {pendingCount > 0 && (
           <View style={styles.badge}>
