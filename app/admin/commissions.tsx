@@ -37,7 +37,7 @@ export default function AdminCommissions() {
   const router = useRouter();
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'paid' | 'all'>('pending');
 
   useEffect(() => {
     if (!profile?.is_super_admin) {
@@ -94,17 +94,29 @@ export default function AdminCommissions() {
 
   const markCompanyPaid = async (commissionId: string) => {
     try {
+      const commission = commissions.find(c => c.id === commissionId);
+      if (!commission) return;
+
+      const updateData: any = {
+        company_paid: true,
+        company_paid_at: new Date().toISOString()
+      };
+
+      // If rep is already paid, mark commission as fully paid
+      if (commission.rep_paid) {
+        updateData.status = 'paid';
+      }
+
       const { error } = await supabase
         .from('commissions')
-        .update({
-          company_paid: true,
-          company_paid_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', commissionId);
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Marked as company paid');
+      Alert.alert('Success', updateData.status === 'paid'
+        ? 'Commission marked as fully paid!'
+        : 'Marked as company paid');
       loadCommissions();
     } catch (error) {
       console.error('Error marking company paid:', error);
@@ -114,17 +126,29 @@ export default function AdminCommissions() {
 
   const markRepPaid = async (commissionId: string) => {
     try {
+      const commission = commissions.find(c => c.id === commissionId);
+      if (!commission) return;
+
+      const updateData: any = {
+        rep_paid: true,
+        rep_paid_at: new Date().toISOString()
+      };
+
+      // If company has already paid, mark commission as fully paid
+      if (commission.company_paid) {
+        updateData.status = 'paid';
+      }
+
       const { error } = await supabase
         .from('commissions')
-        .update({
-          rep_paid: true,
-          rep_paid_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', commissionId);
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Marked as paid to rep');
+      Alert.alert('Success', updateData.status === 'paid'
+        ? 'Commission marked as fully paid!'
+        : 'Marked as paid to rep');
       loadCommissions();
     } catch (error) {
       console.error('Error marking rep paid:', error);
@@ -153,7 +177,7 @@ export default function AdminCommissions() {
       </View>
 
       <View style={styles.filterBar}>
-        {(['pending', 'approved', 'rejected', 'all'] as const).map((f) => (
+        {(['pending', 'approved', 'paid', 'rejected', 'all'] as const).map((f) => (
           <TouchableOpacity
             key={f}
             style={[styles.filterButton, filter === f && styles.filterButtonActive]}
@@ -236,7 +260,7 @@ export default function AdminCommissions() {
               </View>
             )}
 
-            {commission.status === 'approved' && (
+            {(commission.status === 'approved' || commission.status === 'paid') && (
               <View style={styles.paymentTracking}>
                 <Text style={styles.paymentTrackingTitle}>Payment Tracking</Text>
 
