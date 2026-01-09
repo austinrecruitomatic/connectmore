@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e0e0e0',
   },
   backButton: {
-    padding: 8,
+    padding: 16,
   },
   headerTitle: {
     fontSize: 18,

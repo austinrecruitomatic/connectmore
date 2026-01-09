@@ -337,7 +337,12 @@ export default function LandingPageView() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+          activeOpacity={0.7}
+        >
           <ArrowLeft size={24} color="#333" />
         </TouchableOpacity>
       </View>
@@ -546,8 +551,11 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   backButton: {
-    padding: 8,
-    width: 40,
+    padding: 16,
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoContainer: {
     alignItems: 'center',

@@ -29,7 +29,7 @@ export default function BackButton({
     <TouchableOpacity
       onPress={handlePress}
       style={[styles.backButton, style]}
-      hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+      hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
       activeOpacity={0.7}
     >
       <ArrowLeft size={size} color={color} />
@@ -39,9 +39,11 @@ export default function BackButton({
 
 const styles = StyleSheet.create({
   backButton: {
-    padding: 8,
+    padding: 16,
     marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 44,
+    minHeight: 44,
   },
 });
