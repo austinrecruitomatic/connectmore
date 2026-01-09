@@ -15,10 +15,16 @@ interface Commission {
   affiliate_payout_amount: number;
   status: 'pending' | 'approved' | 'rejected' | 'paid';
   expected_payout_date: string;
+  company_paid: boolean;
+  company_paid_at: string | null;
+  rep_paid: boolean;
+  rep_paid_at: string | null;
+  payment_notes: string | null;
   created_at: string;
   profiles: {
     full_name: string;
     email: string;
+    venmo_username: string | null;
   };
   deals: {
     deal_value: number;
@@ -49,7 +55,7 @@ export default function AdminCommissions() {
         .from('commissions')
         .select(`
           *,
-          profiles!commissions_affiliate_id_fkey (full_name, email),
+          profiles!commissions_affiliate_id_fkey (full_name, email, venmo_username),
           deals (deal_value, contract_type)
         `);
 
@@ -83,6 +89,46 @@ export default function AdminCommissions() {
     } catch (error) {
       console.error('Error updating commission:', error);
       Alert.alert('Error', 'Failed to update commission');
+    }
+  };
+
+  const markCompanyPaid = async (commissionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('commissions')
+        .update({
+          company_paid: true,
+          company_paid_at: new Date().toISOString()
+        })
+        .eq('id', commissionId);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Marked as company paid');
+      loadCommissions();
+    } catch (error) {
+      console.error('Error marking company paid:', error);
+      Alert.alert('Error', 'Failed to update payment status');
+    }
+  };
+
+  const markRepPaid = async (commissionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('commissions')
+        .update({
+          rep_paid: true,
+          rep_paid_at: new Date().toISOString()
+        })
+        .eq('id', commissionId);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Marked as paid to rep');
+      loadCommissions();
+    } catch (error) {
+      console.error('Error marking rep paid:', error);
+      Alert.alert('Error', 'Failed to update payment status');
     }
   };
 
@@ -130,6 +176,9 @@ export default function AdminCommissions() {
               <View style={styles.affiliateInfo}>
                 <Text style={styles.affiliateName}>{commission.profiles.full_name}</Text>
                 <Text style={styles.affiliateEmail}>{commission.profiles.email}</Text>
+                {commission.profiles.venmo_username && (
+                  <Text style={styles.venmoUsername}>@{commission.profiles.venmo_username}</Text>
+                )}
               </View>
               <View
                 style={[
@@ -184,6 +233,68 @@ export default function AdminCommissions() {
                   <XCircle size={16} color="#EF4444" />
                   <Text style={styles.rejectButtonText}>Reject</Text>
                 </TouchableOpacity>
+              </View>
+            )}
+
+            {commission.status === 'approved' && (
+              <View style={styles.paymentTracking}>
+                <Text style={styles.paymentTrackingTitle}>Payment Tracking</Text>
+
+                <View style={styles.paymentRow}>
+                  <View style={styles.paymentInfo}>
+                    <Text style={styles.paymentLabel}>Company Paid</Text>
+                    {commission.company_paid && commission.company_paid_at && (
+                      <Text style={styles.paymentDate}>
+                        {new Date(commission.company_paid_at).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentButton,
+                      commission.company_paid && styles.paymentButtonPaid
+                    ]}
+                    onPress={() => !commission.company_paid && markCompanyPaid(commission.id)}
+                    disabled={commission.company_paid}
+                  >
+                    {commission.company_paid ? (
+                      <>
+                        <CheckCircle size={16} color="#10B981" />
+                        <Text style={styles.paymentButtonPaidText}>Paid</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.paymentButtonText}>Mark Paid</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.paymentRow}>
+                  <View style={styles.paymentInfo}>
+                    <Text style={styles.paymentLabel}>Paid to Rep</Text>
+                    {commission.rep_paid && commission.rep_paid_at && (
+                      <Text style={styles.paymentDate}>
+                        {new Date(commission.rep_paid_at).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentButton,
+                      commission.rep_paid && styles.paymentButtonPaid
+                    ]}
+                    onPress={() => !commission.rep_paid && markRepPaid(commission.id)}
+                    disabled={commission.rep_paid}
+                  >
+                    {commission.rep_paid ? (
+                      <>
+                        <CheckCircle size={16} color="#10B981" />
+                        <Text style={styles.paymentButtonPaidText}>Paid</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.paymentButtonText}>Mark Paid</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </View>
@@ -372,5 +483,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748B',
     marginTop: 12,
+  },
+  venmoUsername: {
+    fontSize: 13,
+    color: '#60A5FA',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  paymentTracking: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  paymentTrackingTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  paymentInfo: {
+    flex: 1,
+  },
+  paymentLabel: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  paymentDate: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  paymentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#3B82F6',
+  },
+  paymentButtonPaid: {
+    backgroundColor: '#10B98120',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  paymentButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  paymentButtonPaidText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10B981',
   },
 });

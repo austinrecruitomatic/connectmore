@@ -63,12 +63,19 @@ export default function PayoutSettingsScreen() {
     setSaving(true);
 
     try {
+      const updateData: any = {
+        payment_method: paymentMethod,
+        payment_details: { account: paymentDetails.trim() },
+      };
+
+      // If Venmo is selected, also store in venmo_username field for easy access
+      if (paymentMethod === 'venmo') {
+        updateData.venmo_username = paymentDetails.trim();
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          payment_method: paymentMethod,
-          payment_details: { account: paymentDetails.trim() },
-        })
+        .update(updateData)
         .eq('id', profile.id);
 
       if (error) throw error;
