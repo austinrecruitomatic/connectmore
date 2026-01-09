@@ -25,6 +25,9 @@ interface Commission {
     full_name: string;
     email: string;
     venmo_username: string | null;
+    payment_details: {
+      venmo_username?: string;
+    } | null;
   };
   deals: {
     deal_value: number;
@@ -55,7 +58,7 @@ export default function AdminCommissions() {
         .from('commissions')
         .select(`
           *,
-          profiles!commissions_affiliate_id_fkey (full_name, email, venmo_username),
+          profiles!commissions_affiliate_id_fkey (full_name, email, venmo_username, payment_details),
           deals (deal_value, contract_type)
         `);
 
@@ -236,10 +239,12 @@ export default function AdminCommissions() {
                   {new Date(commission.expected_payout_date).toLocaleDateString()}
                 </Text>
               </View>
-              {commission.profiles.venmo_username && (
+              {(commission.profiles.payment_details?.venmo_username || commission.profiles.venmo_username) && (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Venmo</Text>
-                  <Text style={styles.venmoUsername}>@{commission.profiles.venmo_username}</Text>
+                  <Text style={styles.venmoUsername}>
+                    @{commission.profiles.payment_details?.venmo_username || commission.profiles.venmo_username}
+                  </Text>
                 </View>
               )}
             </View>
@@ -298,8 +303,10 @@ export default function AdminCommissions() {
                 <View style={styles.paymentRow}>
                   <View style={styles.paymentInfo}>
                     <Text style={styles.paymentLabel}>Paid to Rep</Text>
-                    {commission.profiles.venmo_username && (
-                      <Text style={styles.venmoUsername}>@{commission.profiles.venmo_username}</Text>
+                    {(commission.profiles.payment_details?.venmo_username || commission.profiles.venmo_username) && (
+                      <Text style={styles.venmoUsername}>
+                        @{commission.profiles.payment_details?.venmo_username || commission.profiles.venmo_username}
+                      </Text>
                     )}
                     {commission.rep_paid && commission.rep_paid_at && (
                       <Text style={styles.paymentDate}>
