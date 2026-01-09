@@ -408,6 +408,15 @@ export default function LandingPageView() {
         ) : null}
 
         <View style={styles.footer}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.bottomBackButton}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            activeOpacity={0.7}
+          >
+            <ArrowLeft size={20} color="#007AFF" />
+            <Text style={styles.bottomBackText}>Go Back</Text>
+          </TouchableOpacity>
           <Text style={styles.poweredBy}>Powered by {pageData.companyName}</Text>
         </View>
       </View>
@@ -649,6 +658,22 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
     alignItems: 'center',
+  },
+  bottomBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    gap: 8,
+  },
+  bottomBackText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   poweredBy: {
     fontSize: 14,

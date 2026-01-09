@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIn
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ShoppingBag, MessageSquare, ExternalLink, X } from 'lucide-react-native';
+import { ShoppingBag, MessageSquare, ExternalLink, X, ArrowLeft } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import CustomFormRenderer from '@/components/CustomFormRenderer';
 
@@ -368,6 +368,15 @@ export default function ProductShare() {
 
         {company && (
           <View style={styles.footer}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.bottomBackButton}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              activeOpacity={0.7}
+            >
+              <ArrowLeft size={20} color="#007AFF" />
+              <Text style={styles.bottomBackText}>Go Back</Text>
+            </TouchableOpacity>
             <Text style={styles.poweredBy}>Powered by {company.company_name}</Text>
           </View>
         )}
@@ -635,6 +644,24 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#334155',
     alignItems: 'center',
+  },
+  bottomBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  bottomBackText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   poweredBy: {
     fontSize: 14,

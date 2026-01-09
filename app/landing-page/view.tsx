@@ -12,6 +12,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import BackButton from '@/components/BackButton';
+import { ArrowLeft } from 'lucide-react-native';
 
 type LandingPageData = {
   id: string;
@@ -153,6 +154,15 @@ export default function ViewLandingPageScreen() {
         </View>
 
         <View style={styles.footer}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.bottomBackButton}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            activeOpacity={0.7}
+          >
+            <ArrowLeft size={20} color="#007AFF" />
+            <Text style={styles.bottomBackText}>Go Back</Text>
+          </TouchableOpacity>
           <Text style={styles.footerText}>Views: {page.views}</Text>
         </View>
       </ScrollView>
@@ -249,6 +259,22 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+  },
+  bottomBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    gap: 8,
+  },
+  bottomBackText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   footerText: {
     fontSize: 14,
