@@ -520,7 +520,10 @@ export default function CommissionsScreen() {
   };
 
   const formatCurrency = (amount: number) => {
-    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatted = amount % 1 === 0
+      ? amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+      : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `$${formatted}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -620,11 +623,14 @@ export default function CommissionsScreen() {
       <View style={styles.header}>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.title}>{isCompany ? 'Commissions' : 'Earnings'}</Text>
-          <Text style={styles.subtitle}>
-            {isCompany
-              ? `${commissions.length} commission payments to process`
-              : `${commissions.length} commission payments earned`}
-          </Text>
+          {isCompany && pendingTotal > 0 && (
+            <View style={styles.pendingAlert}>
+              <Bell size={14} color="#3B82F6" />
+              <Text style={styles.pendingAlertText}>
+                {commissions.filter(c => c.status === 'pending').length} pending to review
+              </Text>
+            </View>
+          )}
         </View>
         {isCompany && pendingTotal > 0 && (
           <TouchableOpacity style={styles.approveAllButton} onPress={handleBulkApprove}>
@@ -1340,6 +1346,22 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     flexWrap: 'wrap',
   },
+  pendingAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#3B82F620',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  pendingAlertText: {
+    fontSize: 12,
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
   approveAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1368,6 +1390,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    justifyContent: 'flex-start',
   },
   metricCard: {
     backgroundColor: '#1E293B',
@@ -1375,8 +1398,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#334155',
-    width: 'calc(33.33% - 8px)',
-    minWidth: 120,
+    flex: 1,
+    minWidth: 160,
+    maxWidth: 200,
   },
   earningsCard: {
     backgroundColor: '#1E293B',
@@ -1384,17 +1408,20 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#334155',
-    width: 'calc(33.33% - 8px)',
-    minWidth: 120,
+    flex: 1,
+    minWidth: 160,
+    maxWidth: 200,
   },
   metricIcon: {
     marginBottom: 8,
   },
   metricValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
+    flexShrink: 0,
+    lineHeight: 28,
   },
   metricLabel: {
     fontSize: 13,
