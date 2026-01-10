@@ -137,14 +137,35 @@ export default function MarketplaceScreen() {
   const [showStateModal, setShowStateModal] = useState(false);
   const [showCountyModal, setShowCountyModal] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [activePartnershipCompanyIds, setActivePartnershipCompanyIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchCompanies();
+    fetchUserPartnerships();
   }, []);
 
   useEffect(() => {
     filterCompanies();
   }, [companies, searchQuery, selectedCategory, selectedState, selectedCounty]);
+
+  const fetchUserPartnerships = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('affiliate_partnerships')
+        .select('company_id')
+        .eq('affiliate_id', profile.id)
+        .eq('status', 'approved');
+
+      if (error) throw error;
+
+      const companyIds = new Set(data?.map(p => p.company_id) || []);
+      setActivePartnershipCompanyIds(companyIds);
+    } catch (error) {
+      console.error('Error fetching partnerships:', error);
+    }
+  };
 
   const fetchCompanies = async () => {
     try {
@@ -493,7 +514,7 @@ export default function MarketplaceScreen() {
                   <View style={styles.companyInfo}>
                     <View style={styles.companyNameRow}>
                       <Text style={styles.companyName}>{company.company_name}</Text>
-                      {company.average_rating >= 4.0 && (
+                      {activePartnershipCompanyIds.has(company.id) && (
                         <View style={styles.activeBadge}>
                           <View style={styles.activeDot} />
                           <Text style={styles.activeText}>Active</Text>
