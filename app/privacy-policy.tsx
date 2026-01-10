@@ -42,14 +42,28 @@ export default function PrivacyPolicy() {
           <Text style={styles.bulletPoint}>• Business information (company name, business category)</Text>
           <Text style={styles.bulletPoint}>• Payment information (processed securely through Stripe)</Text>
           <Text style={styles.bulletPoint}>• Profile information and preferences</Text>
+          <Text style={styles.bulletPoint}>• Photos and images (only when you choose to upload them for profile pictures or product images)</Text>
 
           <Text style={styles.subheading}>Automatically Collected Information</Text>
           <Text style={styles.paragraph}>
             When you use our app, we automatically collect:
           </Text>
-          <Text style={styles.bulletPoint}>• Device information (device type, operating system)</Text>
-          <Text style={styles.bulletPoint}>• Usage data (features used, time spent)</Text>
-          <Text style={styles.bulletPoint}>• Log data (IP address, access times)</Text>
+          <Text style={styles.bulletPoint}>• Device information (device type, operating system, unique device identifiers)</Text>
+          <Text style={styles.bulletPoint}>• Usage data (features used, time spent, interactions)</Text>
+          <Text style={styles.bulletPoint}>• Log data (IP address, access times, error logs)</Text>
+          <Text style={styles.bulletPoint}>• Network information (mobile carrier, connection type)</Text>
+
+          <Text style={styles.subheading}>Permissions</Text>
+          <Text style={styles.paragraph}>
+            Our app may request the following permissions:
+          </Text>
+          <Text style={styles.bulletPoint}>• Camera: To capture photos for profile pictures or product images (optional)</Text>
+          <Text style={styles.bulletPoint}>• Photo Library: To select images from your device (optional)</Text>
+          <Text style={styles.bulletPoint}>• Notifications: To send you updates about leads, commissions, and account activity (optional)</Text>
+          <Text style={styles.bulletPoint}>• Calendar: To schedule demo appointments with Google Calendar integration (optional)</Text>
+          <Text style={styles.paragraph}>
+            You can modify these permissions at any time through your device settings. Denying permissions may limit certain features.
+          </Text>
         </View>
 
         <View style={styles.section}>
@@ -119,11 +133,68 @@ export default function PrivacyPolicy() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Third-Party Services</Text>
+          <Text style={styles.paragraph}>
+            Our app uses the following third-party services that may collect information:
+          </Text>
+          <Text style={styles.bulletPoint}>
+            • Stripe: Payment processing (subject to Stripe's Privacy Policy)
+          </Text>
+          <Text style={styles.bulletPoint}>
+            • Supabase: Database and authentication services (subject to Supabase's Privacy Policy)
+          </Text>
+          <Text style={styles.bulletPoint}>
+            • Google Calendar API: Calendar integration for scheduling (subject to Google's Privacy Policy)
+          </Text>
+          <Text style={styles.bulletPoint}>
+            • Expo: App development platform and push notifications (subject to Expo's Privacy Policy)
+          </Text>
+          <Text style={styles.paragraph}>
+            We are not responsible for the privacy practices of these third-party services. We encourage you
+            to review their privacy policies.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Children's Privacy</Text>
           <Text style={styles.paragraph}>
             Our services are not intended for individuals under the age of 18. We do not knowingly collect
             personal information from children. If we become aware that we have collected information from
             a child, we will take steps to delete such information.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>California Privacy Rights (CCPA)</Text>
+          <Text style={styles.paragraph}>
+            If you are a California resident, you have additional rights under the California Consumer Privacy Act:
+          </Text>
+          <Text style={styles.bulletPoint}>• Right to know what personal information is collected</Text>
+          <Text style={styles.bulletPoint}>• Right to know if personal information is sold or disclosed and to whom</Text>
+          <Text style={styles.bulletPoint}>• Right to opt-out of the sale of personal information (we do not sell personal information)</Text>
+          <Text style={styles.bulletPoint}>• Right to request deletion of personal information</Text>
+          <Text style={styles.bulletPoint}>• Right to non-discrimination for exercising your CCPA rights</Text>
+          <Text style={styles.paragraph}>
+            To exercise these rights, contact us at support@connectmore.app. We will verify your identity
+            before processing your request.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>EU Data Protection Rights (GDPR)</Text>
+          <Text style={styles.paragraph}>
+            If you are located in the European Economic Area (EEA), you have certain data protection rights:
+          </Text>
+          <Text style={styles.bulletPoint}>• Right of access to your personal data</Text>
+          <Text style={styles.bulletPoint}>• Right to rectification of inaccurate personal data</Text>
+          <Text style={styles.bulletPoint}>• Right to erasure of your personal data</Text>
+          <Text style={styles.bulletPoint}>• Right to restrict processing of your personal data</Text>
+          <Text style={styles.bulletPoint}>• Right to data portability</Text>
+          <Text style={styles.bulletPoint}>• Right to object to processing</Text>
+          <Text style={styles.bulletPoint}>• Right to withdraw consent at any time</Text>
+          <Text style={styles.paragraph}>
+            To exercise these rights, contact us at support@connectmore.app. You also have the right to
+            lodge a complaint with your local data protection authority.
           </Text>
         </View>
 

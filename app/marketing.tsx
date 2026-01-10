@@ -156,6 +156,15 @@ export default function MarketingPage() {
       </View>
 
       <View style={styles.footer}>
+        <View style={styles.footerLinks}>
+          <TouchableOpacity onPress={() => router.push('/privacy-policy')}>
+            <Text style={styles.footerLink}>Privacy Policy</Text>
+          </TouchableOpacity>
+          <Text style={styles.footerDivider}>•</Text>
+          <TouchableOpacity onPress={() => router.push('/terms-of-service')}>
+            <Text style={styles.footerLink}>Terms of Service</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.footerText}>© 2024 Connect More. All rights reserved.</Text>
       </View>
     </ScrollView>
@@ -369,6 +378,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  footerLink: {
+    fontSize: 14,
+    color: '#60A5FA',
+    textDecorationLine: 'underline',
+  },
+  footerDivider: {
+    fontSize: 14,
+    color: '#64748B',
   },
   footerText: {
     fontSize: 14,
