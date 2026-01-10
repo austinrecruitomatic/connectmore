@@ -43,6 +43,7 @@ export default function LandingPageView() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [pageData, setPageData] = useState<LandingPageData | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [showContactForm, setShowContactForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -62,10 +63,17 @@ export default function LandingPageView() {
   const fetchLandingPage = async () => {
     try {
       setLoading(true);
+      setError(null);
 
-      const slugParam = slug as string;
+      const slugParam = Array.isArray(slug) ? slug[0] : slug;
+      console.log('[Landing Page] Loading page with slug:', slugParam);
 
-      const { data: customPage } = await supabase
+      if (!slugParam || typeof slugParam !== 'string') {
+        throw new Error('Invalid landing page link');
+      }
+
+      console.log('[Landing Page] Fetching custom landing page...');
+      const { data: customPage, error: customPageError } = await supabase
         .from('landing_pages')
         .select(`
           *,
@@ -88,7 +96,14 @@ export default function LandingPageView() {
         .eq('is_published', true)
         .maybeSingle();
 
+      if (customPageError) {
+        console.error('[Landing Page] Custom page query error:', customPageError);
+      }
+
+      console.log('[Landing Page] Custom page result:', customPage ? 'Found' : 'Not found');
+
       if (customPage) {
+        console.log('[Landing Page] Processing custom page...');
         const partnership = customPage.affiliate_partnerships as any;
         const company = partnership?.companies;
         const content = customPage.content as any;
@@ -116,6 +131,7 @@ export default function LandingPageView() {
           discountValue: 0,
         };
 
+        console.log('[Landing Page] Custom page loaded successfully');
         setPageData(pageInfo);
 
         await supabase.from('leads').insert({
@@ -127,6 +143,7 @@ export default function LandingPageView() {
         return;
       }
 
+      console.log('[Landing Page] No custom page, fetching partnership by affiliate code...');
       const { data: partnership, error: partnershipError } = await supabase
         .from('affiliate_partnerships')
         .select(`
@@ -143,19 +160,32 @@ export default function LandingPageView() {
         .eq('affiliate_code', slugParam)
         .maybeSingle();
 
-      if (partnershipError || !partnership) throw new Error('Partnership not found');
+      console.log('[Landing Page] Partnership result:', partnership ? 'Found' : 'Not found');
+      if (partnershipError) {
+        console.error('[Landing Page] Partnership query error:', partnershipError);
+      }
+
+      if (partnershipError || !partnership) {
+        throw new Error('Partnership not found. Please check the link and try again.');
+      }
 
       const company = Array.isArray(partnership.companies)
         ? partnership.companies[0]
         : partnership.companies;
 
-      const { data: products } = await supabase
+      console.log('[Landing Page] Fetching products for company:', partnership.company_id);
+      const { data: products, error: productsError } = await supabase
         .from('products')
         .select('*')
         .eq('company_id', partnership.company_id)
         .eq('is_active', true)
         .limit(1)
         .maybeSingle();
+
+      if (productsError) {
+        console.error('[Landing Page] Products query error:', productsError);
+      }
+      console.log('[Landing Page] Product result:', products ? 'Found' : 'Not found');
 
       const product = products || {};
 
@@ -179,6 +209,7 @@ export default function LandingPageView() {
         externalCheckoutUrl: product?.external_checkout_url || '',
       };
 
+      console.log('[Landing Page] Page data assembled successfully');
       setPageData(pageInfo);
 
       await supabase.from('leads').insert({
@@ -186,9 +217,13 @@ export default function LandingPageView() {
         lead_type: 'view',
         lead_data: { source: 'landing_page' },
       });
+
+      console.log('[Landing Page] Page loaded successfully');
     } catch (error) {
-      console.error('Error loading landing page:', error);
+      console.error('[Landing Page] Error loading landing page:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load landing page');
     } finally {
+      console.log('[Landing Page] Loading complete, setting loading=false');
       setLoading(false);
     }
   };
@@ -311,18 +346,35 @@ export default function LandingPageView() {
   if (!pageData) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Landing page not found</Text>
+        <Text style={styles.errorText}>
+          {error || 'Landing page not found'}
+        </Text>
+        {error && (
+          <Text style={styles.errorSubtext}>
+            Please check the link and try again, or contact support if the problem persists.
+          </Text>
+        )}
       </View>
     );
   }
 
   const primaryColor = pageData.primaryColor || '#007AFF';
 
+  const handleBack = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.history.length > 1) {
+        router.back();
+      }
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={styles.backButton}
           hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
           activeOpacity={0.7}
@@ -393,7 +445,7 @@ export default function LandingPageView() {
 
         <View style={styles.footer}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={handleBack}
             style={styles.bottomBackButton}
             hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             activeOpacity={0.7}
@@ -537,6 +589,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#666',
     textAlign: 'center',
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 8,
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 16,
