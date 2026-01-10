@@ -420,6 +420,16 @@ export default function CompanyDetailScreen() {
                       <Text style={styles.buyNowText}>Sell This Product</Text>
                     </TouchableOpacity>
                   )}
+
+                  {approvedPartnership && (!product.sale_type || product.sale_type === 'lead_generation') && (
+                    <TouchableOpacity
+                      style={styles.getStartedButton}
+                      onPress={() => router.push(`/product/${product.id}/share?ref=${approvedPartnership.affiliate_code}`)}
+                    >
+                      <MessageSquare size={16} color="#FFFFFF" />
+                      <Text style={styles.getStartedText}>Get Started</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               );
             })
@@ -839,6 +849,22 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   buyNowText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  getStartedButton: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  getStartedText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
