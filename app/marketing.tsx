@@ -101,6 +101,45 @@ export default function MarketingPage() {
         </View>
       </View>
 
+      <View style={styles.appPreview}>
+        <Text style={styles.sectionTitle}>See It In Action</Text>
+        <Text style={styles.sectionSubtitle}>
+          Powerful tools designed for companies and affiliates
+        </Text>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.screenshotsContainer}
+          style={styles.screenshotsScroll}
+        >
+          <Image
+            source={require('../assets/images/untitled_design_(95).png')}
+            style={styles.screenshot}
+            resizeMode="contain"
+          />
+          <Image
+            source={require('../assets/images/untitled_design_(96).png')}
+            style={styles.screenshot}
+            resizeMode="contain"
+          />
+          <Image
+            source={require('../assets/images/untitled_design_(97).png')}
+            style={styles.screenshot}
+            resizeMode="contain"
+          />
+          <Image
+            source={require('../assets/images/untitled_design_(98).png')}
+            style={styles.screenshot}
+            resizeMode="contain"
+          />
+          <Image
+            source={require('../assets/images/untitled_design_(99).png')}
+            style={styles.screenshot}
+            resizeMode="contain"
+          />
+        </ScrollView>
+      </View>
 
       <View style={styles.cta}>
         <Text style={styles.ctaTitle}>We Only Get Paid If You Get Paid</Text>
@@ -254,6 +293,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#94A3B8',
     lineHeight: 24,
+  },
+  appPreview: {
+    paddingVertical: 80,
+    paddingHorizontal: 20,
+    backgroundColor: '#1E293B',
+    alignItems: 'center',
+  },
+  screenshotsScroll: {
+    width: '100%',
+    maxWidth: 1400,
+  },
+  screenshotsContainer: {
+    paddingHorizontal: 20,
+    gap: 24,
+    alignItems: 'center',
+  },
+  screenshot: {
+    width: 280,
+    height: 560,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#334155',
+    backgroundColor: '#0F172A',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   cta: {
     paddingVertical: 80,
