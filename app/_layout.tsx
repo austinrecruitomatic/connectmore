@@ -22,6 +22,8 @@ export default function RootLayout() {
         <Stack.Screen name="admin/purchases" />
         <Stack.Screen name="company/[id]" />
         <Stack.Screen name="company/[id]/write-review" />
+        <Stack.Screen name="connect-more-landing" />
+        <Stack.Screen name="connect-more-support" />
         <Stack.Screen name="customer-earnings" />
         <Stack.Screen name="customer-portal" />
         <Stack.Screen name="customer-referrals" />
@@ -32,7 +34,9 @@ export default function RootLayout() {
         <Stack.Screen name="marketing" />
         <Stack.Screen name="my-network" />
         <Stack.Screen name="payout-settings" />
+        <Stack.Screen name="privacy-policy" />
         <Stack.Screen name="product/[id]/access" />
+        <Stack.Screen name="terms-of-service" />
         <Stack.Screen name="product/[id]/checkout" />
         <Stack.Screen name="product/[id]/share" />
         <Stack.Screen name="product/[id]/template-edit" />
