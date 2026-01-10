@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { US_COUNTIES } from '@/lib/counties';
+import { DEFAULT_CONTRACT_TITLE, DEFAULT_CONTRACT_CONTENT } from '@/lib/defaultContract';
 
 type Company = {
   id: string;
@@ -169,6 +170,12 @@ export default function ProfileScreen() {
     notify_on_lead_updates: true,
     notify_on_new_partnerships: true,
   });
+  const [contractSettings, setContractSettings] = useState({
+    use_custom_contract: false,
+    custom_contract_content: '',
+  });
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractPreview, setContractPreview] = useState('');
 
   useEffect(() => {
     if (profile?.user_type === 'company') {
@@ -218,6 +225,10 @@ export default function ProfileScreen() {
         service_area_type: data.service_area_type || 'national',
         service_states: data.service_states || [],
         service_counties: data.service_counties || {},
+      });
+      setContractSettings({
+        use_custom_contract: data.use_custom_contract || false,
+        custom_contract_content: data.custom_contract_content || '',
       });
     }
   };
@@ -547,6 +558,64 @@ export default function ProfileScreen() {
       setCompanyNotificationPrefs({ ...companyNotificationPrefs, [key]: !newValue });
       Alert.alert('Error', 'Failed to update notification preference');
     }
+  };
+
+  const handleToggleCustomContract = async () => {
+    if (!company?.id) return;
+
+    const newValue = !contractSettings.use_custom_contract;
+    setContractSettings({ ...contractSettings, use_custom_contract: newValue });
+
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({ use_custom_contract: newValue })
+        .eq('id', company.id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Failed to update contract setting:', error);
+      setContractSettings({ ...contractSettings, use_custom_contract: !newValue });
+      Alert.alert('Error', 'Failed to update contract setting');
+    }
+  };
+
+  const handleSaveCustomContract = async () => {
+    if (!company?.id) return;
+
+    if (!contractSettings.custom_contract_content.trim()) {
+      Alert.alert('Required', 'Please enter contract content');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          custom_contract_content: contractSettings.custom_contract_content,
+          use_custom_contract: true,
+        })
+        .eq('id', company.id);
+
+      if (error) throw error;
+
+      setContractSettings({ ...contractSettings, use_custom_contract: true });
+      Alert.alert('Success', 'Custom contract saved successfully');
+    } catch (error) {
+      console.error('Failed to save custom contract:', error);
+      Alert.alert('Error', 'Failed to save custom contract');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePreviewContract = () => {
+    const content = contractSettings.use_custom_contract && contractSettings.custom_contract_content
+      ? contractSettings.custom_contract_content
+      : DEFAULT_CONTRACT_CONTENT;
+    setContractPreview(content);
+    setShowContractModal(true);
   };
 
   const handleSignOut = () => {
@@ -921,34 +990,6 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {profile?.user_type === 'company' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contract Management</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <FileText size={20} color="#64748B" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Affiliate Contracts</Text>
-                <Text style={styles.infoValue}>
-                  Create contracts that affiliates must accept before becoming partners
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.configureButton}
-              onPress={() => router.push('/contract-management')}
-            >
-              <FileText size={16} color="#60A5FA" />
-              <Text style={styles.configureButtonText}>
-                Manage Contracts
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
       {profile?.user_type === 'company' && companySettings && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notifications</Text>
@@ -1006,6 +1047,84 @@ export default function ProfileScreen() {
                 <View style={[styles.toggleThumb, companyNotificationPrefs.notify_on_new_partnerships && styles.toggleThumbActive]} />
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      )}
+
+      {profile?.user_type === 'company' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Affiliate Contract Settings</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <FileText size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Default TCPA-Compliant Contract</Text>
+                <Text style={styles.infoSubtext}>
+                  All affiliates must accept a contract making them liable for proper lead consent
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+              <View style={styles.infoIcon}>
+                <Edit size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Use Custom Contract</Text>
+                <Text style={styles.infoSubtext}>
+                  {contractSettings.use_custom_contract ? 'Using your custom contract' : 'Using default contract'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleToggleCustomContract}
+                style={[styles.toggle, contractSettings.use_custom_contract && styles.toggleActive]}
+              >
+                <View style={[styles.toggleThumb, contractSettings.use_custom_contract && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.contractActions}>
+              <TouchableOpacity
+                style={styles.previewButton}
+                onPress={handlePreviewContract}
+              >
+                <FileText size={16} color="#007AFF" />
+                <Text style={styles.previewButtonText}>
+                  Preview {contractSettings.use_custom_contract ? 'Custom' : 'Default'} Contract
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {contractSettings.use_custom_contract && (
+              <View style={styles.customContractSection}>
+                <Text style={styles.customContractLabel}>Custom Contract Content</Text>
+                <TextInput
+                  style={styles.customContractInput}
+                  value={contractSettings.custom_contract_content}
+                  onChangeText={(text) =>
+                    setContractSettings({ ...contractSettings, custom_contract_content: text })
+                  }
+                  placeholder="Enter your custom contract text..."
+                  placeholderTextColor="#94A3B8"
+                  multiline
+                  numberOfLines={10}
+                  textAlignVertical="top"
+                />
+                <TouchableOpacity
+                  style={styles.saveContractButton}
+                  onPress={handleSaveCustomContract}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.saveContractButtonText}>Save Custom Contract</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       )}
@@ -1969,6 +2088,30 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={showContractModal} animationType="slide" transparent={false}>
+        <View style={styles.contractPreviewContainer}>
+          <View style={styles.contractPreviewHeader}>
+            <Text style={styles.contractPreviewTitle}>
+              {contractSettings.use_custom_contract ? 'Custom' : 'Default'} Contract Preview
+            </Text>
+            <TouchableOpacity onPress={() => setShowContractModal(false)} style={styles.contractCloseButton}>
+              <X size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.contractPreviewScroll} contentContainerStyle={styles.contractPreviewContent}>
+            <Text style={styles.contractPreviewText}>{contractPreview}</Text>
+          </ScrollView>
+          <View style={styles.contractPreviewFooter}>
+            <TouchableOpacity
+              style={styles.contractCloseFooterButton}
+              onPress={() => setShowContractModal(false)}
+            >
+              <Text style={styles.contractCloseFooterButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -2654,5 +2797,113 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: '#FFFFFF',
+  },
+  contractActions: {
+    marginTop: 16,
+    gap: 12,
+  },
+  previewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  previewButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  customContractSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  customContractLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  customContractInput: {
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#FFFFFF',
+    minHeight: 200,
+    textAlignVertical: 'top',
+  },
+  saveContractButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  saveContractButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  contractPreviewContainer: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  contractPreviewHeader: {
+    backgroundColor: '#007AFF',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  contractPreviewTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    flex: 1,
+  },
+  contractCloseButton: {
+    padding: 4,
+  },
+  contractPreviewScroll: {
+    flex: 1,
+  },
+  contractPreviewContent: {
+    padding: 20,
+  },
+  contractPreviewText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#1E293B',
+  },
+  contractPreviewFooter: {
+    backgroundColor: '#fff',
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  contractCloseFooterButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  contractCloseFooterButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

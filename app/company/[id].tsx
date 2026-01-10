@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard, Trash2, Building2, Calendar } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import ContractAcceptanceModal from '@/components/ContractAcceptanceModal';
+import { DEFAULT_CONTRACT_TITLE, DEFAULT_CONTRACT_CONTENT } from '@/lib/defaultContract';
 
 type Company = {
   id: string;
@@ -178,22 +179,27 @@ export default function CompanyDetailScreen() {
     try {
       setRequesting(true);
 
-      const { data: contract, error: contractError } = await supabase
-        .from('company_contracts')
-        .select('*')
-        .eq('company_id', id.toString())
-        .eq('is_active', true)
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('use_custom_contract, custom_contract_content, company_name')
+        .eq('id', id.toString())
         .maybeSingle();
 
-      if (contractError) throw contractError;
+      if (companyError) throw companyError;
 
-      if (contract) {
-        setActiveContract(contract);
-        setShowContractModal(true);
-        setRequesting(false);
-      } else {
-        await createPartnership();
-      }
+      const contractContent = companyData?.use_custom_contract && companyData?.custom_contract_content
+        ? companyData.custom_contract_content
+        : DEFAULT_CONTRACT_CONTENT;
+
+      const contract = {
+        id: 'default',
+        title: DEFAULT_CONTRACT_TITLE,
+        content: contractContent,
+      };
+
+      setActiveContract(contract);
+      setShowContractModal(true);
+      setRequesting(false);
     } catch (error: any) {
       console.error('Error requesting partnership:', error);
       const message = error.message || 'Failed to request partnership';
@@ -232,7 +238,7 @@ export default function CompanyDetailScreen() {
           .from('partnership_contract_acceptances')
           .insert({
             partnership_id: partnership.id,
-            contract_id: activeContract.id,
+            contract_id: null,
             affiliate_id: profile.id,
             accepted: true,
             contract_snapshot: activeContract.content,
