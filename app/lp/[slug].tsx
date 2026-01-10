@@ -73,7 +73,6 @@ export default function LandingPageView() {
             id,
             affiliate_code,
             company_id,
-            product_id,
             companies (
               id,
               company_name,
@@ -95,24 +94,12 @@ export default function LandingPageView() {
         const content = customPage.content as any;
         const template = (customPage as any).landing_page_templates;
 
-        const productId = partnership?.product_id || null;
-
-        let products = null;
-        if (productId) {
-          const { data } = await supabase
-            .from('products')
-            .select('id, product_url, name, affiliate_discount_enabled, affiliate_discount_type, affiliate_discount_value')
-            .eq('id', productId)
-            .maybeSingle();
-          products = data;
-        }
-
-        const productUrl = content?.buttonUrl || products?.product_url || '';
+        const productUrl = content?.buttonUrl || '';
 
         const pageInfo: LandingPageData = {
           partnershipId: customPage.partnership_id || '',
-          productId: products?.id || productId,
-          productName: products?.name || content?.productName || 'Product',
+          productId: '',
+          productName: content?.productName || company?.company_name || 'Product',
           companyName: company?.company_name || 'Company',
           companyLogo: company?.logo_url || '',
           headline: content?.headline || '',
@@ -121,12 +108,12 @@ export default function LandingPageView() {
           ctaType: 'signup',
           heroImage: '',
           productUrl,
-          affiliateCode: content?.affiliateCode || '',
+          affiliateCode: content?.affiliateCode || partnership?.affiliate_code || '',
           primaryColor: template?.primary_color || '#007AFF',
           themeStyle: template?.theme_style || 'modern',
-          discountEnabled: products?.affiliate_discount_enabled || false,
-          discountType: products?.affiliate_discount_type || 'percentage',
-          discountValue: products?.affiliate_discount_value || 0,
+          discountEnabled: false,
+          discountType: 'percentage',
+          discountValue: 0,
         };
 
         setPageData(pageInfo);
@@ -146,7 +133,6 @@ export default function LandingPageView() {
           id,
           affiliate_code,
           company_id,
-          product_id,
           companies (
             id,
             company_name,
@@ -163,21 +149,19 @@ export default function LandingPageView() {
         ? partnership.companies[0]
         : partnership.companies;
 
-      let products = null;
-      if (partnership.product_id) {
-        const { data } = await supabase
-          .from('products')
-          .select('*')
-          .eq('id', partnership.product_id)
-          .maybeSingle();
-        products = data;
-      }
+      const { data: products } = await supabase
+        .from('products')
+        .select('*')
+        .eq('company_id', partnership.company_id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
 
       const product = products || {};
 
       const pageInfo: LandingPageData = {
         partnershipId: partnership.id,
-        productId: partnership.product_id || product?.id || '',
+        productId: product?.id || '',
         productName: product?.name || company?.company_name || 'Product',
         companyName: company?.company_name || 'Company',
         companyLogo: company?.logo_url || '',
