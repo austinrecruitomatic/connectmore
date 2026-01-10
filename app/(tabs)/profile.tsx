@@ -921,6 +921,34 @@ export default function ProfileScreen() {
         </View>
       )}
 
+      {profile?.user_type === 'company' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Contract Management</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <FileText size={20} color="#64748B" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Affiliate Contracts</Text>
+                <Text style={styles.infoValue}>
+                  Create contracts that affiliates must accept before becoming partners
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.configureButton}
+              onPress={() => router.push('/contract-management')}
+            >
+              <FileText size={16} color="#60A5FA" />
+              <Text style={styles.configureButtonText}>
+                Manage Contracts
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {profile?.user_type === 'company' && companySettings && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notifications</Text>

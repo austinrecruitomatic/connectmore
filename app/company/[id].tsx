@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { Star, DollarSign, Package, MessageSquare, ShoppingCart, Clipboard, Trash2, Building2, Calendar } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
+import ContractAcceptanceModal from '@/components/ContractAcceptanceModal';
 
 type Company = {
   id: string;
@@ -56,6 +57,8 @@ export default function CompanyDetailScreen() {
   const [canReview, setCanReview] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [partnerships, setPartnerships] = useState<any[]>([]);
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [activeContract, setActiveContract] = useState<any>(null);
 
   useEffect(() => {
     if (id) {
@@ -175,26 +178,22 @@ export default function CompanyDetailScreen() {
     try {
       setRequesting(true);
 
-      const affiliateCode = `${profile.id.slice(0, 8)}-${id.toString().slice(0, 8)}`;
+      const { data: contract, error: contractError } = await supabase
+        .from('company_contracts')
+        .select('*')
+        .eq('company_id', id.toString())
+        .eq('is_active', true)
+        .maybeSingle();
 
-      const { error } = await supabase
-        .from('affiliate_partnerships')
-        .insert({
-          affiliate_id: profile.id,
-          company_id: id.toString(),
-          status: 'pending',
-          affiliate_code: affiliateCode
-        });
+      if (contractError) throw contractError;
 
-      if (error) throw error;
-
-      if (Platform.OS === 'web') {
-        alert('Partnership request sent successfully!');
+      if (contract) {
+        setActiveContract(contract);
+        setShowContractModal(true);
+        setRequesting(false);
       } else {
-        Alert.alert('Success', 'Partnership request sent successfully!');
+        await createPartnership();
       }
-
-      fetchCompanyDetails();
     } catch (error: any) {
       console.error('Error requesting partnership:', error);
       const message = error.message || 'Failed to request partnership';
@@ -203,9 +202,73 @@ export default function CompanyDetailScreen() {
       } else {
         Alert.alert('Error', message);
       }
+      setRequesting(false);
+    }
+  };
+
+  const createPartnership = async () => {
+    if (!profile || !id) return;
+
+    try {
+      setRequesting(true);
+
+      const affiliateCode = `${profile.id.slice(0, 8)}-${id.toString().slice(0, 8)}`;
+
+      const { data: partnership, error: partnershipError } = await supabase
+        .from('affiliate_partnerships')
+        .insert({
+          affiliate_id: profile.id,
+          company_id: id.toString(),
+          status: 'pending',
+          affiliate_code: affiliateCode,
+        })
+        .select()
+        .single();
+
+      if (partnershipError) throw partnershipError;
+
+      if (activeContract && partnership) {
+        const { error: acceptanceError } = await supabase
+          .from('partnership_contract_acceptances')
+          .insert({
+            partnership_id: partnership.id,
+            contract_id: activeContract.id,
+            affiliate_id: profile.id,
+            accepted: true,
+            contract_snapshot: activeContract.content,
+          });
+
+        if (acceptanceError) {
+          console.error('Error recording contract acceptance:', acceptanceError);
+        }
+      }
+
+      if (Platform.OS === 'web') {
+        alert('Partnership request sent successfully!');
+      } else {
+        Alert.alert('Success', 'Partnership request sent successfully!');
+      }
+
+      fetchCompanyDetails();
+      setShowContractModal(false);
+      setActiveContract(null);
+    } catch (error: any) {
+      console.error('Error creating partnership:', error);
+      const message = error.message || 'Failed to create partnership';
+      if (Platform.OS === 'web') {
+        alert(message);
+      } else {
+        Alert.alert('Error', message);
+      }
     } finally {
       setRequesting(false);
     }
+  };
+
+  const handleContractDecline = () => {
+    setShowContractModal(false);
+    setActiveContract(null);
+    setRequesting(false);
   };
 
   const handleWriteReview = () => {
@@ -498,6 +561,14 @@ export default function CompanyDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      <ContractAcceptanceModal
+        visible={showContractModal}
+        contract={activeContract}
+        companyName={company?.company_name || ''}
+        onAccept={createPartnership}
+        onDecline={handleContractDecline}
+      />
     </View>
   );
 }
