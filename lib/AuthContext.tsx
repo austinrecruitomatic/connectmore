@@ -145,6 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: profileError };
     }
 
+    // Fetch the profile immediately after creation to populate the context
+    await fetchProfile(authData.user.id);
+
     let companyId: string | undefined;
     if (userType === 'company' && authData.user) {
       const { data: companyData, error: companyError } = await supabase
