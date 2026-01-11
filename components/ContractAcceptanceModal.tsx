@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { FileText, X, Check } from 'lucide-react-native';
+import { FileText, X, Check, AlertTriangle } from 'lucide-react-native';
 import { useState } from 'react';
 
 type Contract = {
@@ -75,6 +75,28 @@ export default function ContractAcceptanceModal({
           <Text style={styles.companyName}>{companyName}</Text>
         </View>
 
+        <View style={styles.liabilityWarning}>
+          <View style={styles.warningHeader}>
+            <AlertTriangle size={24} color="#DC2626" />
+            <Text style={styles.warningTitle}>IMPORTANT: Affiliate Liability Notice</Text>
+          </View>
+          <Text style={styles.warningText}>
+            By accepting this agreement, you confirm that:
+          </Text>
+          <Text style={styles.warningBullet}>
+            • You are SOLELY LIABLE for ensuring all leads have provided proper consent
+          </Text>
+          <Text style={styles.warningBullet}>
+            • Each customer has given EXPRESS CONSENT for the company to contact them
+          </Text>
+          <Text style={styles.warningBullet}>
+            • All leads comply with TCPA, TSR, and consumer protection laws
+          </Text>
+          <Text style={styles.warningBullet}>
+            • You will indemnify the company for any consent-related claims
+          </Text>
+        </View>
+
         <ScrollView
           style={styles.contentScroll}
           contentContainerStyle={styles.contentContainer}
@@ -95,8 +117,8 @@ export default function ContractAcceptanceModal({
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            By accepting, you agree to the terms and conditions outlined in this partnership
-            agreement.
+            By accepting, you acknowledge that you are legally liable for ensuring all leads have
+            provided consent and agree to all terms and conditions outlined in this agreement.
           </Text>
 
           <View style={styles.actions}>
@@ -121,7 +143,7 @@ export default function ContractAcceptanceModal({
               ) : (
                 <>
                   <Check size={20} color="#fff" />
-                  <Text style={styles.acceptButtonText}>Accept & Continue</Text>
+                  <Text style={styles.acceptButtonText}>I Agree - Accept Terms</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -177,6 +199,40 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1E293B',
+  },
+  liabilityWarning: {
+    backgroundColor: '#FEE2E2',
+    borderLeftWidth: 4,
+    borderLeftColor: '#DC2626',
+    padding: 16,
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 8,
+  },
+  warningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#991B1B',
+    flex: 1,
+  },
+  warningText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7F1D1D',
+    marginBottom: 8,
+  },
+  warningBullet: {
+    fontSize: 13,
+    color: '#7F1D1D',
+    lineHeight: 20,
+    marginBottom: 4,
+    paddingLeft: 4,
   },
   contentScroll: {
     flex: 1,
