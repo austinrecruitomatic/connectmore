@@ -77,23 +77,17 @@ export default function ContractAcceptanceModal({
 
         <View style={styles.liabilityWarning}>
           <View style={styles.warningHeader}>
-            <AlertTriangle size={24} color="#DC2626" />
-            <Text style={styles.warningTitle}>IMPORTANT: Affiliate Liability Notice</Text>
+            <AlertTriangle size={20} color="#DC2626" />
+            <Text style={styles.warningTitle}>Affiliate Liability Notice</Text>
           </View>
-          <Text style={styles.warningText}>
-            By accepting this agreement, you confirm that:
+          <Text style={styles.warningBullet}>
+            • You are liable for ensuring all leads have proper consent
           </Text>
           <Text style={styles.warningBullet}>
-            • You are SOLELY LIABLE for ensuring all leads have provided proper consent
+            • Customers have given consent for company contact
           </Text>
           <Text style={styles.warningBullet}>
-            • Each customer has given EXPRESS CONSENT for the company to contact them
-          </Text>
-          <Text style={styles.warningBullet}>
-            • All leads comply with TCPA, TSR, and consumer protection laws
-          </Text>
-          <Text style={styles.warningBullet}>
-            • You will indemnify the company for any consent-related claims
+            • All leads comply with TCPA and consumer protection laws
           </Text>
         </View>
 
@@ -116,11 +110,6 @@ export default function ContractAcceptanceModal({
         </ScrollView>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            By accepting, you acknowledge that you are legally liable for ensuring all leads have
-            provided consent and agree to all terms and conditions outlined in this agreement.
-          </Text>
-
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.declineButton}
@@ -143,7 +132,7 @@ export default function ContractAcceptanceModal({
               ) : (
                 <>
                   <Check size={20} color="#fff" />
-                  <Text style={styles.acceptButtonText}>I Agree - Accept Terms</Text>
+                  <Text style={styles.acceptButtonText}>Accept Terms</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -204,35 +193,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
     borderLeftWidth: 4,
     borderLeftColor: '#DC2626',
-    padding: 16,
+    padding: 12,
     marginHorizontal: 20,
-    marginTop: 16,
+    marginTop: 12,
     borderRadius: 8,
   },
   warningHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   warningTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#991B1B',
     flex: 1,
   },
-  warningText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#7F1D1D',
-    marginBottom: 8,
-  },
   warningBullet: {
     fontSize: 13,
     color: '#7F1D1D',
-    lineHeight: 20,
-    marginBottom: 4,
-    paddingLeft: 4,
+    lineHeight: 18,
+    marginBottom: 3,
   },
   contentScroll: {
     flex: 1,
