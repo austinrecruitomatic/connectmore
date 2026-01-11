@@ -800,7 +800,7 @@ export default function ProfileScreen() {
             {!profile?.stripe_onboarding_completed ? (
               <TouchableOpacity
                 style={styles.configureButton}
-                onPress={() => Alert.alert('Coming Soon', 'Please use Venmo in alternative payment methods as well!')}
+                onPress={() => router.push('/payout-settings')}
               >
                 <DollarSign size={16} color="#60A5FA" />
                 <Text style={styles.configureButtonText}>
