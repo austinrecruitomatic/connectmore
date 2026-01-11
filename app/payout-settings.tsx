@@ -2,8 +2,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Activi
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { DollarSign, CreditCard } from 'lucide-react-native';
+import { DollarSign, CreditCard, FileText } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import W9Form from '@/components/W9Form';
 
 const PAYMENT_METHODS = [
   { value: 'venmo', label: 'Venmo', placeholder: 'Enter your Venmo username, phone, or email' },
@@ -22,6 +23,8 @@ export default function PayoutSettingsScreen() {
 
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentDetails, setPaymentDetails] = useState('');
+  const [w9Completed, setW9Completed] = useState(false);
+  const [showW9Form, setShowW9Form] = useState(false);
 
   useEffect(() => {
     if (profile?.user_type === 'affiliate') {
@@ -37,11 +40,18 @@ export default function PayoutSettingsScreen() {
       setPaymentMethod(profile?.payment_method || '');
       const details = profile?.payment_details as any;
       setPaymentDetails(details?.account || '');
+      setW9Completed(profile?.w9_completed || false);
     } catch (error) {
       console.error('Error loading preferences:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleW9Complete = async () => {
+    setW9Completed(true);
+    setShowW9Form(false);
+    await loadPreferences();
   };
 
   const handleSave = async () => {
@@ -285,6 +295,10 @@ export default function PayoutSettingsScreen() {
 
   const selectedMethod = PAYMENT_METHODS.find(m => m.value === paymentMethod);
 
+  if (showW9Form) {
+    return <W9Form onComplete={handleW9Complete} userId={profile?.id || ''} />;
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
@@ -297,88 +311,124 @@ export default function PayoutSettingsScreen() {
         </Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payment Method</Text>
-        <Text style={styles.sectionDescription}>
-          Select how you'd like to receive your earnings. Your information is securely stored and only visible to platform administrators when processing payouts.
-        </Text>
-
-        {PAYMENT_METHODS.map((method) => (
+      {!w9Completed && (
+        <View style={styles.w9RequiredCard}>
+          <View style={styles.w9RequiredHeader}>
+            <FileText size={24} color="#F59E0B" />
+            <Text style={styles.w9RequiredTitle}>W-9 Tax Information Required</Text>
+          </View>
+          <Text style={styles.w9RequiredText}>
+            IRS regulations require W-9 tax information before processing commission payments of $600 or more per year. Complete your W-9 to unlock payment settings.
+          </Text>
           <TouchableOpacity
-            key={method.value}
-            style={[
-              styles.paymentMethodOption,
-              paymentMethod === method.value && styles.paymentMethodOptionSelected
-            ]}
-            onPress={() => setPaymentMethod(method.value)}
+            style={styles.completeW9Button}
+            onPress={() => setShowW9Form(true)}
           >
-            <View style={styles.paymentMethodContent}>
-              <View style={[
-                styles.radioOuter,
-                paymentMethod === method.value && styles.radioOuterSelected
-              ]}>
-                {paymentMethod === method.value && (
-                  <View style={styles.radioInner} />
-                )}
+            <Text style={styles.completeW9ButtonText}>Complete W-9 Form</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {w9Completed && (
+        <View style={styles.w9CompletedCard}>
+          <FileText size={20} color="#10B981" />
+          <View style={styles.w9CompletedContent}>
+            <Text style={styles.w9CompletedTitle}>W-9 Verified</Text>
+            <Text style={styles.w9CompletedText}>
+              Your tax information is on file
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {w9Completed && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Method</Text>
+          <Text style={styles.sectionDescription}>
+            Select how you'd like to receive your earnings. Your information is securely stored and only visible to platform administrators when processing payouts.
+          </Text>
+
+          {PAYMENT_METHODS.map((method) => (
+            <TouchableOpacity
+              key={method.value}
+              style={[
+                styles.paymentMethodOption,
+                paymentMethod === method.value && styles.paymentMethodOptionSelected
+              ]}
+              onPress={() => setPaymentMethod(method.value)}
+            >
+              <View style={styles.paymentMethodContent}>
+                <View style={[
+                  styles.radioOuter,
+                  paymentMethod === method.value && styles.radioOuterSelected
+                ]}>
+                  {paymentMethod === method.value && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <Text style={[
+                  styles.paymentMethodLabel,
+                  paymentMethod === method.value && styles.paymentMethodLabelSelected
+                ]}>
+                  {method.label}
+                </Text>
               </View>
-              <Text style={[
-                styles.paymentMethodLabel,
-                paymentMethod === method.value && styles.paymentMethodLabelSelected
-              ]}>
-                {method.label}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {w9Completed && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Details</Text>
+          <Text style={styles.sectionDescription}>
+            {selectedMethod?.placeholder || 'Enter your payment information'}
+          </Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder={selectedMethod?.placeholder || 'Enter your payment details'}
+            placeholderTextColor="#64748B"
+            value={paymentDetails}
+            onChangeText={setPaymentDetails}
+            autoCapitalize="none"
+            editable={!!paymentMethod}
+          />
+
+          {paymentMethod === 'venmo' && (
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>
+                Enter your Venmo username (e.g., @john-doe), phone number, or email address. Make sure it's the account you want to receive payments to.
               </Text>
             </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+          )}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payment Details</Text>
-        <Text style={styles.sectionDescription}>
-          {selectedMethod?.placeholder || 'Enter your payment information'}
-        </Text>
+          {paymentMethod === 'paypal' && (
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>
+                Enter the email address associated with your PayPal account.
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
-        <TextInput
-          style={styles.input}
-          placeholder={selectedMethod?.placeholder || 'Enter your payment details'}
-          placeholderTextColor="#64748B"
-          value={paymentDetails}
-          onChangeText={setPaymentDetails}
-          autoCapitalize="none"
-          editable={!!paymentMethod}
-        />
-
-        {paymentMethod === 'venmo' && (
-          <View style={styles.infoCard}>
-            <Text style={styles.infoText}>
-              Enter your Venmo username (e.g., @john-doe), phone number, or email address. Make sure it's the account you want to receive payments to.
-            </Text>
-          </View>
-        )}
-
-        {paymentMethod === 'paypal' && (
-          <View style={styles.infoCard}>
-            <Text style={styles.infoText}>
-              Enter the email address associated with your PayPal account.
-            </Text>
-          </View>
-        )}
-      </View>
-
-      <TouchableOpacity
-        style={[styles.saveButton, (saving || !paymentMethod || !paymentDetails.trim()) && styles.saveButtonDisabled]}
-        onPress={handleSave}
-        disabled={saving || !paymentMethod || !paymentDetails.trim()}
-      >
-        {saving ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.saveButtonText}>Save Payment Settings</Text>
-        )}
-      </TouchableOpacity>
+      {w9Completed && (
+        <TouchableOpacity
+          style={[styles.saveButton, (saving || !paymentMethod || !paymentDetails.trim()) && styles.saveButtonDisabled]}
+          onPress={handleSave}
+          disabled={saving || !paymentMethod || !paymentDetails.trim()}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save Payment Settings</Text>
+          )}
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
-        <Text style={styles.cancelButtonText}>Cancel</Text>
+        <Text style={styles.cancelButtonText}>{w9Completed ? 'Cancel' : 'Back'}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -591,5 +641,65 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 14,
     fontWeight: '600',
+  },
+  w9RequiredCard: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+  },
+  w9RequiredHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  w9RequiredTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FCD34D',
+  },
+  w9RequiredText: {
+    fontSize: 14,
+    color: '#FCD34D',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  completeW9Button: {
+    backgroundColor: '#F59E0B',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+  },
+  completeW9ButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  w9CompletedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: '#10B981',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    gap: 12,
+  },
+  w9CompletedContent: {
+    flex: 1,
+  },
+  w9CompletedTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#34D399',
+    marginBottom: 4,
+  },
+  w9CompletedText: {
+    fontSize: 13,
+    color: '#6EE7B7',
   },
 });

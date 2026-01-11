@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { DollarSign, Users, Building2, TrendingUp, Clock, CheckCircle, CreditCard } from 'lucide-react-native';
+import { DollarSign, Users, Building2, TrendingUp, Clock, CheckCircle, CreditCard, FileText } from 'lucide-react-native';
 
 interface DashboardStats {
   totalAffiliates: number;
@@ -190,6 +190,17 @@ export default function AdminDashboard() {
               <Text style={styles.badgeText}>{stats.pendingCardSubmissions}</Text>
             </View>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/admin/w9-tax-forms')}
+        >
+          <FileText color="#60A5FA" size={20} />
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>W-9 Tax Forms</Text>
+            <Text style={styles.actionSubtitle}>View affiliate W-9 forms for IRS reporting</Text>
+          </View>
         </TouchableOpacity>
       </View>
     </ScrollView>
