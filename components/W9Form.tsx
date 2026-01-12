@@ -250,7 +250,7 @@ export default function W9Form({ onComplete, userId }: W9FormProps) {
           value={taxId}
           onChangeText={(value) => setTaxId(formatTaxId(value, taxIdType))}
           placeholder={taxIdType === 'ssn' ? '123-45-6789' : '12-3456789'}
-          placeholderTextColor="#64748B"}
+          placeholderTextColor="#64748B"
           keyboardType="number-pad"
           maxLength={taxIdType === 'ein' ? 10 : 11}
           secureTextEntry

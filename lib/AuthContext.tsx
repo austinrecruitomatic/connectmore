@@ -22,6 +22,7 @@ type Profile = {
   notification_lead_closed?: boolean;
   notification_customer_submission?: boolean;
   notification_lead_update_response?: boolean;
+  w9_completed?: boolean;
 };
 
 type AuthContextType = {
