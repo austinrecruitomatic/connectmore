@@ -30,6 +30,7 @@ export default function TabLayout() {
         },
         headerStyle: {
           backgroundColor: '#1E293B',
+          borderBottomWidth: 0,
         },
         headerTintColor: '#FFFFFF',
       }}
