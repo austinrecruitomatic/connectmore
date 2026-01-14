@@ -32,6 +32,7 @@ export default function CustomFormRenderer({
   const [responses, setResponses] = useState<Record<string, any>>(initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadFields();
@@ -39,16 +40,30 @@ export default function CustomFormRenderer({
 
   const loadFields = async () => {
     try {
+      setLoadError(null);
+
+      if (!formId) {
+        throw new Error('No form ID provided');
+      }
+
+      console.log('[CustomFormRenderer] Loading fields for form:', formId);
+
       const { data, error } = await supabase
         .from('custom_form_fields')
         .select('*')
         .eq('form_id', formId)
         .order('field_order');
 
-      if (error) throw error;
+      if (error) {
+        console.error('[CustomFormRenderer] Database error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      console.log('[CustomFormRenderer] Loaded fields:', data?.length || 0);
       setFields(data || []);
     } catch (error: any) {
-      console.error('Error loading form fields:', error);
+      console.error('[CustomFormRenderer] Error loading form fields:', error);
+      setLoadError(error.message || 'Unable to load form fields. Please check your internet connection.');
     } finally {
       setLoading(false);
     }
@@ -350,7 +365,19 @@ export default function CustomFormRenderer({
     );
   }
 
-  if (fields.length === 0) {
+  if (loadError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorTitle}>Unable to Load Form</Text>
+        <Text style={styles.errorText}>{loadError}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadFields}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (fields.length === 0 && !loadError) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No fields configured for this form.</Text>
@@ -588,5 +615,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748B',
     textAlign: 'center',
+  },
+  errorContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#EF4444',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  retryButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

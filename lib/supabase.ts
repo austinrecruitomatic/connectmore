@@ -6,6 +6,12 @@ import { Platform } from 'react-native';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('[Supabase] Missing environment variables!');
+  console.error('[Supabase] URL:', supabaseUrl ? 'SET' : 'MISSING');
+  console.error('[Supabase] Key:', supabaseAnonKey ? 'SET' : 'MISSING');
+}
+
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
     if (Platform.OS === 'web') {
@@ -46,3 +52,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+
+console.log('[Supabase] Client initialized for platform:', Platform.OS);

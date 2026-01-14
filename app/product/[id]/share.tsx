@@ -84,7 +84,7 @@ export default function ProductShare() {
         throw new Error('Product not found');
       }
 
-      console.log('Product loaded:', productData.name);
+      console.log('[ProductShare] Product loaded:', productData.name, 'form_id:', productData.form_id);
       setProduct(productData);
 
       const { data: companyData } = await supabase
@@ -402,11 +402,14 @@ export default function ProductShare() {
                 </Text>
               </View>
             ) : product.form_id ? (
-              <CustomFormRenderer
-                formId={product.form_id}
-                onSubmit={handleSubmitContact}
-                submitButtonText={submitting ? 'Submitting...' : 'Submit'}
-              />
+              <>
+                {console.log('[ProductShare] Rendering CustomFormRenderer with formId:', product.form_id)}
+                <CustomFormRenderer
+                  formId={product.form_id}
+                  onSubmit={handleSubmitContact}
+                  submitButtonText={submitting ? 'Submitting...' : 'Submit'}
+                />
+              </>
             ) : (
               <ScrollView style={styles.formContainer}>
                 <Text style={styles.label}>Name *</Text>
