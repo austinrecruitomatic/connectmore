@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform, Modal } from 'react-native';
 import { ChevronDown, Upload, FileText, AlertCircle, X } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-image-picker';
@@ -65,6 +65,10 @@ export default function W9Form({ onComplete, userId }: W9FormProps) {
   const [showEntityTypeModal, setShowEntityTypeModal] = useState(false);
   const [showTaxIdTypeModal, setShowTaxIdTypeModal] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
+
+  useEffect(() => {
+    console.log('W9Form mounted with userId:', userId);
+  }, []);
 
   const formatTaxId = (value: string, type: string) => {
     const numbers = value.replace(/\D/g, '');
@@ -134,13 +138,21 @@ export default function W9Form({ onComplete, userId }: W9FormProps) {
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    if (!userId || userId === '') {
+      console.error('W9 Form Error: No user ID provided');
+      Alert.alert('Error', 'User session not found. Please log in again.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const numbers = taxId.replace(/\D/g, '');
       const last4 = numbers.slice(-4);
 
-      const { error } = await supabase
+      console.log('Submitting W-9 for user:', userId);
+
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({
           w9_completed: true,
@@ -161,18 +173,31 @@ export default function W9Form({ onComplete, userId }: W9FormProps) {
         })
         .eq('id', userId);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('W-9 Update Error:', updateError);
+        throw updateError;
+      }
 
-      await supabase.rpc('log_w9_access', {
+      console.log('W-9 data updated successfully');
+
+      const { error: rpcError } = await supabase.rpc('log_w9_access', {
         p_profile_id: userId,
         p_action: 'submitted',
       });
 
+      if (rpcError) {
+        console.error('W-9 Audit Log Error:', rpcError);
+      }
+
       Alert.alert('Success', 'W-9 information submitted successfully!');
       onComplete();
-    } catch (error) {
-      console.error('Error submitting W-9:', error);
-      Alert.alert('Error', 'Failed to submit W-9 information. Please try again.');
+    } catch (error: any) {
+      console.error('Supabase tried to submit w9 but it didnt work');
+      console.error('Full error details:', error);
+      Alert.alert(
+        'Submission Error',
+        error?.message || 'Failed to submit W-9 information. Please try again.'
+      );
     } finally {
       setLoading(false);
     }

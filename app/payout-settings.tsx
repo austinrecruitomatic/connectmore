@@ -27,9 +27,13 @@ export default function PayoutSettingsScreen() {
   const [showW9Form, setShowW9Form] = useState(false);
 
   useEffect(() => {
-    if (profile?.user_type === 'affiliate') {
+    if (!profile) {
+      return;
+    }
+
+    if (profile.user_type === 'affiliate') {
       loadPreferences();
-    } else if (profile?.user_type === 'company') {
+    } else if (profile.user_type === 'company') {
       setLoading(false);
     }
   }, [profile]);
@@ -209,7 +213,7 @@ export default function PayoutSettingsScreen() {
     );
   };
 
-  if (loading) {
+  if (loading || !profile) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3B82F6" />
@@ -296,7 +300,14 @@ export default function PayoutSettingsScreen() {
   const selectedMethod = PAYMENT_METHODS.find(m => m.value === paymentMethod);
 
   if (showW9Form) {
-    return <W9Form onComplete={handleW9Complete} userId={profile?.id || ''} />;
+    if (!profile?.id) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>User profile not found. Please refresh the page.</Text>
+        </View>
+      );
+    }
+    return <W9Form onComplete={handleW9Complete} userId={profile.id} />;
   }
 
   return (
@@ -447,6 +458,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   header: {
     marginBottom: 24,
