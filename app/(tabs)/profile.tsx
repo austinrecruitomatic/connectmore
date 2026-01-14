@@ -778,7 +778,48 @@ export default function ProfileScreen() {
       ) : (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Settings</Text>
-          <View style={styles.infoCard}>
+
+          <TouchableOpacity
+            style={[
+              styles.infoCard,
+              !profile?.w9_completed && styles.urgentCard
+            ]}
+            onPress={() => router.push('/payout-settings')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.infoRow}>
+              <View style={[
+                styles.infoIcon,
+                !profile?.w9_completed && styles.urgentIcon
+              ]}>
+                <FileText size={20} color={!profile?.w9_completed ? "#EF4444" : "#10B981"} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={[
+                  styles.infoLabel,
+                  !profile?.w9_completed && styles.urgentLabel
+                ]}>
+                  W-9 Tax Information
+                </Text>
+                <Text style={[
+                  styles.infoValue,
+                  !profile?.w9_completed && styles.urgentValue
+                ]}>
+                  {profile?.w9_completed ? 'Verified' : 'Required - Complete Now'}
+                </Text>
+                <Text style={[
+                  styles.infoSubtext,
+                  !profile?.w9_completed && styles.urgentSubtext
+                ]}>
+                  {profile?.w9_completed
+                    ? 'Your tax information is on file'
+                    : 'IRS requirement for payments over $600/year'}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          <View style={[styles.infoCard, { marginTop: 12 }]}>
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
                 <Wallet size={20} color="#64748B" />
@@ -2905,5 +2946,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  urgentCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 2,
+    borderColor: '#EF4444',
+  },
+  urgentIcon: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  },
+  urgentLabel: {
+    color: '#FCA5A5',
+  },
+  urgentValue: {
+    color: '#FCA5A5',
+    fontWeight: '700',
+  },
+  urgentSubtext: {
+    color: '#FCA5A5',
   },
 });
