@@ -2,7 +2,7 @@
   "expo": {
     "name": "Connect More",
     "slug": "Connect-More",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/connect_more_icon.png",
     "scheme": "connectmore",
