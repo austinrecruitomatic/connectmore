@@ -7,7 +7,7 @@
     "icon": "./assets/images/connect_more_icon.png",
     "scheme": "connectmore",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.connectmore.app",
