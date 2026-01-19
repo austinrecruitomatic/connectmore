@@ -27,7 +27,14 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-updates"
+      "expo-updates",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Connect More uses your camera to let you take photos of documents, receipts, or job-related images when submitting referrals or managing your profile.",
+          "cameraPermission": "Connect More uses your camera to let you take photos of documents, receipts, or job-related images when submitting referrals or managing your profile."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
