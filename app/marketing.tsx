@@ -101,6 +101,7 @@ export default function MarketingPage() {
         </View>
       </View>
 
+      {/* Screenshots section - Add real app screenshots here
       <View style={styles.appPreview}>
         <Text style={styles.sectionTitle}>See It In Action</Text>
         <Text style={styles.sectionSubtitle}>
@@ -114,32 +115,33 @@ export default function MarketingPage() {
           style={styles.screenshotsScroll}
         >
           <Image
-            source={require('../assets/images/untitled_design_(95).png')}
+            source={require('../assets/images/screenshot-1.png')}
             style={styles.screenshot}
             resizeMode="contain"
           />
           <Image
-            source={require('../assets/images/untitled_design_(96).png')}
+            source={require('../assets/images/screenshot-2.png')}
             style={styles.screenshot}
             resizeMode="contain"
           />
           <Image
-            source={require('../assets/images/untitled_design_(97).png')}
+            source={require('../assets/images/screenshot-3.png')}
             style={styles.screenshot}
             resizeMode="contain"
           />
           <Image
-            source={require('../assets/images/untitled_design_(98).png')}
+            source={require('../assets/images/screenshot-4.png')}
             style={styles.screenshot}
             resizeMode="contain"
           />
           <Image
-            source={require('../assets/images/untitled_design_(99).png')}
+            source={require('../assets/images/screenshot-5.png')}
             style={styles.screenshot}
             resizeMode="contain"
           />
         </ScrollView>
       </View>
+      */}
 
       <View style={styles.cta}>
         <Text style={styles.ctaTitle}>We Only Get Paid If You Get Paid</Text>
