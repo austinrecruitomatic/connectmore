@@ -34,6 +34,7 @@ type AuthContextType = {
   signUp: (email: string, password: string, fullName: string, userType: 'company' | 'affiliate', companyName?: string, businessCategory?: string, recruiterCode?: string) => Promise<{ error: any; userId?: string; companyId?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  deleteAccount: () => Promise<{ error: any }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -189,6 +190,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteAccount = async () => {
+    console.log('AuthContext: deleteAccount called');
+    try {
+      if (!user) {
+        return { error: { message: 'No user logged in' } };
+      }
+
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        body: { userId: user.id },
+      });
+
+      if (error) {
+        console.error('AuthContext: deleteAccount error:', error);
+        return { error };
+      }
+
+      await signOut();
+      return { error: null };
+    } catch (error) {
+      console.error('AuthContext: deleteAccount exception:', error);
+      return { error };
+    }
+  };
+
   const value = {
     session,
     user,
@@ -198,6 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     refreshProfile,
+    deleteAccount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Image, Modal, Platform } from 'react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'expo-router';
-import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown, Webhook, ImageIcon, Bell, FileText, MapPin, Search, Calendar, Users } from 'lucide-react-native';
+import { LogOut, User, Building2, Mail, Edit, X, DollarSign, Wallet, ChevronDown, Webhook, ImageIcon, Bell, FileText, MapPin, Search, Calendar, Users, Trash2, AlertTriangle } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
@@ -101,7 +101,7 @@ const CATEGORIES = [
 ];
 
 export default function ProfileScreen() {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, deleteAccount } = useAuth();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -113,6 +113,9 @@ export default function ProfileScreen() {
   const [selectedStateForCounties, setSelectedStateForCounties] = useState<string | null>(null);
   const [countySearchQuery, setCountySearchQuery] = useState('');
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [saving, setSaving] = useState(false);
   const [company, setCompany] = useState<Company | null>(null);
   const [editForm, setEditForm] = useState({
@@ -631,6 +634,35 @@ export default function ProfileScreen() {
       console.error('Sign out error:', error);
       Alert.alert('Error', 'Failed to sign out. Please try again.');
       setSigningOut(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    setShowDeleteAccountModal(true);
+    setDeleteConfirmText('');
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (deleteConfirmText.toLowerCase() !== 'delete') {
+      Alert.alert('Error', 'Please type "DELETE" to confirm account deletion');
+      return;
+    }
+
+    try {
+      setDeletingAccount(true);
+      const { error } = await deleteAccount();
+
+      if (error) {
+        console.error('Delete account error:', error);
+        Alert.alert('Error', 'Failed to delete account. Please try again or contact support.');
+        setDeletingAccount(false);
+        setShowDeleteAccountModal(false);
+      }
+    } catch (error) {
+      console.error('Delete account exception:', error);
+      Alert.alert('Error', 'Failed to delete account. Please try again or contact support.');
+      setDeletingAccount(false);
+      setShowDeleteAccountModal(false);
     }
   };
 
@@ -1331,6 +1363,24 @@ export default function ProfileScreen() {
           <>
             <LogOut size={20} color="#fff" />
             <Text style={styles.signOutButtonText}>Sign Out</Text>
+          </>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.deleteAccountButton, deletingAccount && styles.deleteAccountButtonDisabled]}
+        onPress={handleDeleteAccount}
+        disabled={deletingAccount}
+      >
+        {deletingAccount ? (
+          <>
+            <ActivityIndicator size="small" color="#fff" />
+            <Text style={styles.deleteAccountButtonText}>Deleting Account...</Text>
+          </>
+        ) : (
+          <>
+            <Trash2 size={20} color="#fff" />
+            <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
           </>
         )}
       </TouchableOpacity>
@@ -2130,6 +2180,57 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
+      <Modal visible={showDeleteAccountModal} animationType="fade" transparent>
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <View style={styles.deleteModalHeader}>
+              <AlertTriangle size={32} color="#DC2626" />
+            </View>
+            <Text style={styles.confirmModalTitle}>Delete Account</Text>
+            <Text style={styles.confirmModalMessage}>
+              This action cannot be undone. All your data will be permanently deleted.
+            </Text>
+            <Text style={styles.deleteConfirmLabel}>
+              Type "DELETE" to confirm:
+            </Text>
+            <TextInput
+              style={styles.deleteConfirmInput}
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              placeholder="Type DELETE"
+              placeholderTextColor="#64748B"
+              autoCapitalize="characters"
+            />
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={styles.confirmModalCancelButton}
+                onPress={() => {
+                  setShowDeleteAccountModal(false);
+                  setDeleteConfirmText('');
+                }}
+                disabled={deletingAccount}
+              >
+                <Text style={styles.confirmModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.deleteAccountConfirmButton,
+                  (deletingAccount || deleteConfirmText.toLowerCase() !== 'delete') && styles.confirmModalConfirmButtonDisabled
+                ]}
+                onPress={confirmDeleteAccount}
+                disabled={deletingAccount || deleteConfirmText.toLowerCase() !== 'delete'}
+              >
+                {deletingAccount ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.confirmModalConfirmText}>Delete Forever</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={showContractModal} animationType="slide" transparent={false}>
         <View style={styles.contractPreviewContainer}>
           <View style={styles.contractPreviewHeader}>
@@ -2316,7 +2417,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     gap: 8,
-    marginBottom: 32,
+    marginBottom: 16,
   },
   signOutButtonDisabled: {
     opacity: 0.6,
@@ -2325,6 +2426,60 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#7F1D1D',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#991B1B',
+  },
+  deleteAccountButtonDisabled: {
+    opacity: 0.6,
+  },
+  deleteAccountButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  deleteModalHeader: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  deleteConfirmLabel: {
+    fontSize: 14,
+    color: '#E2E8F0',
+    marginTop: 16,
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  deleteConfirmInput: {
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginBottom: 20,
+    width: '100%',
+  },
+  deleteAccountConfirmButton: {
+    flex: 1,
+    backgroundColor: '#DC2626',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   editButton: {
     flexDirection: 'row',
