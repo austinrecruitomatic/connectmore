@@ -1349,29 +1349,32 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <TouchableOpacity
-        style={[styles.signOutButton, signingOut && styles.signOutButtonDisabled]}
-        onPress={handleSignOut}
-        disabled={signingOut}
-      >
-        {signingOut ? (
-          <>
-            <ActivityIndicator size="small" color="#fff" />
-            <Text style={styles.signOutButtonText}>Signing Out...</Text>
-          </>
-        ) : (
-          <>
-            <LogOut size={20} color="#fff" />
-            <Text style={styles.signOutButtonText}>Sign Out</Text>
-          </>
-        )}
-      </TouchableOpacity>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Account Actions</Text>
 
-      <TouchableOpacity
-        style={[styles.deleteAccountButton, deletingAccount && styles.deleteAccountButtonDisabled]}
-        onPress={handleDeleteAccount}
-        disabled={deletingAccount}
-      >
+        <TouchableOpacity
+          style={[styles.signOutButton, signingOut && styles.signOutButtonDisabled]}
+          onPress={handleSignOut}
+          disabled={signingOut}
+        >
+          {signingOut ? (
+            <>
+              <ActivityIndicator size="small" color="#fff" />
+              <Text style={styles.signOutButtonText}>Signing Out...</Text>
+            </>
+          ) : (
+            <>
+              <LogOut size={20} color="#fff" />
+              <Text style={styles.signOutButtonText}>Sign Out</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.deleteAccountButton, deletingAccount && styles.deleteAccountButtonDisabled]}
+          onPress={handleDeleteAccount}
+          disabled={deletingAccount}
+        >
         {deletingAccount ? (
           <>
             <ActivityIndicator size="small" color="#fff" />
@@ -1384,6 +1387,7 @@ export default function ProfileScreen() {
           </>
         )}
       </TouchableOpacity>
+      </View>
 
       <Modal visible={showEditModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -2417,7 +2421,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   signOutButtonDisabled: {
     opacity: 0.6,
@@ -2435,7 +2439,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     gap: 8,
-    marginBottom: 32,
     borderWidth: 1,
     borderColor: '#991B1B',
   },
