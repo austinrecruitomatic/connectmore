@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to pull from GitHub while preserving Connect More configuration
+# Script to pull from GitHub while preserving Network More configuration
 
 set -e
 
@@ -13,7 +13,7 @@ git pull origin main || git pull origin master
 # Pop the stash to restore local config
 git stash pop || true
 
-echo "🔧 Applying Connect More configuration..."
+echo "🔧 Applying Network More configuration..."
 
 # Ensure eas.json exists with environment variables
 if [ ! -f eas.json ]; then

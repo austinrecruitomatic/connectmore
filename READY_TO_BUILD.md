@@ -8,8 +8,8 @@
    - Working tree is clean
 
 2. **Configuration**: ✅ Complete
-   - `app.json` configured with "Connect More" name
-   - Bundle ID: `com.connectmore.app`
+   - `app.json` configured with "Network More" name
+   - Bundle ID: `com.networkmore.app`
    - `eas.json` has environment variables configured
    - EAS project ID configured
    - Updates configuration ready

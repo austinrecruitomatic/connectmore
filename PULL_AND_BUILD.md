@@ -4,7 +4,7 @@
 
 This workflow will:
 1. Pull latest changes from GitHub
-2. Preserve "Connect More" app configuration
+2. Preserve "Network More" app configuration
 3. Ensure build configuration is correct
 4. Build and submit to TestFlight
 
@@ -14,7 +14,7 @@ This workflow will:
 
 ```bash
 # Stash your local configuration changes
-git stash push -m "Connect More config" app.json eas.json package.json package-lock.json
+git stash push -m "Network More config" app.json eas.json package.json package-lock.json
 
 # Pull latest from GitHub
 git pull origin main
@@ -51,15 +51,15 @@ eas build --platform ios --profile production --auto-submit
 
 When pulling from GitHub, make sure these settings in `app.json` remain:
 
-- `name: "Connect More"`
-- `bundleIdentifier: "com.connectmore.app"`  
-- `package: "com.connectmore.app"`
-- `scheme: "connectmore"`
+- `name: "Network More"`
+- `bundleIdentifier: "com.networkmore.app"`  
+- `package: "com.networkmore.app"`
+- `scheme: "networkmore"`
 - EAS project ID and update configuration
 - `expo-updates` plugin
 
 ## Important Files
 
 - `eas.json` - Must have environment variables in production.env section
-- `app.json` - Must have Connect More name and bundle ID
+- `app.json` - Must have Network More name and bundle ID
 

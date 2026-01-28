@@ -1,13 +1,13 @@
-# Connect More - App Store Submission Pages
+# Network More - App Store Submission Pages
 
 This document lists all the pages created for Apple App Store submission requirements.
 
 ## Marketing & Support Pages
 
 ### 1. Landing Page
-**Route:** `/connect-more-landing`
+**Route:** `/network-more-landing`
 
-A professional marketing page showcasing Connect More's features:
+A professional marketing page showcasing Network More's features:
 - Hero section with clear value proposition
 - Feature highlights with icons
 - Statistics section
@@ -16,7 +16,7 @@ A professional marketing page showcasing Connect More's features:
 - Footer with contact information
 
 ### 2. Support Page
-**Route:** `/connect-more-support`
+**Route:** `/network-more-support`
 
 Comprehensive support center including:
 - 12 detailed FAQs covering all aspects of the platform
@@ -52,7 +52,7 @@ Comprehensive terms including:
 
 ### Apple Requirements Met:
 ✅ App description and marketing page
-✅ Support contact information (support@connectmore.app)
+✅ Support contact information (support@networkmore.app)
 ✅ Comprehensive FAQ section
 ✅ Privacy Policy page
 ✅ Terms of Service page
@@ -71,8 +71,8 @@ Comprehensive terms including:
 ### On Device:
 1. Build the app using EAS or Expo Dev Client
 2. Navigate to:
-   - Landing: `/connect-more-landing`
-   - Support: `/connect-more-support`
+   - Landing: `/network-more-landing`
+   - Support: `/network-more-support`
    - Privacy: `/privacy-policy`
    - Terms: `/terms-of-service`
 
@@ -82,10 +82,10 @@ All pages work on web platform and can be tested before building for iOS.
 ## App Store Submission Notes
 
 ### App Information:
-- **Name:** Connect More
+- **Name:** Network More
 - **Category:** Business / Productivity
-- **Support URL:** Point to `/connect-more-support` route
-- **Marketing URL:** Point to `/connect-more-landing` route
+- **Support URL:** Point to `/network-more-support` route
+- **Marketing URL:** Point to `/network-more-landing` route
 - **Privacy Policy URL:** Point to `/privacy-policy` route
 
 ### Description Highlights:
@@ -97,7 +97,7 @@ All pages work on web platform and can be tested before building for iOS.
 - Professional landing page builder
 
 ### Contact Information:
-- **Email:** support@connectmore.app
+- **Email:** support@networkmore.app
 - **Support:** Available through in-app support page
 
 ## Additional Features

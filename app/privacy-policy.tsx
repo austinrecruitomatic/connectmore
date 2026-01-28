@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Introduction</Text>
           <Text style={styles.paragraph}>
-            Connect More ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy
+            Network More ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy
             explains how we collect, use, disclose, and safeguard your information when you use our mobile
             application and services.
           </Text>
@@ -225,12 +225,12 @@ export default function PrivacyPolicy() {
             Email: support@connectmore.app
           </Text>
           <Text style={styles.paragraph}>
-            Connect More Support Team
+            Network More Support Team
           </Text>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>© 2026 Connect More. All rights reserved.</Text>
+          <Text style={styles.footerText}>© 2026 Network More. All rights reserved.</Text>
         </View>
       </View>
     </ScrollView>

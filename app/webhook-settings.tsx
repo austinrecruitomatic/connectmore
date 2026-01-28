@@ -12,7 +12,7 @@ export default function WebhookSettings() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookSecret, setWebhookSecret] = useState('');
   const [webhookEnabled, setWebhookEnabled] = useState(false);
-  const [leadSourceTag, setLeadSourceTag] = useState('connect more');
+  const [leadSourceTag, setLeadSourceTag] = useState('network more');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; status?: number } | null>(null);
   const [showSaved, setShowSaved] = useState(false);
@@ -48,7 +48,7 @@ export default function WebhookSettings() {
       setWebhookUrl(data.webhook_url || '');
       setWebhookSecret(data.webhook_secret || '');
       setWebhookEnabled(data.webhook_enabled || false);
-      setLeadSourceTag(data.lead_source_tag || 'connect more');
+      setLeadSourceTag(data.lead_source_tag || 'network more');
       console.log('Set webhook data:', {
         url: data.webhook_url,
         enabled: data.webhook_enabled,
@@ -84,7 +84,7 @@ export default function WebhookSettings() {
       webhook_url: webhookUrl || null,
       webhook_secret: webhookSecret || null,
       webhook_enabled: webhookEnabled,
-      lead_source_tag: leadSourceTag || 'connect more',
+      lead_source_tag: leadSourceTag || 'network more',
     };
 
     console.log('Saving webhook settings for company:', companyId);
@@ -159,7 +159,7 @@ export default function WebhookSettings() {
       email: "john.doe@example.com",
       phone: "+1234567890",
       company: "Acme Corp",
-      message: "This is a test webhook from Connect More",
+      message: "This is a test webhook from Network More",
       contract_value: 5000,
       contract_length_months: 12,
       status: "new",
@@ -335,7 +335,7 @@ export default function WebhookSettings() {
             style={styles.input}
             value={leadSourceTag}
             onChangeText={setLeadSourceTag}
-            placeholder="connect more"
+            placeholder="network more"
             placeholderTextColor="#64748B"
           />
         </View>

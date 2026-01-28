@@ -18,7 +18,7 @@ type FAQItem = {
   answer: string;
 };
 
-export default function ConnectMoreSupport() {
+export default function NetworkMoreSupport() {
   const router = useRouter();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [contactForm, setContactForm] = useState({
@@ -31,16 +31,16 @@ export default function ConnectMoreSupport() {
 
   const faqs: FAQItem[] = [
     {
-      question: 'What is Connect More?',
-      answer: 'Connect More is an affiliate marketing platform that connects businesses with affiliates. Businesses can find partners to promote their products, and affiliates can earn commissions by referring customers to trusted companies.',
+      question: 'What is Network More?',
+      answer: 'Network More is an affiliate marketing platform that connects businesses with affiliates. Businesses can find partners to promote their products, and affiliates can earn commissions by referring customers to trusted companies.',
     },
     {
       question: 'How do I sign up?',
-      answer: 'You can sign up by downloading the Connect More app and creating an account. Choose whether you want to join as a business or as an affiliate, and complete the registration process.',
+      answer: 'You can sign up by downloading the Network More app and creating an account. Choose whether you want to join as a business or as an affiliate, and complete the registration process.',
     },
     {
-      question: 'Is Connect More free to use?',
-      answer: 'Yes, Connect More is free to join for both businesses and affiliates. We only charge a small platform fee on successful transactions to keep the platform running.',
+      question: 'Is Network More free to use?',
+      answer: 'Yes, Network More is free to join for both businesses and affiliates. We only charge a small platform fee on successful transactions to keep the platform running.',
     },
     {
       question: 'How do commissions work?',
@@ -59,8 +59,8 @@ export default function ConnectMoreSupport() {
       answer: 'Your dashboard provides real-time tracking of all your leads, conversions, and earnings. You can see detailed analytics including lead status, conversion rates, and commission history.',
     },
     {
-      question: 'What types of businesses can use Connect More?',
-      answer: 'Connect More supports businesses across all industries including home services, professional services, retail, e-commerce, and more. Any business that wants to grow through partnerships can benefit from our platform.',
+      question: 'What types of businesses can use Network More?',
+      answer: 'Network More supports businesses across all industries including home services, professional services, retail, e-commerce, and more. Any business that wants to grow through partnerships can benefit from our platform.',
     },
     {
       question: 'How do I create a landing page?',
@@ -76,7 +76,7 @@ export default function ConnectMoreSupport() {
     },
     {
       question: 'How do I contact support?',
-      answer: 'You can contact our support team by filling out the form below, or by emailing us directly at support@connectmore.app. We typically respond within 24 hours.',
+      answer: 'You can contact our support team by filling out the form below, or by emailing us directly at support@networkmore.app. We typically respond within 24 hours.',
     },
   ];
 
@@ -85,7 +85,7 @@ export default function ConnectMoreSupport() {
   };
 
   const handleEmailContact = () => {
-    Linking.openURL('mailto:support@connectmore.app');
+    Linking.openURL('mailto:support@networkmore.app');
   };
 
   const handleSubmitContact = async () => {
@@ -96,12 +96,12 @@ export default function ConnectMoreSupport() {
 
     setSubmitting(true);
 
-    const subject = encodeURIComponent(`[Connect More Support] ${contactForm.subject}`);
+    const subject = encodeURIComponent(`[Network More Support] ${contactForm.subject}`);
     const body = encodeURIComponent(
       `Name: ${contactForm.name}\nEmail: ${contactForm.email}\n\nMessage:\n${contactForm.message}`
     );
 
-    await Linking.openURL(`mailto:support@connectmore.app?subject=${subject}&body=${body}`);
+    await Linking.openURL(`mailto:support@networkmore.app?subject=${subject}&body=${body}`);
 
     setContactForm({ name: '', email: '', subject: '', message: '' });
     setSubmitting(false);
@@ -133,7 +133,7 @@ export default function ConnectMoreSupport() {
           <TouchableOpacity style={styles.quickLinkCard} onPress={handleEmailContact}>
             <Mail size={32} color="#007AFF" />
             <Text style={styles.quickLinkTitle}>Email Support</Text>
-            <Text style={styles.quickLinkDescription}>support@connectmore.app</Text>
+            <Text style={styles.quickLinkDescription}>support@networkmore.app</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quickLinkCard} onPress={() => setExpandedFAQ(0)}>
@@ -142,7 +142,7 @@ export default function ConnectMoreSupport() {
             <Text style={styles.quickLinkDescription}>Common questions</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickLinkCard} onPress={() => router.push('/connect-more-landing')}>
+          <TouchableOpacity style={styles.quickLinkCard} onPress={() => router.push('/network-more-landing')}>
             <Book size={32} color="#007AFF" />
             <Text style={styles.quickLinkTitle}>About</Text>
             <Text style={styles.quickLinkDescription}>Learn more about us</Text>
@@ -246,11 +246,11 @@ export default function ConnectMoreSupport() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerTitle}>Connect More Support</Text>
+          <Text style={styles.footerTitle}>Network More Support</Text>
           <Text style={styles.footerText}>We're here to help you succeed</Text>
           <TouchableOpacity onPress={handleEmailContact} style={styles.footerEmailButton}>
             <Mail size={16} color="#007AFF" style={{ marginRight: 8 }} />
-            <Text style={styles.footerEmailText}>support@connectmore.app</Text>
+            <Text style={styles.footerEmailText}>support@networkmore.app</Text>
           </TouchableOpacity>
           <View style={styles.footerLinks}>
             <TouchableOpacity onPress={() => router.push('/privacy-policy')}>
@@ -261,7 +261,7 @@ export default function ConnectMoreSupport() {
               <Text style={styles.footerLinkText}>Terms of Service</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.footerCopyright}>© 2026 Connect More. All rights reserved.</Text>
+          <Text style={styles.footerCopyright}>© 2026 Network More. All rights reserved.</Text>
         </View>
       </View>
     </ScrollView>

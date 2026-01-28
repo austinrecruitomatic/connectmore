@@ -256,7 +256,7 @@ export default function PartnershipsScreen() {
   };
 
   const handleCopyProductLink = (productId: string, affiliateCode: string) => {
-    const productShareUrl = `https://connect-more.io/product/${productId}/share?ref=${affiliateCode}`;
+    const productShareUrl = `https://network-more.io/product/${productId}/share?ref=${affiliateCode}`;
     Clipboard.setString(productShareUrl);
     Alert.alert('Product Link Copied!', 'Your shareable product link has been copied to clipboard.');
   };
@@ -266,7 +266,7 @@ export default function PartnershipsScreen() {
   };
 
   const handleCopyLink = (affiliateCode: string) => {
-    const landingPageUrl = `https://connect-more.io/lp/${affiliateCode}`;
+    const landingPageUrl = `https://network-more.io/lp/${affiliateCode}`;
     Clipboard.setString(landingPageUrl);
     Alert.alert('Link Copied!', 'Your shareable landing page link has been copied to clipboard.');
   };

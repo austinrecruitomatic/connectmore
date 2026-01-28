@@ -37,13 +37,13 @@ eas build --platform ios --profile production --auto-submit
 - [x] EAS CLI installed (`eas --version`)
 - [x] Logged into EAS (`eas whoami` shows: austthomps12)
 - [ ] Apple Developer Account (paid membership required)
-- [ ] App created in App Store Connect with bundle ID: `com.connectmore.app`
+- [ ] App created in App Store Connect with bundle ID: `com.networkmore.app`
 - [ ] Apple ID credentials ready
 
 ## Important Notes
 
-- The app name in the store will be "Connect More" (from app.json)
-- Bundle ID: `com.connectmore.app`
+- The app name in the store will be "Network More" (from app.json)
+- Bundle ID: `com.networkmore.app`
 - First submission may require additional setup in App Store Connect
 - After submission, the app will appear in TestFlight within a few hours
 

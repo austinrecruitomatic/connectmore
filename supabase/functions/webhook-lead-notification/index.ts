@@ -132,7 +132,7 @@ Deno.serve(async (req: Request) => {
       contract_value: submission.contract_value,
       contract_length_months: submission.contract_length_months,
       status: submission.status,
-      source_tag: company.lead_source_tag || "connect more",
+      source_tag: company.lead_source_tag || "network more",
       submitted_at: submission.created_at,
       updated_at: submission.updated_at,
       ...(submission.event_type === 'lead_update' && {

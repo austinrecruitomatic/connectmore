@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Users, TrendingUp, DollarSign, Network, Shield, Zap, ArrowRight, Mail } from 'lucide-react-native';
 
-export default function ConnectMoreLanding() {
+export default function NetworkMoreLanding() {
   const router = useRouter();
 
   const features = [
@@ -48,7 +48,7 @@ export default function ConnectMoreLanding() {
   ];
 
   const handleEmailContact = () => {
-    Linking.openURL('mailto:support@connectmore.app');
+    Linking.openURL('mailto:support@networkmore.app');
   };
 
   const handleGetStarted = () => {
@@ -56,20 +56,20 @@ export default function ConnectMoreLanding() {
   };
 
   const handleSupport = () => {
-    router.push('/connect-more-support');
+    router.push('/network-more-support');
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.hero}>
         <View style={styles.heroContent}>
-          <Text style={styles.heroTitle}>Connect More</Text>
+          <Text style={styles.heroTitle}>Network More</Text>
           <Text style={styles.heroSubtitle}>
             The Ultimate Affiliate Marketing Platform
           </Text>
           <Text style={styles.heroDescription}>
             Empower your business with a powerful network of affiliates, or earn commissions by referring
-            customers to trusted partners. Connect More makes affiliate marketing simple, transparent, and profitable.
+            customers to trusted partners. Network More makes affiliate marketing simple, transparent, and profitable.
           </Text>
           <View style={styles.ctaContainer}>
             <TouchableOpacity style={styles.primaryButton} onPress={handleGetStarted}>
@@ -164,7 +164,7 @@ export default function ConnectMoreLanding() {
       </View>
 
       <View style={styles.ctaSection}>
-        <Text style={styles.ctaSectionTitle}>Ready to Connect More?</Text>
+        <Text style={styles.ctaSectionTitle}>Ready to Network More?</Text>
         <Text style={styles.ctaSectionSubtitle}>
           Join thousands of businesses and affiliates growing together
         </Text>
@@ -175,7 +175,7 @@ export default function ConnectMoreLanding() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Connect More</Text>
+        <Text style={styles.footerText}>Network More</Text>
         <View style={styles.footerLinks}>
           <TouchableOpacity onPress={handleSupport} style={styles.footerLink}>
             <Text style={styles.footerLinkText}>Support</Text>
@@ -189,9 +189,9 @@ export default function ConnectMoreLanding() {
         </View>
         <TouchableOpacity onPress={handleEmailContact} style={styles.footerLink}>
           <Mail size={16} color="#666" style={{ marginRight: 4 }} />
-          <Text style={styles.footerLinkText}>support@connectmore.app</Text>
+          <Text style={styles.footerLinkText}>support@networkmore.app</Text>
         </TouchableOpacity>
-        <Text style={styles.footerCopyright}>© 2026 Connect More. All rights reserved.</Text>
+        <Text style={styles.footerCopyright}>© 2026 Network More. All rights reserved.</Text>
       </View>
     </ScrollView>
   );

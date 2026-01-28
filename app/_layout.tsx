@@ -22,8 +22,8 @@ export default function RootLayout() {
         <Stack.Screen name="admin/purchases" />
         <Stack.Screen name="company/[id]" />
         <Stack.Screen name="company/[id]/write-review" />
-        <Stack.Screen name="connect-more-landing" />
-        <Stack.Screen name="connect-more-support" />
+        <Stack.Screen name="network-more-landing" />
+        <Stack.Screen name="network-more-support" />
         <Stack.Screen name="customer-earnings" />
         <Stack.Screen name="customer-portal" />
         <Stack.Screen name="customer-referrals" />

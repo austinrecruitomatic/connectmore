@@ -1,21 +1,21 @@
 #!/bin/bash
 # Pull from GitHub and prepare for TestFlight build
-# This preserves the "Connect More" configuration
+# This preserves the "Network More" configuration
 
 set -e
 
 echo "🔄 Pulling latest changes from GitHub..."
 
 # Stash only the config files we want to preserve
-git stash push -m "Connect More config backup" app.json eas.json 2>/dev/null || true
+git stash push -m "Network More config backup" app.json eas.json 2>/dev/null || true
 
 # Pull latest changes
 git pull origin main || git pull origin master
 
 # Restore the stashed config
-if git stash list | grep -q "Connect More config backup"; then
+if git stash list | grep -q "Network More config backup"; then
     git stash pop
-    echo "✅ Restored Connect More configuration"
+    echo "✅ Restored Network More configuration"
 else
     echo "⚠️  No stashed config found, applying configuration..."
 fi
@@ -53,7 +53,7 @@ if [ ! -f eas.json ]; then
 EOF
 fi
 
-# Apply Connect More config to app.json using a Node script
+# Apply Network More config to app.json using a Node script
 node << 'NODE_SCRIPT'
 const fs = require('fs');
 const appJsonPath = './app.json';
@@ -61,8 +61,8 @@ const appJsonPath = './app.json';
 if (fs.existsSync(appJsonPath)) {
     const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'));
     
-    // Apply Connect More configuration
-    appJson.expo.name = "Connect More";
+    // Apply Network More configuration
+    appJson.expo.name = "Network More";
     appJson.expo.scheme = "connectmore";
     
     if (!appJson.expo.ios) appJson.expo.ios = {};
@@ -91,7 +91,7 @@ if (fs.existsSync(appJsonPath)) {
     }
     
     fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2) + '\n');
-    console.log('✅ Applied Connect More configuration to app.json');
+    console.log('✅ Applied Network More configuration to app.json');
 }
 NODE_SCRIPT
 

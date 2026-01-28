@@ -25,7 +25,7 @@ export default function TermsOfService() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Agreement to Terms</Text>
           <Text style={styles.paragraph}>
-            By accessing or using Connect More ("the Service," "the App"), you agree to be bound by these
+            By accessing or using Network More ("the Service," "the App"), you agree to be bound by these
             Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access
             the Service.
           </Text>
@@ -34,7 +34,7 @@ export default function TermsOfService() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Description of Service</Text>
           <Text style={styles.paragraph}>
-            Connect More is an affiliate marketing platform that connects businesses with affiliates to
+            Network More is an affiliate marketing platform that connects businesses with affiliates to
             promote products and services. The Service enables:
           </Text>
           <Text style={styles.bulletPoint}>• Businesses to create products and find affiliate partners</Text>
@@ -91,7 +91,7 @@ export default function TermsOfService() {
             • Payouts are processed through Stripe according to each business's payment schedule
           </Text>
           <Text style={styles.bulletPoint}>
-            • Connect More is not responsible for disputes between affiliates and businesses
+            • Network More is not responsible for disputes between affiliates and businesses
           </Text>
           <Text style={styles.bulletPoint}>
             • Commissions may be withheld or reversed for fraudulent activity
@@ -115,7 +115,7 @@ export default function TermsOfService() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Platform Fees</Text>
           <Text style={styles.paragraph}>
-            Connect More charges a platform fee on successful transactions to maintain and improve the
+            Network More charges a platform fee on successful transactions to maintain and improve the
             Service. Fee structures are clearly communicated and may be updated with notice. Standard
             payment processing fees apply through our payment provider, Stripe.
           </Text>
@@ -124,12 +124,12 @@ export default function TermsOfService() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Intellectual Property</Text>
           <Text style={styles.paragraph}>
-            The Service and its original content, features, and functionality are owned by Connect More
+            The Service and its original content, features, and functionality are owned by Network More
             and are protected by international copyright, trademark, and other intellectual property laws.
           </Text>
           <Text style={styles.paragraph}>
             You retain ownership of any content you submit to the Service. By submitting content, you grant
-            Connect More a worldwide, non-exclusive, royalty-free license to use, reproduce, and display
+            Network More a worldwide, non-exclusive, royalty-free license to use, reproduce, and display
             such content in connection with operating and providing the Service.
           </Text>
         </View>
@@ -162,7 +162,7 @@ export default function TermsOfService() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Limitation of Liability</Text>
           <Text style={styles.paragraph}>
-            To the maximum extent permitted by law, Connect More shall not be liable for any indirect,
+            To the maximum extent permitted by law, Network More shall not be liable for any indirect,
             incidental, special, consequential, or punitive damages, or any loss of profits or revenues,
             whether incurred directly or indirectly, or any loss of data, use, or goodwill.
           </Text>
@@ -184,7 +184,7 @@ export default function TermsOfService() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Indemnification</Text>
           <Text style={styles.paragraph}>
-            You agree to indemnify and hold harmless Connect More and its affiliates from any claims,
+            You agree to indemnify and hold harmless Network More and its affiliates from any claims,
             damages, losses, liabilities, and expenses arising out of your use of the Service or violation
             of these Terms.
           </Text>
@@ -213,11 +213,11 @@ export default function TermsOfService() {
             If you have any questions about these Terms, please contact us at:
           </Text>
           <Text style={styles.paragraph}>Email: support@connectmore.app</Text>
-          <Text style={styles.paragraph}>Connect More Legal Team</Text>
+          <Text style={styles.paragraph}>Network More Legal Team</Text>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>© 2026 Connect More. All rights reserved.</Text>
+          <Text style={styles.footerText}>© 2026 Network More. All rights reserved.</Text>
         </View>
       </View>
     </ScrollView>

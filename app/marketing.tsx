@@ -167,7 +167,7 @@ export default function MarketingPage() {
             <Text style={styles.footerLink}>Terms of Service</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.footerText}>© 2024 Connect More. All rights reserved.</Text>
+        <Text style={styles.footerText}>© 2024 Network More. All rights reserved.</Text>
       </View>
     </ScrollView>
   );
