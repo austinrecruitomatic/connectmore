@@ -1,27 +1,27 @@
 {
   "expo": {
-    "name": "Connect More",
+    "name": "Network More",
     "slug": "bolt-expo-nativewind",
     "version": "1.0.3",
     "orientation": "portrait",
-    "icon": "./assets/images/connect_more_icon.png",
-    "scheme": "connectmore",
+    "icon": "./assets/images/network_more_icon.png",
+    "scheme": "networkmore",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.connectmore.app",
+      "bundleIdentifier": "com.networkmore.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.connectmore.app"
+      "package": "com.networkmore.app"
     },
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/network_more_icon.png"
     },
     "plugins": [
       "expo-router",
@@ -31,8 +31,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Connect More uses your camera to let you take photos of documents, receipts, or job-related images when submitting referrals or managing your profile.",
-          "cameraPermission": "Connect More uses your camera to let you take photos of documents, receipts, or job-related images when submitting referrals or managing your profile."
+          "photosPermission": "Network More uses your camera to let you take photos of documents, receipts, or job-related images when submitting referrals or managing your profile.",
+          "cameraPermission": "Network More uses your camera to let you take photos of documents, receipts, or job-related images when submitting referrals or managing your profile."
         }
       ]
     ],
